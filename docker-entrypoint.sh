@@ -13,6 +13,16 @@ if grep -q "<VirtualHost \*:80>" /etc/apache2/sites-available/000-default.conf; 
 fi
 
 # Respect APACHE_DOCUMENT_ROOT if provided (kept default to /var/www/html)
+# Allow serving both at root "/" (Render) and "/ShopToolNro" (local XAMPP-style paths)
+cat <<'EOF' >/etc/apache2/conf-enabled/001-shoptool-alias.conf
+Alias /ShopToolNro /var/www/html
+<Directory /var/www/html>
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+EOF
+
 if [ -n "${APACHE_DOCUMENT_ROOT:-}" ] && [ -d "$APACHE_DOCUMENT_ROOT" ]; then
   sed -ri "s#DocumentRoot /var/www/html#DocumentRoot ${APACHE_DOCUMENT_ROOT}#" /etc/apache2/sites-available/000-default.conf || true
   sed -ri "s#<Directory /var/www/>#<Directory ${APACHE_DOCUMENT_ROOT}/>#" /etc/apache2/apache2.conf || true
