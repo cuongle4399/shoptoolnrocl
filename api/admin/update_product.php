@@ -1,8 +1,9 @@
 <?php
-// update_product.php - FIXED (Added ob_clean, better error handling)
-@ob_clean();
-ob_start();
-header('Content-Type: application/json');
+// update_product.php - Admin update product (JSON only responses)
+if (ob_get_level()) { @ob_clean(); }
+header('Content-Type: application/json; charset=utf-8');
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 session_start();
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {

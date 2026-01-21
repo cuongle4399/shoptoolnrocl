@@ -1,6 +1,8 @@
 <?php
-ob_clean();
-header('Content-Type: application/json');
+if (ob_get_level()) { @ob_clean(); }
+header('Content-Type: application/json; charset=utf-8');
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 session_start();
 
 require_once '../../includes/functions.php';

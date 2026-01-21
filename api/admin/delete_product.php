@@ -1,7 +1,9 @@
 <?php
-// Xóa output buffer để không có whitespace
-ob_clean();
-header('Content-Type: application/json');
+// delete_product.php - Admin delete product (JSON only responses)
+if (ob_get_level()) { @ob_clean(); }
+header('Content-Type: application/json; charset=utf-8');
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 session_start();
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {

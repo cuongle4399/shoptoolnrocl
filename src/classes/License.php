@@ -187,6 +187,80 @@ class License {
     }
 
     /**
+     * Ban a license key (status = banned)
+     */
+    public function banKey($license_key) {
+        if (empty($license_key)) return false;
+
+        $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
+        $result = $this->db->callApi($endpoint, 'PATCH', ['status' => 'banned']);
+
+        $cache_key = "license_" . md5($license_key);
+        unset(self::$cache[$cache_key]);
+
+        return ($result && ($result->code == 200 || $result->code == 204));
+    }
+
+    /**
+     * Unban a license key (status = active)
+     */
+    public function unbanKey($license_key) {
+        if (empty($license_key)) return false;
+
+        $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
+        $result = $this->db->callApi($endpoint, 'PATCH', ['status' => 'active']);
+
+        $cache_key = "license_" . md5($license_key);
+        unset(self::$cache[$cache_key]);
+
+        return ($result && ($result->code == 200 || $result->code == 204));
+    }
+
+    /**
+     * Renew a license by extending expires_at by $days days
+     */
+    public function renewKey($license_key, $days) {
+        if (empty($license_key) || !is_numeric($days) || $days <= 0) return false;
+
+        $key = $this->getKeyByLicense($license_key);
+        $baseTs = 0;
+        if ($key && !empty($key['expires_at'])) {
+            $baseTs = strtotime($key['expires_at']);
+        }
+        if (!$baseTs) {
+            $baseTs = time();
+        }
+
+        $newExpires = date('c', $baseTs + ((int)$days * 86400));
+
+        $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
+        $result = $this->db->callApi($endpoint, 'PATCH', [
+            'expires_at' => $newExpires,
+            'status' => 'active'
+        ]);
+
+        $cache_key = "license_" . md5($license_key);
+        unset(self::$cache[$cache_key]);
+
+        return ($result && ($result->code == 200 || $result->code == 204));
+    }
+
+    /**
+     * Delete a license key
+     */
+    public function deleteKey($license_key) {
+        if (empty($license_key)) return false;
+
+        $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
+        $result = $this->db->callApi($endpoint, 'DELETE');
+
+        $cache_key = "license_" . md5($license_key);
+        unset(self::$cache[$cache_key]);
+
+        return ($result && ($result->code == 200 || $result->code == 204));
+    }
+
+    /**
      * Clear cache
      */
     public static function clearCache() {
