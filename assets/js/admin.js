@@ -1,3 +1,42 @@
+// ===== GLOBAL NOTIFICATION FALLBACK =====
+// Fallback showNotification nếu main.js chưa load
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'success', duration = 3200) {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + (type === 'error' ? 'error' : 'success');
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.innerHTML = `<div class="toast-body">${message}</div><button class="toast-close" aria-label="Close">&times;</button>`;
+
+        container.appendChild(toast);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('visible');
+            });
+        });
+
+        const remove = () => {
+            toast.classList.remove('visible');
+            toast.classList.add('closing');
+            setTimeout(() => { 
+                try { toast.remove(); } catch(e){} 
+            }, 300);
+        };
+
+        toast.querySelector('.toast-close').addEventListener('click', remove);
+        setTimeout(remove, duration);
+    };
+}
+
 // ===== PAGINATION STATE =====
 const paginationState = {
     users: { currentPage: 1, totalPages: 1, itemsPerPage: 7, allData: [] },

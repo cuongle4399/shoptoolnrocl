@@ -160,36 +160,35 @@ class API {
 }
 
 function showAlert(message, type = 'success') {
-    const alertContainer = document.getElementById('alertContainer');
-    if (!alertContainer) return;
+    // Chuyển sang showNotification nếu có
+    if (typeof showNotification !== 'undefined') {
+        showNotification(message, type);
+        return;
+    }
     
-    const alertId = 'alert-' + Date.now();
-    const alertClass = type === 'error' ? 'alert-danger' : type === 'success' ? 'alert-success' : 'alert-info';
+    // Fallback showNotification với CSS toast mới
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
     
-    const alertHTML = `
-        <div id="${alertId}" class="alert ${alertClass} alert-dismissible fade show" role="alert">
-            <div style="flex: 1;">${message}</div>
-            <button type="button" class="btn-close" aria-label="Đóng"></button>
-        </div>
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-body">${message}</div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
     `;
     
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = alertHTML;
-    const alertEl = tempDiv.firstElementChild;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
     
-    alertContainer.appendChild(alertEl);
-    
-    const closeBtn = alertEl.querySelector('.btn-close');
-    const removeAlert = () => {
-        alertEl.classList.add('fade-out');
-        setTimeout(() => alertEl.remove(), 300);
-    };
-    
-    closeBtn.addEventListener('click', removeAlert);
-    
-    // Auto remove after 5 seconds for success/info, 8 seconds for error
-    const duration = type === 'error' ? 8000 : 5000;
-    setTimeout(removeAlert, duration);
+    const duration = type === 'error' ? 5000 : 3200;
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
 }
 
 function isLoggedIn() {

@@ -273,28 +273,32 @@ function compactStr($s, $front = 8, $back = 4) {
 
 <script>
 // Notification system
-function showNotification(message, type = 'info') {
-    const container = document.getElementById('notificationContainer');
-    const notificationId = 'notif-' + Date.now();
-    
-    const notification = document.createElement('div');
-    notification.id = notificationId;
-    notification.className = 'notification ' + type;
-    notification.innerHTML = `
-        ${message}
-        <button class="close-btn" onclick="this.parentElement.remove();">×</button>
-    `;
-    
-    container.appendChild(notification);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        const el = document.getElementById(notificationId);
-        if (el) {
-            el.style.animation = 'slideOut 0.3s ease-out';
-            setTimeout(() => el.remove(), 300);
+// Fallback showNotification nếu main.js chưa load
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'success', duration = 3200) {
+        console.log('showNotification called:', {message, type, duration});
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
         }
-    }, 5000);
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-body">${message}</div>
+            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    };
 }
 
 // Add slideOut animation

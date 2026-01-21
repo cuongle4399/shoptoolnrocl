@@ -114,43 +114,120 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
 </div>
 
 <script>
-function openApproveModal(id) {
+// Fallback showNotification nếu admin.js/main.js chưa load
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'success', duration = 3200) {
+        console.log('showNotification called:', {message, type, duration});
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-body">${message}</div>
+            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    };
+}
+
+// Make functions global
+window.openApproveModal = function(id) {
     document.getElementById('approveTopupId').value = id;
     document.getElementById('approveNote').value = '';
     document.getElementById('approveModal').classList.add('active');
-}
-function openRejectModal(id) {
+};
+
+window.openRejectModal = function(id) {
     document.getElementById('rejectTopupId').value = id;
     document.getElementById('rejectNote').value = '';
     document.getElementById('rejectModal').classList.add('active');
-}
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+};
 
-async function submitApprove() {
+window.closeModal = function(id) { 
+    document.getElementById(id).classList.remove('active'); 
+};
+
+window.submitApprove = async function() {
     const id = document.getElementById('approveTopupId').value;
     const note = document.getElementById('approveNote').value;
+    console.log('submitApprove called:', id, note);
+    
     try {
         const res = await fetch('/ShopToolNro/api/admin/approve_topup.php', {
-            method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topup_id: id, admin_note: note})
+            method: 'POST', 
+            credentials: 'same-origin', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({topup_id: id, admin_note: note})
         });
+        
+        console.log('Response status:', res.status);
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'HTTP Error ' + res.status);
+        }
+        
         const data = await res.json();
-        if (data.success) { showNotification(data.message, 'success'); setTimeout(() => location.reload(), 700); }
-        else showNotification(data.message || 'Lỗi', 'error');
-    } catch (e) { showNotification(e.message || 'Lỗi', 'error'); }
-}
+        console.log('Data parsed:', data);
+        
+        if (data.success) { 
+            showNotification(data.message || 'Đã duyệt thành công', 'success'); 
+            console.log('Reloading in 700ms...');
+            setTimeout(() => location.reload(), 700); 
+        } else {
+            showNotification(data.message || 'Lỗi', 'error');
+        }
+    } catch (e) { 
+        console.error('Error:', e);
+        showNotification('Lỗi: ' + e.message + '\n\nKiểm tra Console (F12)', 'error'); 
+    }
+};
 
-async function submitReject() {
+window.submitReject = async function() {
     const id = document.getElementById('rejectTopupId').value;
     const note = document.getElementById('rejectNote').value;
+    console.log('submitReject called:', id, note);
+    
     try {
         const res = await fetch('/ShopToolNro/api/admin/reject_topup.php', {
-            method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topup_id: id, admin_note: note})
+            method: 'POST', 
+            credentials: 'same-origin', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({topup_id: id, admin_note: note})
         });
+        
+        console.log('Response status:', res.status);
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'HTTP Error ' + res.status);
+        }
+        
         const data = await res.json();
-        if (data.success) { showNotification(data.message, 'success'); setTimeout(() => location.reload(), 700); }
-        else showNotification(data.message || 'Lỗi', 'error');
-    } catch (e) { showNotification(e.message || 'Lỗi', 'error'); }
-}
+        console.log('Data parsed:', data);
+        
+        if (data.success) { 
+            showNotification(data.message || 'Đã từ chối thành công', 'success'); 
+            console.log('Reloading in 700ms...');
+            setTimeout(() => location.reload(), 700); 
+        } else {
+            showNotification(data.message || 'Lỗi', 'error');
+        }
+    } catch (e) { 
+        console.error('Error:', e);
+        showNotification('Lỗi: ' + e.message + '\n\nKiểm tra Console (F12)', 'error'); 
+    }
+};
 </script>
 
 <?php include '../layout/footer.php'; ?>

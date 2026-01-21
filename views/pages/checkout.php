@@ -106,33 +106,32 @@ if (empty($selectedDuration) && isset($_GET['duration_price'])) {
 
 <script>
 // Notification system
-function showNotification(message, type = 'info') {
-    const container = document.getElementById('notificationContainer');
-    const notificationId = 'notif-' + Date.now();
-    
-    const notificationClass = {
-        'success': 'success',
-        'error': 'danger',
-        'warning': 'warning',
-        'info': 'info'
-    }[type] || type;
-    
-    const notification = document.createElement('div');
-    notification.id = notificationId;
-    notification.className = 'alert alert-' + notificationClass + ' alert-dismissible fade show';
-    notification.style.marginBottom = '10px';
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    container.appendChild(notification);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        const el = document.getElementById(notificationId);
-        if (el) el.remove();
-    }, 5000);
+// Fallback showNotification nếu main.js chưa load
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'success', duration = 3200) {
+        console.log('showNotification called:', {message, type, duration});
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-body">${message}</div>
+            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    };
 }
 
 let currentDiscount = 0;

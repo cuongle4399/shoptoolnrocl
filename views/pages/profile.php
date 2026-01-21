@@ -46,8 +46,48 @@ $user = $userClass->getUserById($_SESSION['user_id']);
 </div>
 
 <script>
+// Fallback showNotification nếu main.js chưa load
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'success', duration = 3200) {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + (type === 'error' ? 'error' : 'success');
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.innerHTML = `<div class="toast-body">${message}</div><button class="toast-close" aria-label="Close">&times;</button>`;
+
+        container.appendChild(toast);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('visible');
+            });
+        });
+
+        const remove = () => {
+            toast.classList.remove('visible');
+            toast.classList.add('closing');
+            setTimeout(() => { 
+                try { toast.remove(); } catch(e){} 
+            }, 300);
+        };
+
+        toast.querySelector('.toast-close').addEventListener('click', remove);
+        setTimeout(remove, duration);
+    };
+}
+
 document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    console.log('Change password form submitted');
+    
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
     
@@ -55,11 +95,13 @@ document.getElementById('changePasswordForm').addEventListener('submit', async (
         showNotification('Mật khẩu không khớp', 'error');
         return;
     }
+    
     // Basic strength check
     if (data.new_password.length < 8 || !/[A-Za-z]/.test(data.new_password) || !/[0-9]/.test(data.new_password)) {
         showNotification('Mật khẩu mới phải có ít nhất 8 ký tự, bao gồm chữ và số', 'error');
         return;
     }    
+    
     delete data.confirm_password;
     
     try {
@@ -69,13 +111,32 @@ document.getElementById('changePasswordForm').addEventListener('submit', async (
             body: JSON.stringify(data)
         });
         
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'HTTP Error ' + response.status);
+        }
+        
         const result = await response.json();
-        showNotification(result.message || (result.success ? 'Thành công' : 'Lỗi'), result.success ? 'success' : 'error');
+        console.log('Result:', result);
+        
         if (result.success) {
+            showNotification(result.message || 'Đổi mật khẩu thành công', 'success');
+            console.log('Password changed successfully, clearing form...');
             document.getElementById('changePasswordForm').reset();
+            
+            // Reload after 1.5 seconds to show user they need to re-login
+            console.log('Reloading in 1500ms...');
+            setTimeout(() => {
+                console.log('Reloading now...');
+                location.reload();
+            }, 1500);
+        } else {
+            showNotification(result.message || 'Lỗi khi đổi mật khẩu', 'error');
         }
     } catch (error) {
-        showNotification('Lỗi: ' + (error.message || ''), 'error');
+        console.error('Error:', error);
+        showNotification('Lỗi: ' + (error.message || 'Không thể kết nối server') + '\n\nKiểm tra Console (F12)', 'error');
     }
 });
 </script>

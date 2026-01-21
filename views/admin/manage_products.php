@@ -155,6 +155,34 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
 </div>
 
 <script>
+// Fallback showNotification nếu admin.js/main.js chưa load
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'success', duration = 3200) {
+        console.log('showNotification called:', {message, type, duration});
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-body">${message}</div>
+            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        
+        container.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    };
+}
+
 // Upload ảnh chính
 document.querySelector('input[name="image_file"]').addEventListener('change', async (e) => {
     const file = e.target.files[0];

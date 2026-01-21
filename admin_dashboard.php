@@ -330,6 +330,34 @@ PHP Version: <?php echo phpversion(); ?>
     <!-- SCRIPTS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        // Fallback showNotification nếu main.js/admin.js chưa load
+        if (typeof showNotification === 'undefined') {
+            window.showNotification = function(message, type = 'success', duration = 3200) {
+                console.log('showNotification called:', {message, type, duration});
+                let container = document.querySelector('.toast-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'toast-container';
+                    document.body.appendChild(container);
+                }
+                
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                toast.innerHTML = `
+                    <div class="toast-body">${message}</div>
+                    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+                `;
+                
+                container.appendChild(toast);
+                requestAnimationFrame(() => toast.classList.add('show'));
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            };
+        }
+        
         // ===== FORMAT TIME IN JAVASCRIPT =====
         function formatDateTime(dateString) {
             if (!dateString) return 'Chưa có';
@@ -397,7 +425,7 @@ PHP Version: <?php echo phpversion(); ?>
                     document.getElementById('selectedKeyInfo').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch (e) {
                     console.error('Lỗi xử lý dữ liệu:', e);
-                    alert('Lỗi khi xử lý dữ liệu key!');
+                    showNotification('Lỗi khi xử lý dữ liệu key!', 'error');
                 }
             });
         });
@@ -408,10 +436,10 @@ PHP Version: <?php echo phpversion(); ?>
             const text = element.value || element.textContent;
             
             navigator.clipboard.writeText(text).then(() => {
-                alert('Đã sao chép!');
+                showNotification('Đã sao chép!', 'success');
             }).catch(err => {
                 console.error('Lỗi sao chép:', err);
-                alert('Lỗi khi sao chép!');
+                showNotification('Lỗi khi sao chép!', 'error');
             });
         }
 

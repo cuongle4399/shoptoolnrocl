@@ -114,18 +114,61 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
 </div>
 
 <script>
-function editBalance(userId) {
-    document.querySelector('input[name="user_id"]').value = userId;
-    document.getElementById('balanceModal').classList.add('active');
+// Fallback showNotification nếu main.js chưa load
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'success', duration = 3200) {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-' + (type === 'error' ? 'error' : 'success');
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.innerHTML = `<div class="toast-body">${message}</div><button class="toast-close" aria-label="Close">&times;</button>`;
+
+        container.appendChild(toast);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.classList.add('visible');
+            });
+        });
+
+        const remove = () => {
+            toast.classList.remove('visible');
+            toast.classList.add('closing');
+            setTimeout(() => { 
+                try { toast.remove(); } catch(e){} 
+            }, 300);
+        };
+
+        toast.querySelector('.toast-close').addEventListener('click', remove);
+        setTimeout(remove, duration);
+    };
 }
 
-function changeRole(userId, role) {
+// Make all functions global
+window.editBalance = function(userId) {
+    console.log('editBalance called:', userId);
+    document.querySelector('input[name="user_id"]').value = userId;
+    document.getElementById('balanceModal').classList.add('active');
+};
+
+window.changeRole = function(userId, role) {
+    console.log('changeRole called:', userId, role);
     fetch('/ShopToolNro/api/admin/change_user_role.php', {
         method: 'POST',
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({user_id: userId, role: role})
-    }).then(r => r.json()).then(data => {
+    })
+    .then(r => r.json())
+    .then(data => {
         if (data.success) {
             showNotification('Đã cập nhật quyền hạn', 'success');
             setTimeout(() => location.reload(), 700);
@@ -134,30 +177,70 @@ function changeRole(userId, role) {
             // Reload để reset select về giá trị cũ
             setTimeout(() => location.reload(), 1000);
         }
-    }).catch(err => {
+    })
+    .catch(err => {
+        console.error('Error:', err);
         showNotification('Lỗi kết nối: ' + err.message, 'error');
         setTimeout(() => location.reload(), 1000);
     });
-}
+};
 
-function toggleUserStatus(userId, btn) {
+// Make function global
+window.toggleUserStatus = function(userId, btn) {
+    console.log('toggleUserStatus called:', userId, btn);
     const action = (btn && btn.textContent && btn.textContent.trim().toLowerCase() === 'khóa') ? 'khóa' : 'mở';
     if (!confirm('Bạn có chắc muốn ' + action + ' tài khoản này?')) return;
 
+    // Disable button during request
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+    }
+
+    console.log('Calling API toggle_user_status...');
     fetch('/ShopToolNro/api/admin/toggle_user_status.php', {
         method: 'POST',
         credentials: 'same-origin',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({user_id: userId})
-    }).then(r => r.json()).then(data => {
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.message || 'HTTP Error ' + response.status);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Data parsed:', data);
         if (data.success) {
-            showNotification('Đã cập nhật trạng thái', 'success');
+            showNotification(data.message || 'Đã cập nhật trạng thái', 'success');
             setTimeout(() => location.reload(), 700);
         } else {
-            showNotification(data.message || 'Lỗi', 'error');
+            // Re-enable button on error
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = action === 'khóa' ? 'Khóa' : 'Mở';
+            }
+            const errorMsg = data.message || 'Unknown error';
+            const debugInfo = data.debug ? '\n\nDebug: ' + JSON.stringify(data.debug, null, 2) : '';
+            showNotification(errorMsg + debugInfo, 'error');
+            console.error('API Error:', data);
         }
+    })
+    .catch(err => {
+        console.error('Fetch Error:', err);
+        // Re-enable button on error
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = action === 'khóa' ? 'Khóa' : 'Mở';
+        }
+        showNotification('Lỗi kết nối: ' + err.message + '\n\nKiểm tra Console (F12) để xem chi tiết', 'error');
     });
-}
+};
 
 document.getElementById('balanceForm').addEventListener('submit', async (e) => {
     e.preventDefault();

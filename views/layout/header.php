@@ -14,6 +14,9 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="stylesheet" href="/ShopToolNro/assets/css/style.css">
     <script defer src="/ShopToolNro/assets/js/api.js"></script>
     <script defer src="/ShopToolNro/assets/js/main.js"></script>
+    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+    <script defer src="/ShopToolNro/assets/js/admin.js"></script>
+    <?php endif; ?>
 </head>
 <body class="vibrant">
 <?php if (isset($_SESSION['user_id'])): ?>

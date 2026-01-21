@@ -101,27 +101,87 @@ foreach ($products as $p) { $productMap[$p['id']] = $p['name']; }
 </div>
 
 <script>
-function toggleKeyStatus(keyId, newStatus) {
+// Fallback showNotification nếu main.js chưa load
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'error' ? '#ff5252' : '#00c853'};
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            font-weight: 600;
+            animation: slideInRight 0.3s ease;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        const style = document.createElement('style');
+        style.textContent = '@keyframes slideInRight { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }';
+        if (!document.getElementById('toast-animations')) {
+            style.id = 'toast-animations';
+            document.head.appendChild(style);
+        }
+        
+        setTimeout(() => {
+            toast.style.transition = 'all 0.3s ease';
+            toast.style.transform = 'translateX(400px)';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    };
+}
+
+// Make function global
+window.toggleKeyStatus = function(keyId, newStatus) {
+    console.log('toggleKeyStatus called:', keyId, newStatus);
     const action = newStatus === 'active' ? 'mở khóa' : 'khóa';
     if (!confirm(`Bạn chắc chắn muốn ${action} key này?`)) {
         return;
     }
 
+    console.log('Calling API toggle_key_status...');
     fetch('/ShopToolNro/api/admin/toggle_key_status.php', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({key_id: keyId, status: newStatus})
-    }).then(r => r.json()).then(data => {
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.message || 'HTTP Error ' + response.status);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Data parsed:', data);
         if (data.success) {
             showNotification(`Đã ${action} thành công`, 'success');
-            setTimeout(() => location.reload(), 700);
+            console.log('Reloading page in 700ms...');
+            setTimeout(() => {
+                console.log('Reloading now...');
+                location.reload();
+            }, 700);
         } else {
-            showNotification(data.message || 'Lỗi', 'error');
+            const errorMsg = data.message || 'Lỗi không xác định';
+            const debugInfo = data.debug ? '\n\nDebug: ' + JSON.stringify(data.debug, null, 2) : '';
+            showNotification(errorMsg + debugInfo, 'error');
+            console.error('API Error:', data);
         }
-    }).catch(err => {
-        showNotification('Lỗi: ' + err.message, 'error');
+    })
+    .catch(err => {
+        console.error('Fetch Error:', err);
+        showNotification('Lỗi kết nối: ' + err.message + '\n\nKiểm tra Console (F12) để xem chi tiết', 'error');
     });
-}
+};
 </script>
 
 <?php include '../layout/footer.php'; ?>
