@@ -16,6 +16,11 @@ define('VIETQR_BANK_FULL_NAME', 'MB NGÂN HÀNG QUÂN ĐỘI');
 define('VIETQR_ACCOUNT_NO', '0865134328');
 define('VIETQR_ACCOUNT_NAME', 'LE QUOC CUONG');
 
+// Supabase Storage Config
+define('SUPABASE_URL', 'https://pkufohepqvebgadztmhi.supabase.co');
+define('SUPABASE_ANON_KEY', getenv('SUPABASE_ANON_KEY') ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrdWZvaGVwcXZlYmdhZHp0bWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDI0MjMzNDgsImV4cCI6MTkxODE5OTM0OH0.EEKfEjJo__sLpR-PiWlnTvO-l8F3dIGdqjfvz1o8Xgc');
+define('SUPABASE_BUCKET', 'products');
+
 // Roles
 define('ROLE_CUSTOMER', 'customer');
 define('ROLE_ADMIN', 'admin');
