@@ -129,35 +129,42 @@ function showNotification(message, type = 'success', duration = 3200) {
     setTimeout(remove, duration);
 }
 
-// Sidebar toggle (mobile)
-const sidebarToggleBtn = document.getElementById('sidebarToggle');
-const sidebar = document.getElementById('mainSidebar');
-const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+// Sidebar toggle (mobile) - Wait for DOM
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebarToggleBtn = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('mainSidebar');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
-sidebarToggleBtn?.addEventListener('click', function() {
-    document.body.classList.toggle('sidebar-open');
-    sidebar?.classList.toggle('open');
-    sidebarBackdrop?.classList.toggle('visible');
-});
-
-// Backdrop click closes sidebar
-sidebarBackdrop?.addEventListener('click', function() {
-    document.body.classList.remove('sidebar-open');
-    sidebar?.classList.remove('open');
-    sidebarBackdrop?.classList.remove('visible');
-});
-
-// Close sidebar when clicking outside on mobile (safety fallback)
-document.addEventListener('click', (e) => {
-    const toggle = document.getElementById('sidebarToggle');
-    if (!sidebar || !toggle) return;
-    if (document.body.classList.contains('sidebar-open')) {
-        if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-            document.body.classList.remove('sidebar-open');
-            sidebar.classList.remove('open');
-            sidebarBackdrop?.classList.remove('visible');
-        }
+    if (sidebarToggleBtn && sidebar) {
+        sidebarToggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.body.classList.toggle('sidebar-open');
+            sidebar.classList.toggle('open');
+            if (sidebarBackdrop) sidebarBackdrop.classList.toggle('visible');
+        });
     }
+
+    // Backdrop click closes sidebar
+    if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', function() {
+            document.body.classList.remove('sidebar-open');
+            if (sidebar) sidebar.classList.remove('open');
+            sidebarBackdrop.classList.remove('visible');
+        });
+    }
+
+    // Close sidebar when clicking outside on mobile (safety fallback)
+    document.addEventListener('click', (e) => {
+        if (!sidebar || !sidebarToggleBtn) return;
+        if (document.body.classList.contains('sidebar-open')) {
+            if (!sidebar.contains(e.target) && !sidebarToggleBtn.contains(e.target)) {
+                document.body.classList.remove('sidebar-open');
+                sidebar.classList.remove('open');
+                if (sidebarBackdrop) sidebarBackdrop.classList.remove('visible');
+            }
+        }
+    });
+});
 });
 
 // Close sidebar with Escape key

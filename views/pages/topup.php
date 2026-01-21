@@ -103,7 +103,7 @@ if (!empty($topupRequests)) {
                         <div class="form-field">
                             <label>Nội dung chuyển khoản</label>
                             <div class="field-value copy-field">
-                                <input type="text" id="transferDesc" value="shoptoolnro_<?php echo htmlspecialchars($user['username']); ?>_<?php echo $pendingTopup['amount']; ?>" readonly style="font-size: 12px;">
+                                <input type="text" id="transferDesc" value="shoptoolnro<?php echo htmlspecialchars($user['username']); ?><?php echo $pendingTopup['amount']; ?>" readonly style="font-size: 12px;">
                                 <button type="button" class="copy-btn" onclick="copyToClipboard('transferDesc', this)">Copy</button>
                             </div>
                         </div>
@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Generate QR code
     function generateQRCode(amount) {
-        const transferDesc = `shoptoolnro_${username}_${amount}`;
+        const transferDesc = `shoptoolnro${username}${amount}`;
         const bankId = 'mbbank';
         const accountNo = '0865134328';
         const accountName = 'LE QUOC CUONG';

@@ -12,8 +12,8 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="icon" type="image/x-icon" href="/ShopToolNro/img/Logo.ico">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/style.css">
-    <script src="/ShopToolNro/assets/js/api.js"></script>
-    <script src="/ShopToolNro/assets/js/main.js"></script>
+    <script defer src="/ShopToolNro/assets/js/api.js"></script>
+    <script defer src="/ShopToolNro/assets/js/main.js"></script>
 </head>
 <body class="vibrant">
 <?php if (isset($_SESSION['user_id'])): ?>
@@ -31,7 +31,7 @@ if (session_status() === PHP_SESSION_NONE) {
     ?>
     <header class="topbar">
         <div class="topbar-content">
-            <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu">☰</button>
+            <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu" onclick="document.getElementById('mainSidebar').classList.toggle('open'); document.body.classList.toggle('sidebar-open'); document.getElementById('sidebarBackdrop').classList.toggle('visible');">☰</button>
             <div class="logo">ShopToolNro</div>
             <div class="header-user-info">
                 <?php if ($userInfo): ?>
@@ -66,7 +66,7 @@ if (session_status() === PHP_SESSION_NONE) {
             </nav>
         </div>
     </aside>
-    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true" onclick="document.getElementById('mainSidebar').classList.remove('open'); document.body.classList.remove('sidebar-open'); this.classList.remove('visible');"></div>
 
     <main class="content">
 <?php else: ?>
