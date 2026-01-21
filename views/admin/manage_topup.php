@@ -1,4 +1,5 @@
 <?php
+// manage_topup.php - Admin topup approvals
 $page_title = 'Quản lý nạp tiền - ShopToolNro';
 include '../layout/header.php';
 

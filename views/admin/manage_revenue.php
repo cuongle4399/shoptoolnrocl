@@ -1,5 +1,5 @@
-<!-- manage_revenue.php -->
 <?php
+// manage_revenue.php - Admin revenue dashboard
 $page_title = 'Quản lý doanh thu - ShopToolNro';
 include '../layout/header.php';
 

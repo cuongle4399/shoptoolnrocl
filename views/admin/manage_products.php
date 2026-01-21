@@ -1,5 +1,5 @@
-<!-- manage_products.php - FIXED -->
 <?php
+// manage_products.php - Admin product management
 $page_title = 'Quản lý sản phẩm - ShopToolNro';
 include '../layout/header.php';
 
