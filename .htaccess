@@ -1,0 +1,20 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /ShopToolNro/
+    
+    # Prevent direct access to sensitive files
+    RewriteRule ^(config|src)/ - [F]
+    
+    # Allow access to existing files and directories
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Rewrite API calls
+    RewriteRule ^api/(.*)$ api/$1 [L]
+    
+    # Allow direct access to views, assets, and uploads
+    RewriteCond %{REQUEST_URI} ^/(views|assets|uploads|includes)/ [OR]
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+</IfModule>

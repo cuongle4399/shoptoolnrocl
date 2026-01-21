@@ -1,0 +1,20 @@
+# VCS
+.git
+.gitignore
+
+# Editor/OS
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Runtime
+node_modules
+vendor
+tmp
+cache
+
+# Local env files – configure env on Render dashboard instead
+.env
+.env.*
