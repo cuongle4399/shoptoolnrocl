@@ -32,6 +32,7 @@
     </div>
 </div>
 
+<script src="/ShopToolNro/assets/js/api.js"></script>
 <script src="/ShopToolNro/assets/js/main.js"></script>
 <!-- Theme button and choices are handled centrally in /assets/js/main.js. Removing duplicate click handlers to avoid double-toggle issues. -->
 <!-- main.js updates the button text and wires theme controls on DOMContentLoaded -->

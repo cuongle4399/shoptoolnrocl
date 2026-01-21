@@ -9,8 +9,11 @@ if (session_status() === PHP_SESSION_NONE) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $page_title ?? 'ShopToolNro'; ?></title>
+    <link rel="icon" type="image/x-icon" href="/ShopToolNro/img/Logo.ico">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/style.css">
+    <script src="/ShopToolNro/assets/js/api.js"></script>
+    <script src="/ShopToolNro/assets/js/main.js"></script>
 </head>
 <body class="vibrant">
 <?php if (isset($_SESSION['user_id'])): ?>
@@ -80,3 +83,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
     <main>
 <?php endif; ?>
+
+<!-- Alert Container -->
+<div id="alertContainer" class="alert-container"></div>

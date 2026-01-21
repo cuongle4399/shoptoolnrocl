@@ -287,14 +287,28 @@ function renderDurations() {
         labelInput.style.padding = '6px';
 
         const priceInput = document.createElement('input');
-        priceInput.type = 'number';
-        priceInput.className = 'duration-price';
+        priceInput.type = 'text';
+        priceInput.className = 'duration-price format-currency';
         priceInput.placeholder = 'Giá (VNĐ)';
-        priceInput.step = '0.01';
-        priceInput.min = '0';
         priceInput.value = d.price;
         priceInput.style.width = '140px';
         priceInput.style.padding = '6px';
+        
+        // Format giá ban đầu
+        if (priceInput.value) {
+            priceInput.value = formatNumber(priceInput.value);
+        }
+        
+        // Thêm event listener để format khi nhập
+        priceInput.addEventListener('input', function(e) {
+            const rawValue = parseFormattedNumber(e.target.value);
+            const cursorPos = e.target.selectionStart;
+            const oldLength = e.target.value.length;
+            e.target.value = formatNumber(rawValue);
+            const newLength = e.target.value.length;
+            const lengthDiff = newLength - oldLength;
+            e.target.setSelectionRange(cursorPos + lengthDiff, cursorPos + lengthDiff);
+        });
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
@@ -320,7 +334,9 @@ function renderDurations() {
             durationsMain[idx].label = e.target.value;
         });
         priceInput.addEventListener('change', (e) => {
-            durationsMain[idx].price = parseFloat(e.target.value) || 0;
+            // Parse giá trị đã format về số
+            const rawValue = parseFormattedNumber(e.target.value);
+            durationsMain[idx].price = parseFloat(rawValue) || 0;
         });
 
         row.appendChild(daysInput);
@@ -417,15 +433,30 @@ function deleteProduct(id) {
             credentials: 'same-origin',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({product_id: id})
-        }).then(r => r.json()).then(data => {
+        }).then(async r => {
+            const text = await r.text();
+            console.log('Delete response status:', r.status);
+            console.log('Delete response text:', text);
+            
+            if (!text) {
+                throw new Error('Server returned empty response');
+            }
+            
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+            }
+        }).then(data => {
             if (data.success) {
                 showNotification('Đã xóa', 'success');
                 setTimeout(() => location.reload(), 700);
             } else {
-                showNotification(data.message || 'Lỗi', 'error');
+                showNotification(data.message || 'Lỗi xóa sản phẩm', 'error');
             }
         }).catch(err => {
-            showNotification('Lỗi: ' + err.message, 'error');
+            console.error('Delete product error:', err);
+            showNotification('Lỗi xóa sản phẩm: ' + err.message, 'error');
         });
     }
 }
@@ -458,6 +489,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
 
     const builtDurations = [];
     for (const d of durationsMain) {
+        // Parse giá từ giá trị đã được lưu (đã được parse trong event change)
         const price = parseFloat(d.price);
         if (isNaN(price) || price < 0) {
             showNotification('Giá của mỗi thời hạn phải là số hợp lệ >= 0', 'error');

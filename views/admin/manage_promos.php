@@ -124,7 +124,7 @@ window.promos[<?php echo $promo['id']; ?>] = <?php echo json_encode($promo); ?>;
                 </div>
                 <div class="form-group">
                     <label>Hoặc giảm (₫)</label>
-                    <input type="number" name="discount_amount" step="0.01">
+                    <input type="text" name="discount_amount" class="format-currency" placeholder="Số tiền giảm">
                 </div>
             </div>
             <div class="form-group">
@@ -133,7 +133,7 @@ window.promos[<?php echo $promo['id']; ?>] = <?php echo json_encode($promo); ?>;
             </div>
             <div class="form-group">
                 <label>Giá trị đơn tối thiểu</label>
-                <input type="number" name="min_order_amount" step="0.01" placeholder="0 = không yêu cầu">
+                <input type="text" name="min_order_amount" class="format-currency" placeholder="0 = không yêu cầu">
             </div>
             <div class="form-group">
                 <label>Ngày hết hạn</label>
@@ -159,9 +159,24 @@ function editPromo(promoId) {
     document.querySelector('input[name="promo_id"]').value = promoId;
     document.querySelector('input[name="code"]').value = promo.code || '';
     document.querySelector('input[name="discount_percent"]').value = promo.discount_percent || '';
-    document.querySelector('input[name="discount_amount"]').value = promo.discount_amount || '';
+    
+    // Format số tiền khi load vào form
+    const discountAmountInput = document.querySelector('input[name="discount_amount"]');
+    if (promo.discount_amount) {
+        discountAmountInput.value = formatNumber(promo.discount_amount);
+    } else {
+        discountAmountInput.value = '';
+    }
+    
+    const minOrderAmountInput = document.querySelector('input[name="min_order_amount"]');
+    if (promo.min_order_amount) {
+        minOrderAmountInput.value = formatNumber(promo.min_order_amount);
+    } else {
+        minOrderAmountInput.value = '';
+    }
+    
     document.querySelector('input[name="max_uses"]').value = promo.max_uses || '';
-    document.querySelector('input[name="min_order_amount"]').value = promo.min_order_amount || '';
+    
     // set date input in YYYY-MM-DD if exists
     if (promo.expires_at) {
         const d = new Date(promo.expires_at);
@@ -209,6 +224,17 @@ document.getElementById('promoForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
+    
+    // Parse số tiền từ các input đã format
+    const discountAmountInput = e.target.querySelector('input[name="discount_amount"]');
+    const minOrderAmountInput = e.target.querySelector('input[name="min_order_amount"]');
+    
+    if (discountAmountInput && discountAmountInput.value) {
+        data.discount_amount = parseFormattedNumber(discountAmountInput.value);
+    }
+    if (minOrderAmountInput && minOrderAmountInput.value) {
+        data.min_order_amount = parseFormattedNumber(minOrderAmountInput.value);
+    }
     
     if (!data.discount_percent && !data.discount_amount) {
         showNotification('Phải nhập giảm giá (% hoặc tiền)', 'error');

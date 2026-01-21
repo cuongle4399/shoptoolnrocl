@@ -79,6 +79,7 @@ function verifyJWT($token) {
 }
 
 function getAuthToken() {
+    // First, check Authorization header
     $headers = [];
     if (function_exists('getallheaders')) {
         $headers = getallheaders();
@@ -95,6 +96,18 @@ function getAuthToken() {
             return $token;
         }
     }
+    
+    // If no token in header, check if user is logged in via session
+    // Generate JWT from session data
+    if (!session_id()) {
+        session_start();
+    }
+    
+    if (isset($_SESSION['user_id']) && isset($_SESSION['username']) && isset($_SESSION['role'])) {
+        // Generate JWT token from session data
+        return generateJWT($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
+    }
+    
     return null;
 } 
 

@@ -521,11 +521,16 @@ nav a {
     .btn-logout { padding: 5px 10px; font-size: 11px; }
     .btn-topup { padding: 6px 12px; font-size: 11px; }
 
+    /* Hide sidebar toggle on mobile (restore old behavior) */
     .sidebar-toggle { display: none; }
 
     .product-card img { height: 140px; }
 
     .main-content { margin: 20px auto; padding: 0 12px; }
+
+    /* Restore fixed header layout */
+    .topbar { height: 60px; padding: 0; }
+    .topbar-content { flex-wrap: nowrap; gap: 16px; align-items: center; padding: 0 20px; }
 }
 
 .topbar {
@@ -1102,6 +1107,15 @@ table tbody tr td:only-child {
     padding: 20px 14px;
 } 
 
+/* ===== Responsive helper: make wide tables scrollable ===== */
+.table-responsive,
+.main-content table,
+.content table {
+    /* allow horizontal scroll on small screens */
+    overflow-x: auto;
+}
+
+
 table tbody tr:last-child td {
     border-bottom: none;
 }
@@ -1128,6 +1142,77 @@ table tbody tr:last-child td {
     background: rgba(0, 200, 83, 0.08);
     color: #69f0ae;
     border-left-color: var(--success);
+}
+
+.alert-info {
+    background: rgba(0, 176, 255, 0.08);
+    color: #4fc3f7;
+    border-left-color: var(--info);
+}
+
+/* Alert Container - Fixed notification area */
+.alert-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5000;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 12px;
+    max-width: 600px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.alert-container .alert {
+    pointer-events: auto;
+    animation: slideDown 300ms ease-out;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.alert-container .alert.fade-out {
+    animation: slideUp 300ms ease-in forwards;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+.alert .btn-close {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.7;
+    transition: opacity 200ms;
+}
+
+.alert .btn-close:hover {
+    opacity: 1;
 }
 
 /* Toast container */
@@ -1527,10 +1612,26 @@ footer a:hover {
 
     table {
         font-size: 12px;
+        display: block;            /* render table as block for scroll */
+        overflow-x: auto;          /* enable horizontal scroll */
+        -webkit-overflow-scrolling: touch; /* smooth scroll on iOS */
     }
 
     table th, table td {
         padding: 10px;
+        white-space: nowrap;       /* keep cells on one line; scroll for overflow */
+    }
+
+    /* action cells: wrap buttons nicely on small screens */
+    table td .btn-group,
+    table td .action-buttons-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    table td .btn {
+        display: inline-block;
+        margin: 2px 0;
     }
 
     .product-card img {
@@ -1543,6 +1644,14 @@ footer a:hover {
 
     .modal-content {
         min-width: 90%;
+    }
+
+    /* tighten paddings/margins in admin pages */
+    .main-content {
+        padding: 0 10px;
+    }
+    .info-card, .card, fieldset {
+        padding: 12px;
     }
 }
 
@@ -1572,5 +1681,143 @@ footer a:hover {
 
     .modal-content {
         min-width: 95%;
+    }
+}
+
+/* ===== Mobile UX refinements ===== */
+@media (max-width: 900px) {
+    /* create breathing room below the fixed topbar */
+    .content,
+    .main-content {
+        margin-top: 76px;
+        padding: 0 14px 28px;
+    }
+
+    .topbar,
+    .topbar-content {
+        padding: 0 14px;
+    }
+
+    .header-content {
+        padding: 0 14px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    nav {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 720px) {
+    .hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 18px 16px;
+    }
+
+    .hero-content h1 {
+        font-size: 22px;
+        line-height: 1.25;
+    }
+
+    .lead {
+        font-size: 14px;
+    }
+
+    .hero-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .hero-actions .btn {
+        flex: 1 1 48%;
+        min-width: 0;
+    }
+
+    .product-listing {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 14px;
+    }
+
+    .product-card img,
+    .product-card .product-image {
+        height: 150px;
+    }
+
+    .card,
+    .info-card,
+    .product-info,
+    .product-card-body {
+        padding: 14px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    table {
+        margin: 0 -8px;
+        padding: 0 8px;
+    }
+}
+
+@media (max-width: 540px) {
+    .topbar,
+    .topbar-content {
+        height: auto;
+        min-height: 76px;
+        padding-top: 10px;
+        padding-bottom: 12px;
+        align-items: center;
+    }
+
+    .topbar-content {
+        flex-wrap: wrap;
+        row-gap: 8px;
+        column-gap: 12px;
+    }
+
+    .topbar .top-right,
+    .header-user-info {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Keep balance visible but make it compact to prevent overflow */
+    .topbar .top-right .balance,
+    .user-balance {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        line-height: 1.2;
+        padding: 4px 8px;
+        border-radius: 8px;
+        background: rgba(0, 188, 212, 0.08);
+        max-width: 100%;
+        white-space: nowrap;
+    }
+
+    .topbar .top-right,
+    .header-user-info {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    nav a {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .hero-actions .btn {
+        flex-basis: 100%;
+    }
+
+    .product-listing {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     }
 }

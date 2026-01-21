@@ -50,12 +50,11 @@ if (!empty($topupRequests)) {
                     <div class="form-group" style="margin-bottom: 15px;">
                         <label for="amount" style="display: block; margin-bottom: 8px; font-weight: bold;">Nhập số tiền (VNĐ)</label>
                         <input 
-                            type="number" 
+                            type="text" 
                             id="amount" 
                             name="amount" 
+                            class="format-currency" 
                             placeholder="Tối thiểu 10.000 VNĐ" 
-                            min="10000" 
-                            step="1000" 
                             required
                             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
                         >
@@ -577,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.style.color = 'white';
             }, 1500);
         }).catch(() => {
-            alert('Copy thất bại');
+            showAlert('Copy thất bại', 'error');
         });
     };
     
@@ -698,7 +697,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (topupForm) {
         topupForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const amount = parseInt(document.getElementById('amount').value);
+            // Parse số từ input đã format
+            const amountInput = document.getElementById('amount');
+            const rawAmount = parseFormattedNumber(amountInput.value);
+            const amount = parseInt(rawAmount);
             
             if (!amount || amount < 10000) {
                 showNotification('Vui lòng nhập số tiền hợp lệ (tối thiểu 10.000)', 'error');
@@ -729,7 +731,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showNotification('✗ Lỗi: ' + error.message, 'error');
             });
             
-            document.getElementById('amount').value = '';
+            amountInput.value = '';
         });
     }
     

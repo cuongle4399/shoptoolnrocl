@@ -1,6 +1,21 @@
 const API_BASE = 'http://localhost/ShopToolNro/api';
 let token = localStorage.getItem('token');
 
+// Helper functions for loading overlay
+function showLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.classList.add('active');
+    }
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
+}
+
 class API {
     static async call(endpoint, method = 'GET', data = null) {
         const url = API_BASE + endpoint;
@@ -20,11 +35,13 @@ class API {
         }
 
         try {
+            showLoading();
             const response = await fetch(url, options);
             const contentType = response.headers.get('content-type');
             
             if (!contentType || !contentType.includes('application/json')) {
                 console.error('Invalid content-type:', contentType, response.statusText);
+                hideLoading();
                 return { 
                     success: false,
                     status: 'error', 
@@ -33,6 +50,7 @@ class API {
             }
             
             const result = await response.json();
+            hideLoading();
             
             // Ensure consistent format: always has 'success' and 'status' fields
             if (!result.hasOwnProperty('success')) {
@@ -45,6 +63,7 @@ class API {
             return result;
         } catch (error) {
             console.error('API call error:', error);
+            hideLoading();
             return { success: false, status: 'error', message: 'Network error: ' + error.message };
         }
     }
@@ -141,19 +160,36 @@ class API {
 }
 
 function showAlert(message, type = 'success') {
+    const alertContainer = document.getElementById('alertContainer');
+    if (!alertContainer) return;
+    
+    const alertId = 'alert-' + Date.now();
+    const alertClass = type === 'error' ? 'alert-danger' : type === 'success' ? 'alert-success' : 'alert-info';
+    
     const alertHTML = `
-        <div class="alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div id="${alertId}" class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <div style="flex: 1;">${message}</div>
+            <button type="button" class="btn-close" aria-label="Đóng"></button>
         </div>
     `;
-    const alertContainer = document.getElementById('alertContainer');
-    if (alertContainer) {
-        alertContainer.innerHTML = alertHTML;
-        setTimeout(() => {
-            alertContainer.innerHTML = '';
-        }, 5000);
-    }
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = alertHTML;
+    const alertEl = tempDiv.firstElementChild;
+    
+    alertContainer.appendChild(alertEl);
+    
+    const closeBtn = alertEl.querySelector('.btn-close');
+    const removeAlert = () => {
+        alertEl.classList.add('fade-out');
+        setTimeout(() => alertEl.remove(), 300);
+    };
+    
+    closeBtn.addEventListener('click', removeAlert);
+    
+    // Auto remove after 5 seconds for success/info, 8 seconds for error
+    const duration = type === 'error' ? 8000 : 5000;
+    setTimeout(removeAlert, duration);
 }
 
 function isLoggedIn() {
@@ -164,4 +200,18 @@ function logout() {
     token = null;
     localStorage.removeItem('token');
     location.href = 'http://localhost/ShopToolNro/';
+}
+// Helper to set button loading state
+function setButtonLoading(button, isLoading) {
+    if (!button) return;
+    if (isLoading) {
+        button.classList.add('loading');
+        button.disabled = true;
+        button.dataset.originalText = button.textContent;
+        button.textContent = '';
+    } else {
+        button.classList.remove('loading');
+        button.disabled = false;
+        button.textContent = button.dataset.originalText || 'Gửi';
+    }
 }

@@ -94,6 +94,41 @@ body{
   50% { opacity: 0.7; }
 }
 
+/* PASSWORD TOGGLE */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 70px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 2px;
+  background: var(--accent-2);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  border-radius: 4px;
+  font-weight: 500;
+  min-width: 60px;
+}
+
+.password-toggle-btn:hover {
+  background: var(--accent-start);
+  transform: scale(1.05);
+}
+
 /* HEADER / NAV */
 .header{
   display:flex;
@@ -330,6 +365,71 @@ input:focus, select:focus, textarea:focus{
   .table{ font-size: 11px; }
   .table th, .table td{ padding: 8px 6px; }
   .btn{ padding: 8px 12px; font-size: 11px; }
+}
+
+/* ===== LOADING SPINNER ===== */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(1px);
+}
+
+.loading-overlay.active {
+  display: flex;
+}
+
+.spinner {
+  width: 45px;
+  height: 45px;
+  border: 3px solid rgba(77, 208, 225, 0.15);
+  border-top: 3px solid var(--muted);
+  border-right: 3px solid var(--muted);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  position: absolute;
+  top: 58%;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  display: none;
+}
+
+/* Button loading state */
+.btn.loading {
+  opacity: 0.7;
+  pointer-events: none;
+  position: relative;
+}
+
+.btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  top: 50%;
+  right: 10px;
+  margin-top: -7px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
 /* UTILS */

@@ -53,8 +53,6 @@ $notification = $notificationClass->getActiveNotification();
 ?>
 
 <div class="main-content fade-in">
-    <!-- Hero section removed to reduce clutter -->
-
     <?php if ($notification): ?>
         <div class="alert alert-info mb-20">
             <strong><?php echo htmlspecialchars($notification['message']); ?></strong>

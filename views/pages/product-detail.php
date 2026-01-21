@@ -73,7 +73,7 @@ if (!$product) {
         </div>
         <div>
             <h1><?php echo htmlspecialchars($product['name']); ?></h1>
-            <div class="product-price display-price" id="displayPrice"><?php echo number_format($product['price'] ?? 0, 0, ',', '.'); ?> ₫</div>
+            <div class="product-price display-price" id="displayPrice"><?php echo !empty($durations) ? number_format($durations[0]['price'] ?? 0, 0, ',', '.') : number_format($product['price'] ?? 0, 0, ',', '.'); ?> ₫</div>
 
             <?php if (!empty($durations)): ?>
                 <div class="mt-15">

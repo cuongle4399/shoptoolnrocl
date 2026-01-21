@@ -1,3 +1,18 @@
+// Toggle password visibility
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    const btn = input.parentElement.querySelector('.password-toggle-btn');
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (btn) btn.textContent = 'Ẩn';
+    } else {
+        input.type = 'password';
+        if (btn) btn.textContent = 'Hiện';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     loadNotification();
     loadProducts();

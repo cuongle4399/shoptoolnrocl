@@ -40,6 +40,63 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
+// Format số với dấu chấm phân cách hàng nghìn
+function formatNumber(value) {
+    // Xóa tất cả ký tự không phải số và dấu trừ
+    const numStr = value.toString().replace(/[^\d-]/g, '');
+    if (numStr === '' || numStr === '-') return numStr;
+    
+    // Tách phần âm (nếu có)
+    const isNegative = numStr.startsWith('-');
+    const absNum = numStr.replace('-', '');
+    
+    // Thêm dấu chấm phân cách
+    const formatted = absNum.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (isNegative ? '-' : '') + formatted;
+}
+
+// Parse số từ chuỗi đã format (xóa dấu chấm)
+function parseFormattedNumber(value) {
+    return value.toString().replace(/\./g, '').replace(/[^\d-]/g, '');
+}
+
+// Áp dụng định dạng số cho tất cả input có class format-currency
+document.addEventListener('DOMContentLoaded', function() {
+    // Format cho các input hiện tại
+    document.querySelectorAll('.format-currency').forEach(input => {
+        // Format khi nhập
+        input.addEventListener('input', function(e) {
+            const cursorPos = e.target.selectionStart;
+            const oldLength = e.target.value.length;
+            const oldValue = e.target.value;
+            
+            // Lưu giá trị gốc (không format)
+            const rawValue = parseFormattedNumber(e.target.value);
+            
+            // Format lại
+            e.target.value = formatNumber(rawValue);
+            
+            // Điều chỉnh vị trí con trỏ
+            const newLength = e.target.value.length;
+            const lengthDiff = newLength - oldLength;
+            e.target.setSelectionRange(cursorPos + lengthDiff, cursorPos + lengthDiff);
+        });
+        
+        // Format khi rời khỏi input
+        input.addEventListener('blur', function(e) {
+            if (e.target.value) {
+                const rawValue = parseFormattedNumber(e.target.value);
+                e.target.value = formatNumber(rawValue);
+            }
+        });
+        
+        // Format giá trị ban đầu nếu có
+        if (input.value) {
+            input.value = formatNumber(input.value);
+        }
+    });
+});
+
 // Thông báo (toast) - smooth and accessible
 function showNotification(message, type = 'success', duration = 3200) {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

@@ -54,7 +54,7 @@ try {
         $_SESSION['role'] = $user['role'];
 
         // Generate JWT token
-        $secret = 'your_secret_key'; // Use a proper secret from config
+        $secret = JWT_SECRET; // Use secure secret from environment
         $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
         $payload = json_encode([
             'user_id' => $user['id'],

@@ -49,7 +49,7 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
                     <td><?php echo htmlspecialchars($user['email']); ?></td>
                     <td><?php echo number_format($user['balance'] ?? 0, 0, ',', '.'); ?> ₫</td>
                     <td>
-                        <select onchange="changeRole(<?php echo $user['id']; ?>, this.value)" class="select-sm">
+                        <select onchange="changeRole(<?php echo $user['id']; ?>, this.value)" class="select-sm" <?php echo $user['id'] == $_SESSION['user_id'] ? 'disabled title="Không thể thay đổi quyền của chính bạn"' : ''; ?>>
                             <option value="customer" <?php echo ($user['role'] ?? '') === 'customer' ? 'selected' : ''; ?>>Khách hàng</option>
                             <option value="admin" <?php echo ($user['role'] ?? '') === 'admin' ? 'selected' : ''; ?>>Admin</option>
                         </select>
@@ -102,7 +102,7 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
             <input type="hidden" name="user_id">
             <div class="form-group">
                 <label>Số tiền cộng/trừ</label>
-                <input type="number" name="amount" step="0.01" required placeholder="Nhập số tiền (âm để trừ)">
+                <input type="text" name="amount" class="format-currency" required placeholder="Nhập số tiền (âm để trừ)">
             </div>
             <div class="form-group">
                 <label>Lý do</label>
@@ -127,10 +127,16 @@ function changeRole(userId, role) {
         body: JSON.stringify({user_id: userId, role: role})
     }).then(r => r.json()).then(data => {
         if (data.success) {
-            showNotification('Đã cập nhật', 'success');
+            showNotification('Đã cập nhật quyền hạn', 'success');
+            setTimeout(() => location.reload(), 700);
         } else {
             showNotification(data.message || 'Lỗi', 'error');
+            // Reload để reset select về giá trị cũ
+            setTimeout(() => location.reload(), 1000);
         }
+    }).catch(err => {
+        showNotification('Lỗi kết nối: ' + err.message, 'error');
+        setTimeout(() => location.reload(), 1000);
     });
 }
 
@@ -157,6 +163,12 @@ document.getElementById('balanceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
+    
+    // Parse số tiền từ input đã format
+    const amountInput = e.target.querySelector('input[name="amount"]');
+    if (amountInput && amountInput.value) {
+        data.amount = parseFormattedNumber(amountInput.value);
+    }
     
     try {
         const response = await fetch('/ShopToolNro/api/admin/adjust_user_balance.php', {

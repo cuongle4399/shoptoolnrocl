@@ -43,45 +43,66 @@ if ($fileContent === false) {
     response('error', 'Failed to read uploaded file');
 }
 
-// Upload to Supabase Storage
 $supabaseUrl = SUPABASE_URL;
 $bucket = SUPABASE_BUCKET;
-$apiKey = SUPABASE_ANON_KEY;
+$jwtSecret = getenv('JWT_SECRET') ?: JWT_SECRET;
 
-// Build Supabase Storage URL
-$uploadUrl = $supabaseUrl . '/storage/v1/object/' . $bucket . '/' . urlencode($filename);
+// Create valid JWT token for Supabase with proper secret
+$header = json_encode(['alg' => 'HS256', 'typ' => 'JWT']);
+$payload = json_encode([
+    'role' => 'service_role',
+    'iss' => 'supabase',
+    'iat' => time(),
+    'exp' => time() + 3600
+]);
 
-// Prepare curl request
+// Base64Url encode
+$header64 = rtrim(strtr(base64_encode($header), '+/', '-_'), '=');
+$payload64 = rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
+$signature = hash_hmac('sha256', "$header64.$payload64", $jwtSecret, true);
+$signature64 = rtrim(strtr(base64_encode($signature), '+/', '-_'), '=');
+$jwtToken = "$header64.$payload64.$signature64";
+
+error_log('Uploading with generated JWT token...');
+
+$uploadUrl = $supabaseUrl . '/storage/v1/object/' . $bucket . '/' . $filename;
+
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $uploadUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
 curl_setopt($ch, CURLOPT_BINARYTRANSFER, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, $fileContent);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Authorization: Bearer ' . $apiKey,
+    'Authorization: Bearer ' . $jwtToken,
     'Content-Type: ' . $file['type']
 ]);
+curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
 curl_close($ch);
 
-if ($curlError) {
-    error_log('Supabase upload curl error: ' . $curlError);
-    http_response_code(500);
-    response('error', 'Upload failed (curl error)');
+error_log('Upload Response - HTTP ' . $httpCode);
+
+if ($httpCode === 200) {
+    error_log('Upload SUCCESS');
+    $publicUrl = $supabaseUrl . '/storage/v1/object/public/' . $bucket . '/' . $filename;
+    response('success', 'Image uploaded successfully', ['url' => $publicUrl]);
 }
 
-if ($httpCode !== 200) {
-    error_log('Supabase upload HTTP ' . $httpCode . ': ' . $response);
-    http_response_code(400);
-    response('error', 'Supabase upload failed: HTTP ' . $httpCode);
+// Failed
+$errorMsg = 'Upload failed';
+if (!empty($response)) {
+    $errorData = @json_decode($response, true);
+    if ($errorData && isset($errorData['message'])) {
+        $errorMsg = 'Upload failed: ' . $errorData['message'];
+    } else {
+        $errorMsg = 'Upload error: ' . substr($response, 0, 200);
+    }
 }
 
-// Build public URL
-$publicUrl = $supabaseUrl . '/storage/v1/object/public/' . $bucket . '/' . urlencode($filename);
-
-response('success', 'Image uploaded successfully', ['url' => $publicUrl]);
+http_response_code(400);
+response('error', $errorMsg);
 ?>

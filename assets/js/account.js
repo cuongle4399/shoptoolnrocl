@@ -4,12 +4,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function handleChangePassword(event) {
     event.preventDefault();
+    const btn = event.target.querySelector('button[type="submit"]');
+    setButtonLoading(btn, true);
     
     const old_password = document.getElementById('oldPassword').value;
     const new_password = document.getElementById('newPassword').value;
     const confirm_password = document.getElementById('confirmNewPassword').value;
     
     const result = await API.changePassword(old_password, new_password, confirm_password);
+    setButtonLoading(btn, false);
     
     if (result.success) {
         showAlert('Mật khẩu đã được thay đổi thành công!', 'success');

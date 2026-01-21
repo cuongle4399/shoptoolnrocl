@@ -356,12 +356,15 @@ async function handleUpdateNotification(event) {
 
 async function handleAdminChangePassword(event) {
     event.preventDefault();
+    const btn = event.target.querySelector('button[type="submit"]');
+    setButtonLoading(btn, true);
     
     const old_password = document.getElementById('adminOldPassword').value;
     const new_password = document.getElementById('adminNewPassword').value;
     const confirm_password = document.getElementById('adminConfirmPassword').value;
     
     const result = await API.changePassword(old_password, new_password, confirm_password);
+    setButtonLoading(btn, false);
     
     if (result.success) {
         showAlert('Mật khẩu đã được thay đổi thành công!', 'success');
@@ -373,6 +376,8 @@ async function handleAdminChangePassword(event) {
 
 async function handleChangeUserPassword(event) {
     event.preventDefault();
+    const btn = event.target.querySelector('button[type="submit"]');
+    setButtonLoading(btn, true);
     
     const userId = document.getElementById('changePassUserId').value;
     const new_password = document.getElementById('changePassNewPassword').value;
@@ -380,15 +385,18 @@ async function handleChangeUserPassword(event) {
     
     if (!new_password || !confirm_password) {
         showAlert('Vui lòng nhập mật khẩu mới', 'error');
+        setButtonLoading(btn, false);
         return;
     }
     
     if (new_password !== confirm_password) {
         showAlert('Mật khẩu xác nhận không khớp', 'error');
+        setButtonLoading(btn, false);
         return;
     }
     
     const result = await API.changePassword('', new_password, confirm_password, userId);
+    setButtonLoading(btn, false);
     
     if (result.success) {
         showAlert('Mật khẩu người dùng đã được thay đổi thành công!', 'success');
