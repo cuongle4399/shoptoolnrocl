@@ -8,7 +8,7 @@ require_once '../../includes/functions.php';
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    response('error', 'Unauthorized');
+    response('error', 'Không có quyền');
 }
 
 $database = new Database();
@@ -21,7 +21,16 @@ error_log('DB Connection: ' . ($db ? 'OK' : 'FAILED'));
 if (!$db) {
     http_response_code(500);
     error_log('Database connection failed');
-    response('error', 'Database connection failed');
+    response('error', 'Kết nối cơ sở dữ liệu thất bại');
+}
+
+// Fail fast if Supabase credentials are missing
+$supabaseUrl = getenv('SUPABASE_URL');
+$supabaseKey = getenv('SUPABASE_SERVICE_KEY') ?: getenv('SUPABASE_ANON_KEY');
+if (!$supabaseUrl || !$supabaseKey) {
+    http_response_code(500);
+    error_log('Supabase env missing: SUPABASE_URL or SERVICE/ANON key');
+    response('error', 'Thiếu cấu hình Supabase (SUPABASE_URL / SERVICE_KEY). Vui lòng bổ sung .env');
 }
 
 $topupClass = new TopupRequest($db);
@@ -33,21 +42,27 @@ $data = json_decode($input, true);
 error_log('Decoded Data: ' . json_encode($data));
 
 try {
-    // Validate input data
-    if (!isset($data['amount']) || !is_numeric($data['amount'])) {
+    // Validate input data - handle both numeric and formatted strings (e.g., "200.000" with Vietnamese thousand separator)
+    if (!isset($data['amount'])) {
         http_response_code(400);
-        error_log('Invalid amount: ' . ($data['amount'] ?? 'not set'));
-        response('error', 'Số tiền không hợp lệ');
-    }
-    
-    if (!isset($data['method']) || !in_array($data['method'], ['vietqr', 'manual', 'bank_transfer'])) {
-        http_response_code(400);
-        error_log('Invalid method: ' . ($data['method'] ?? 'not set'));
-        response('error', 'Phương thức nạp tiền không hợp lệ');
+        error_log('Amount not set');
+        response('error', 'Số tiền là bắt buộc');
     }
 
-    $amount = (float)$data['amount'];
-    $method = $data['method'];
+    // Remove thousand separator dots and convert to float
+    $amountStr = (string)$data['amount'];
+    $amountStr = str_replace('.', '', $amountStr); // Remove Vietnamese thousand separators
+    $amountStr = str_replace(',', '.', $amountStr); // Convert comma to decimal point if present
+    
+    if (!is_numeric($amountStr)) {
+        http_response_code(400);
+        error_log('Invalid amount format: ' . $data['amount']);
+        response('error', 'Số tiền không hợp lệ');
+    }
+
+        $amount = (float)$amountStr;
+        // Method is optional; when present we persist it in description (table has no method column)
+        $method = $data['method'] ?? null;
     
     // Validate amount
     if ($amount < 10000) {
@@ -63,11 +78,17 @@ try {
         response('error', 'Số tiền quá lớn');
     }
     
+        // Build a safe description; avoid sending unsupported columns to Supabase
+        $description = $data['description'] ?? null;
+        if (!$description && $method) {
+            $description = 'method:' . $method;
+        }
+
     $topupData = [
         'user_id' => (int)$_SESSION['user_id'],
         'amount' => $amount,
-        'method' => $method,
-        'status' => 'pending'
+            'description' => $description,
+            'status' => 'pending'
     ];
     
     error_log('Topup Data: ' . json_encode($topupData));
@@ -101,7 +122,7 @@ try {
         http_response_code(400);
         error_log('createTopupRequest returned false/null');
         error_log('Check: $created value: ' . var_export($created, true));
-        response('error', 'Không thể tạo yêu cầu nạp tiền. Vui lòng thử lại!');
+        response('error', 'Không thể tạo yêu cầu nạp tiền. Kiểm tra lại cấu hình Supabase và thử lại.');
     }
     
 } catch (Exception $e) {

@@ -7,7 +7,7 @@ $database = new Database();
 $db = $database->connect();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    response('error', 'Method not allowed');
+    response('error', 'Phương thức không được hỗ trợ');
 }
 
 try {
@@ -19,7 +19,7 @@ try {
         ");
         $stmt->execute();
         $notification = $stmt->fetch();
-        response('success', 'Notification fetched', ['notification' => $notification]);
+        response('success', 'Lấy thông báo thành công', ['notification' => $notification]);
         exit;
     }
 
@@ -27,13 +27,13 @@ try {
     $result = $db->callApi('shop_notification?order=id.desc&limit=1', 'GET');
     if ($result && $result->code == 200 && !empty($result->response)) {
         $notification = $result->response[0];
-        response('success', 'Notification fetched', ['notification' => $notification]);
+        response('success', 'Lấy thông báo thành công', ['notification' => $notification]);
         exit;
     }
 
-    response('success', 'No notification', ['notification' => null]);
+    response('success', 'Không có thông báo', ['notification' => null]);
 
 } catch (Exception $e) {
-    response('success', 'No notification', ['notification' => null]);
+    response('success', 'Không có thông báo', ['notification' => null]);
 }
 ?>

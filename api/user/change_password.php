@@ -9,7 +9,7 @@ require_once '../../includes/functions.php';
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    response('error', 'Unauthorized');
+    response('error', 'Không có quyền');
 }
 
 $database = new Database();
@@ -17,14 +17,14 @@ $db = $database->connect();
 
 if (!$db) {
     http_response_code(500);
-    response('error', 'Database connection failed');
+    response('error', 'Kết nối cơ sở dữ liệu thất bại');
 }
 
 $data = json_decode(file_get_contents("php://input"), true);
 
 if (empty($data['old_password']) || empty($data['new_password'])) {
     http_response_code(400);
-    response('error', 'Missing required fields');
+    response('error', 'Thiếu thông tin bắt buộc');
 }
 
 if (strlen($data['new_password']) < 8) {

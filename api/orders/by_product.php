@@ -10,7 +10,7 @@ require_once '../../src/classes/License.php';
 
 if (!isset($_GET['product_id'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Missing product_id']);
+    echo json_encode(['success' => false, 'message' => 'Thiếu mã sản phẩm']);
     exit;
 }
 
@@ -19,7 +19,7 @@ $db = $database->connect();
 
 if (!$db) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    echo json_encode(['success' => false, 'message' => 'Kết nối cơ sở dữ liệu thất bại']);
     exit;
 }
 
@@ -30,7 +30,7 @@ $licenseClass = new License($db);
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Không có quyền']);
     exit;
 }
 

@@ -113,11 +113,11 @@ function getAuthToken() {
 
 function uploadFile($file) {
     if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
-        return ['status' => false, 'message' => 'Upload failed'];
+        return ['status' => false, 'message' => 'Tải tệp thất bại'];
     }
     
     if ($file['size'] > MAX_UPLOAD_SIZE) {
-        return ['status' => false, 'message' => 'File too large'];
+        return ['status' => false, 'message' => 'Tệp quá lớn'];
     }
     
     // Validate MIME type using finfo
@@ -125,7 +125,7 @@ function uploadFile($file) {
     $mime = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
     if (!in_array($mime, ALLOWED_TYPES)) {
-        return ['status' => false, 'message' => 'Invalid file type'];
+        return ['status' => false, 'message' => 'Định dạng tệp không hợp lệ'];
     }
 
     if (!is_dir(UPLOAD_DIR)) {
@@ -139,14 +139,14 @@ function uploadFile($file) {
     $filepath = UPLOAD_DIR . $filename;
 
     if (!is_uploaded_file($file['tmp_name'])) {
-        return ['status' => false, 'message' => 'Invalid upload'];
+        return ['status' => false, 'message' => 'Tải tệp không hợp lệ'];
     }
 
     if (move_uploaded_file($file['tmp_name'], $filepath)) {
         return ['status' => true, 'filename' => $filename, 'url' => UPLOAD_URL . $filename];
     }
 
-    return ['status' => false, 'message' => 'Move file failed'];
+    return ['status' => false, 'message' => 'Không thể lưu tệp'];
 }
 
 function logAudit($pdo, $action, $username, $details, $status, $ip_address = null, $user_agent = null) {

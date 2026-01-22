@@ -78,17 +78,23 @@ class Database {
         
         $ch = curl_init($url);
         
-        // OPTIMIZED curl settings for speed
-        curl_setopt_array($ch, [
+        // OPTIMIZED curl settings for speed (safe on hosts without FASTOPEN)
+        $curlOptions = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_TIMEOUT => 10,              // Reduced from 15
             CURLOPT_CONNECTTIMEOUT => 5,        // Added: faster connection timeout
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_TCP_FASTOPEN => true,       // Added: TCP fast open
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1  // HTTP/1.1 is faster than 2.0 for REST
-        ]);
+        ];
+
+        // Some PHP/cURL builds (notably on Windows) lack this constant; guard it to avoid fatal errors
+        if (defined('CURLOPT_TCP_FASTOPEN')) {
+            $curlOptions[CURLOPT_TCP_FASTOPEN] = true;
+        }
+
+        curl_setopt_array($ch, $curlOptions);
 
         if ($method === 'POST' || $method === 'PATCH') {
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));

@@ -31,7 +31,10 @@ class ProductDuration {
 
     public function create($data) {
         $result = $this->db->callApi($this->table, 'POST', $data);
-        return ($result && ($result->code == 201 || $result->code == 200));
+        if ($result && ($result->code == 201 || $result->code == 200) && !empty($result->response)) {
+            return $result->response[0];
+        }
+        return false;
     }
 
     public function update($id, $data) {

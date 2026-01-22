@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    response('error', 'Method not allowed');
+    response('error', 'Phương thức không được hỗ trợ');
 }
 
 $auth = authenticate();
@@ -32,7 +32,7 @@ try {
     $countStmt->execute([$user_id]);
     $total = $countStmt->fetch()['total'];
     
-    response('success', 'Orders fetched', [
+    response('success', 'Lấy đơn hàng thành công', [
         'orders' => $orders,
         'pagination' => [
             'page' => $page,
@@ -43,6 +43,6 @@ try {
     ]);
     
 } catch (Exception $e) {
-    response('error', 'Failed to fetch orders');
+    response('error', 'Không thể tải danh sách đơn hàng');
 }
 ?>

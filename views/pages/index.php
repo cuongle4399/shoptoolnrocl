@@ -3,8 +3,7 @@ $page_title = 'Trang chủ - ShopToolNro';
 include '../layout/header.php';
 
 require_once '../../config/database.php';
-require_once '../../src/classes/Product.php';
-require_once '../../src/classes/ProductDuration.php';
+require_once '../../src/classes/ProductOptimized.php'; // Use optimized class
 require_once '../../src/classes/Notification.php';
 
 $database = new Database();
@@ -16,14 +15,27 @@ if (!$db) {
     exit;
 }
 
-$productClass = new Product($db);
-$durationClass = new ProductDuration($db);
+$productClass = new ProductOptimized($db); // Optimized class
 $notificationClass = new Notification($db);
+
+$notification = $notificationClass->getActiveNotification();
+if ($notification) {
+    // Normalize notification payload for the homepage modal
+    $notification = [
+        'id' => $notification['id'] ?? null,
+        'title' => $notification['title'] ?? 'Thông báo quan trọng',
+        'message' => $notification['message'] ?? '',
+        'icon' => $notification['icon'] ?? '📢'
+    ];
+}
 
 $perPage = 12;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $perPage;
-$products = $productClass->getAllProducts(true, $perPage + 1, $offset); // fetch one extra to detect next page
+
+// OPTIMIZED: 1 API call thay vì N+1 calls
+$result = $productClass->getAllProductsWithDurations($perPage + 1, $offset);
+$products = $result['products'];
 $hasNext = count($products) > $perPage;
 if ($hasNext) array_pop($products);
 
@@ -32,33 +44,10 @@ if ($page > 1 && empty($products)) {
     exit;
 }
 
-// Get all durations for a product with prices and labels
-function getPricesForProduct($product_id, $durationClass) {
-    $durations = $durationClass->getDurationsByProductId($product_id, true);
-    if (empty($durations)) {
-        return [];
-    }
-    // Sort by duration_days (NULL goes to end = permanent)
-    usort($durations, function($a, $b) {
-        $a_days = $a['duration_days'] ?? 999;
-        $b_days = $b['duration_days'] ?? 999;
-        return $a_days <=> $b_days;
-    });
-    return $durations;
-}
-
 function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_query($qs); }
-
-$notification = $notificationClass->getActiveNotification();
 ?>
 
 <div class="main-content fade-in">
-    <?php if ($notification): ?>
-        <div class="alert alert-info mb-20">
-            <strong><?php echo htmlspecialchars($notification['message']); ?></strong>
-        </div>
-    <?php endif; ?>
-    
     <h2>Danh sách sản phẩm</h2>
     
     <div class="search-bar">
@@ -85,11 +74,12 @@ $notification = $notificationClass->getActiveNotification();
                 <img src="<?php echo htmlspecialchars($imageUrl); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="product-image">
                 <div class="product-info">
                     <h3 class="product-name"><?php echo htmlspecialchars($item['name']); ?></h3>
-                    <p class="product-description"><?php echo htmlspecialchars(substr($item['description'], 0, 80)); ?>...</p>
+                    <p class="product-description"><?php echo htmlspecialchars(substr($item['description'] ?? '', 0, 80)); ?>...</p>
                     
-                    <!-- Display all product durations with prices -->
+                    <!-- Display all product durations with prices (ALREADY LOADED) -->
                     <?php 
-                        $durations = getPricesForProduct($item['id'], $durationClass);
+                        // Durations đã có sẵn trong $item['durations'] - không cần query thêm!
+                        $durations = $item['durations'] ?? [];
                         if (!empty($durations)): 
                     ?>
                         <div class="product-prices">
@@ -406,15 +396,27 @@ document.addEventListener('click', (e) => {
 <script>
 // Notification data from PHP
 const notificationData = <?php echo $notification ? json_encode($notification) : 'null'; ?>;
+const currentUserId = <?php echo isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 'null'; ?>;
+
+function getDismissKey() {
+    const idPart = notificationData && notificationData.id ? `_${notificationData.id}` : '_latest';
+    const userPart = currentUserId ? `_user_${currentUserId}` : '_guest';
+    return `homepageNotificationDismissed${idPart}${userPart}`;
+}
 
 function initializeHomepageNotification() {
     // Check if there's a notification from admin
     if (!notificationData) {
         return; // No notification, don't show modal
     }
+
+    if (!notificationData.message) {
+        return; // Nothing to display
+    }
     
     // Check if notification has been dismissed in the last 30 minutes
-    const dismissedTime = localStorage.getItem('homepageNotificationDismissed');
+    const dismissKey = getDismissKey();
+    const dismissedTime = localStorage.getItem(dismissKey);
     const now = Date.now();
     const thirtyMinutes = 30 * 60 * 1000;
     
@@ -460,7 +462,7 @@ function closeHomepageNotification() {
     if (modal) {
         modal.classList.remove('active');
         // Store dismissal time in localStorage
-        localStorage.setItem('homepageNotificationDismissed', Date.now().toString());
+        localStorage.setItem(getDismissKey(), Date.now().toString());
     }
 }
 

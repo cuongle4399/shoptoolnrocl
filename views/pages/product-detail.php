@@ -3,23 +3,24 @@ $page_title = 'Chi tiết sản phẩm - ShopToolNro';
 include '../layout/header.php';
 
 require_once '../../config/database.php';
-require_once '../../src/classes/Product.php';
-require_once '../../src/classes/ProductDuration.php';
+require_once '../../src/classes/ProductOptimized.php'; // Use optimized class
 require_once '../../includes/functions.php';
 
 $database = new Database();
 $db = $database->connect();
-$productClass = new Product($db);
-$durationClass = new ProductDuration($db);
+$productClass = new ProductOptimized($db);
 
-$product = $productClass->getProductById($_GET['id'] ?? 0);
-$durations = $durationClass->getDurationsByProductId($_GET['id'] ?? 0);
+// OPTIMIZED: 1 API call lấy cả product + durations
+$product = $productClass->getProductDetail($_GET['id'] ?? 0);
 
 if (!$product) {
     echo '<div class="alert alert-danger">Sản phẩm không tồn tại</div>';
     include '../layout/footer.php';
     exit;
 }
+
+// Durations đã có sẵn trong $product['durations']
+$durations = $product['durations'] ?? [];
 ?>
 
 <div class="main-content fade-in">

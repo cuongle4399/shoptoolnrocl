@@ -166,7 +166,7 @@ function deleteNotify(notifyId) {
                 return r.json();
             }
             const txt = await r.text();
-            throw new Error(txt || 'Invalid server response');
+            throw new Error(txt || 'Phản hồi máy chủ không hợp lệ');
         }).then(data => {
             if (data.success) {
                 showNotification('Đã xóa', 'success');
@@ -205,7 +205,7 @@ document.getElementById('notifyForm').addEventListener('submit', async (e) => {
             result = await response.json();
         } else {
             const txt = await response.text();
-            throw new Error(txt || 'Invalid server response');
+            throw new Error(txt || 'Phản hồi máy chủ không hợp lệ');
         }
 
         if (result.success) {

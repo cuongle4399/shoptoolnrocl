@@ -10,12 +10,12 @@ require_once '../../includes/functions.php';
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    response('error', 'Unauthorized');
+    response('error', 'Không có quyền');
 }
 
 if (!isset($_FILES['image'])) {
     http_response_code(400);
-    response('error', 'No image file provided');
+    response('error', 'Không có tệp ảnh');
 }
 
 $file = $_FILES['image'];
@@ -23,12 +23,12 @@ $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 if (!in_array($file['type'], $allowed_types)) {
     http_response_code(400);
-    response('error', 'Invalid file type');
+    response('error', 'Định dạng tệp không hợp lệ');
 }
 
 if ($file['size'] > 5 * 1024 * 1024) { // 5MB
     http_response_code(400);
-    response('error', 'File too large');
+    response('error', 'Tệp quá lớn');
 }
 
 // Generate unique filename
@@ -40,7 +40,7 @@ $filename = bin2hex(random_bytes(8)) . ($safeExt ? '.' . $safeExt : '.jpg');
 $fileContent = file_get_contents($file['tmp_name']);
 if ($fileContent === false) {
     http_response_code(400);
-    response('error', 'Failed to read uploaded file');
+    response('error', 'Đọc tệp tải lên thất bại');
 }
 
 $supabaseUrl = SUPABASE_URL;
@@ -89,17 +89,17 @@ error_log('Upload Response - HTTP ' . $httpCode);
 if ($httpCode === 200) {
     error_log('Upload SUCCESS');
     $publicUrl = $supabaseUrl . '/storage/v1/object/public/' . $bucket . '/' . $filename;
-    response('success', 'Image uploaded successfully', ['url' => $publicUrl]);
+    response('success', 'Tải ảnh thành công', ['url' => $publicUrl]);
 }
 
 // Failed
-$errorMsg = 'Upload failed';
+$errorMsg = 'Tải lên thất bại';
 if (!empty($response)) {
     $errorData = @json_decode($response, true);
     if ($errorData && isset($errorData['message'])) {
-        $errorMsg = 'Upload failed: ' . $errorData['message'];
+        $errorMsg = 'Tải lên thất bại: ' . $errorData['message'];
     } else {
-        $errorMsg = 'Upload error: ' . substr($response, 0, 200);
+        $errorMsg = 'Lỗi tải lên: ' . substr($response, 0, 200);
     }
 }
 

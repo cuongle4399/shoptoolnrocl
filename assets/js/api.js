@@ -114,7 +114,8 @@ class API {
     }
 
     // Orders
-    static createOrder(product_id, /* quantity - ignored in new schema */, payment_method, duration_id = null, idempotency_key = null) {
+    // quantity param removed in new schema; payment_method can be 'balance' or others if added later
+    static createOrder(product_id, payment_method, duration_id = null, idempotency_key = null) {
         const key = idempotency_key || (function generateUUID(){
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);

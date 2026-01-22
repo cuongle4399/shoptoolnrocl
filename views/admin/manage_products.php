@@ -287,6 +287,19 @@ document.getElementById('demoImageFiles').addEventListener('change', async (e) =
 // --- Durations editor helper functions ---
 let durationsMain = [];
 
+// Helper functions for number formatting
+function formatNumber(value) {
+    if (value === '' || value === null || value === undefined) return '';
+    const num = parseFloat(value.toString().replace(/,/g, ''));
+    if (isNaN(num)) return '';
+    return num.toLocaleString('vi-VN');
+}
+
+function parseFormattedNumber(value) {
+    if (value === '' || value === null || value === undefined) return '';
+    return value.toString().replace(/,/g, '').replace(/\./g, '');
+}
+
 function renderDurations() {
     const list = document.getElementById('durationsList');
     if (!list) return;
@@ -375,29 +388,42 @@ function renderDurations() {
     });
 }
 
-document.getElementById('addDurationBtn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    durationsMain.push({ duration_days: 30, label: '30 ngày', price: 0 });
-    renderDurations();
-});
+// Thêm duration buttons event listeners
+const addDurationBtn = document.getElementById('addDurationBtn');
+if (addDurationBtn) {
+    addDurationBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        durationsMain.push({ duration_days: 30, label: '30 ngày', price: 0 });
+        renderDurations();
+    });
+}
 
-document.getElementById('add7Btn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    durationsMain.push({ duration_days: 7, label: '7 ngày', price: 0 });
-    renderDurations();
-});
+const add7Btn = document.getElementById('add7Btn');
+if (add7Btn) {
+    add7Btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        durationsMain.push({ duration_days: 7, label: '7 ngày', price: 0 });
+        renderDurations();
+    });
+}
 
-document.getElementById('add30Btn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    durationsMain.push({ duration_days: 30, label: '30 ngày', price: 0 });
-    renderDurations();
-});
+const add30Btn = document.getElementById('add30Btn');
+if (add30Btn) {
+    add30Btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        durationsMain.push({ duration_days: 30, label: '30 ngày', price: 0 });
+        renderDurations();
+    });
+}
 
-document.getElementById('addPermBtn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    durationsMain.push({ duration_days: null, label: 'Vĩnh viễn', price: 0 });
-    renderDurations();
-});
+const addPermBtn = document.getElementById('addPermBtn');
+if (addPermBtn) {
+    addPermBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        durationsMain.push({ duration_days: null, label: 'Vĩnh viễn', price: 0 });
+        renderDurations();
+    });
+}
 
 async function editProduct(id) {
     try {
@@ -467,13 +493,13 @@ function deleteProduct(id) {
             console.log('Delete response text:', text);
             
             if (!text) {
-                throw new Error('Server returned empty response');
+                throw new Error('Máy chủ trả về phản hồi trống');
             }
             
             try {
                 return JSON.parse(text);
             } catch (e) {
-                throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+                throw new Error('Phản hồi JSON không hợp lệ: ' + text.substring(0, 100));
             }
         }).then(data => {
             if (data.success) {

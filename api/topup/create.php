@@ -22,7 +22,7 @@ writeLog('Method: ' . $_SERVER['REQUEST_METHOD']);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     writeLog('ERROR: Not POST method');
     http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ']);
     exit;
 }
 
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 if (!isset($_SESSION['user_id'])) {
     writeLog('ERROR: User not authenticated');
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Không có quyền']);
     exit;
 }
 
@@ -50,13 +50,13 @@ try {
     writeLog('DB Type: ' . gettype($db));
     
     if (!$db) {
-        throw new Exception('Database connection failed');
+        throw new Exception('Kết nối cơ sở dữ liệu thất bại');
     }
     writeLog('Database connection: OK');
 } catch (Exception $e) {
     writeLog('Database Error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    echo json_encode(['success' => false, 'message' => 'Kết nối cơ sở dữ liệu thất bại']);
     exit;
 }
 
@@ -70,7 +70,7 @@ writeLog('Decoded Data: ' . json_encode($data));
 if (!$data) {
     writeLog('ERROR: Failed to decode JSON');
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid JSON']);
+    echo json_encode(['success' => false, 'message' => 'Dữ liệu JSON không hợp lệ']);
     exit;
 }
 

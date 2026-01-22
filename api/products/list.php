@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../src/classes/Product.php';
 require_once __DIR__ . '/../../src/classes/ProductDuration.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    response('error', 'Method not allowed');
+    response('error', 'Phương thức không được hỗ trợ');
 }
 
 try {
@@ -36,7 +36,7 @@ try {
         $enrichedProducts[] = $product;
     }
     
-    response('success', 'Products fetched', [
+    response('success', 'Lấy danh sách sản phẩm thành công', [
         'products' => $enrichedProducts,
         'pagination' => [
             'page' => $page,
@@ -48,6 +48,6 @@ try {
     
 } catch (Exception $e) {
     error_log("Product list error: " . $e->getMessage());
-    response('error', 'Failed to fetch products');
+    response('error', 'Không thể tải danh sách sản phẩm');
 }
 ?>

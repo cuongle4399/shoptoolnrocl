@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    echo json_encode(['success' => false, 'message' => 'Phương thức không được hỗ trợ']);
     exit;
 }
 
@@ -66,7 +66,7 @@ try {
 
     if (!$token) {
         http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        echo json_encode(['success' => false, 'message' => 'Không có quyền']);
         exit;
     }
 
@@ -74,7 +74,7 @@ try {
     $payload = verifyJWT($token);
     if (!$payload || !isset($payload['user_id'])) {
         http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Token invalid']);
+        echo json_encode(['success' => false, 'message' => 'Token không hợp lệ']);
         exit;
     }
 
@@ -83,7 +83,7 @@ try {
     // Connect to database
     $db = (new Database())->connect();
     if (!$db) {
-        throw new Exception('Database connection failed');
+        throw new Exception('Kết nối cơ sở dữ liệu thất bại');
     }
 
     // Get user
@@ -92,7 +92,7 @@ try {
     
     if (!$user) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'User not found']);
+        echo json_encode(['success' => false, 'message' => 'Không tìm thấy người dùng']);
         exit;
     }
 
@@ -117,7 +117,7 @@ try {
             'message' => 'Mật khẩu đã được thay đổi thành công'
         ]);
     } else {
-        throw new Exception('Update failed');
+        throw new Exception('Cập nhật thất bại');
     }
 
 } catch (Exception $e) {

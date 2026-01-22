@@ -10,14 +10,14 @@ require_once __DIR__ . '/../../src/classes/ProductDuration.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
-    exit(json_encode(['status' => 'error', 'message' => 'Method not allowed']));
+    exit(json_encode(['status' => 'error', 'message' => 'Phương thức không được hỗ trợ']));
 }
 
 $product_id = (int)($_GET['id'] ?? 0);
 
 if (!$product_id) {
     http_response_code(400);
-    exit(json_encode(['status' => 'error', 'message' => 'Product ID required']));
+    exit(json_encode(['status' => 'error', 'message' => 'Thiếu mã sản phẩm']));
 }
 
 try {
@@ -30,7 +30,7 @@ try {
     
     if (!$product) {
         http_response_code(404);
-        exit(json_encode(['status' => 'error', 'message' => 'Product not found']));
+        exit(json_encode(['status' => 'error', 'message' => 'Không tìm thấy sản phẩm']));
     }
 
     // Fetch durations
@@ -40,7 +40,7 @@ try {
     http_response_code(200);
     exit(json_encode([
         'status' => 'success',
-        'message' => 'Product details',
+        'message' => 'Chi tiết sản phẩm',
         'data' => [
             'product' => $product,
             'durations' => $durations
@@ -50,5 +50,5 @@ try {
 } catch (Exception $e) {
     error_log("Product detail error: " . $e->getMessage());
     http_response_code(500);
-    exit(json_encode(['status' => 'error', 'message' => 'Failed to fetch product']));
+    exit(json_encode(['status' => 'error', 'message' => 'Không thể tải sản phẩm']));
 }

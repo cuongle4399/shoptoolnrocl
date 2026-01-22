@@ -139,7 +139,9 @@ function renderTableData(tableName) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadDashboard();
+    if (document.getElementById('totalUsers')) {
+        loadDashboard();
+    }
 });
 
 function switchAdminTab(tabName, event) {
@@ -168,10 +170,15 @@ function switchAdminTab(tabName, event) {
 async function loadDashboard() {
     // Load stats - bạn cần tạo các API endpoints để lấy thống kê
     // Tạm thời sử dụng dữ liệu mẫu
-    document.getElementById('totalUsers').textContent = '0';
-    document.getElementById('totalProducts').textContent = '0';
-    document.getElementById('pendingTopups').textContent = '0';
-    document.getElementById('pendingOrders').textContent = '0';
+    const totalUsersEl = document.getElementById('totalUsers');
+    const totalProductsEl = document.getElementById('totalProducts');
+    const pendingTopupsEl = document.getElementById('pendingTopups');
+    const pendingOrdersEl = document.getElementById('pendingOrders');
+
+    if (totalUsersEl) totalUsersEl.textContent = '0';
+    if (totalProductsEl) totalProductsEl.textContent = '0';
+    if (pendingTopupsEl) pendingTopupsEl.textContent = '0';
+    if (pendingOrdersEl) pendingOrdersEl.textContent = '0';
 }
 
 async function loadUsers() {

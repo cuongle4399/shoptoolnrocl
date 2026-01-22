@@ -4,7 +4,7 @@ session_start();
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Không có quyền']);
     exit;
 }
 
@@ -20,7 +20,7 @@ $db = $database->connect();
 
 if (!$db) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    echo json_encode(['success' => false, 'message' => 'Kết nối cơ sở dữ liệu thất bại']);
     exit;
 }
 
@@ -29,10 +29,23 @@ $user = new User($db);
 
 $data = json_decode(file_get_contents("php://input"), true);
 
-// Validate required fields
-if (empty($data['product_id']) || empty($data['duration_id']) || empty($data['total_price'])) {
+// Validate required fields - check for missing/zero price specifically
+if (empty($data['product_id'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+    echo json_encode(['success' => false, 'message' => 'Thiếu mã sản phẩm']);
+    exit;
+}
+
+// Duration ID is REQUIRED (must be > 0)
+if (empty($data['duration_id']) || !is_numeric($data['duration_id']) || (int)$data['duration_id'] <= 0) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Thiếu thời hạn sử dụng. Vui lòng chọn gói thời gian trên trang sản phẩm']);
+    exit;
+}
+
+if (!isset($data['total_price']) || !is_numeric($data['total_price']) || (float)$data['total_price'] < 0) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Tổng tiền không hợp lệ (không được âm)']);
     exit;
 }
 
@@ -62,7 +75,7 @@ try {
         $userBalance = $user->getUserById($userId);
         if (!$userBalance || $userBalance['balance'] < $totalPrice) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Insufficient balance']);
+            echo json_encode(['success' => false, 'message' => 'Số dư không đủ']);
             exit;
         }
         
@@ -73,7 +86,7 @@ try {
     // Create order
     $created = $order->createOrder($orderData);
     if (!$created) {
-        throw new Exception('Failed to create order');
+        throw new Exception('Tạo đơn hàng thất bại');
     }
     
     // If wallet payment, generate license and complete order
@@ -110,7 +123,7 @@ try {
             
             echo json_encode([
                 'success' => true,
-                'message' => 'Payment successful',
+                'message' => 'Thanh toán thành công',
                 'order_id' => $created['id'],
                 'license_key' => $keyStr
             ]);
@@ -118,7 +131,7 @@ try {
             // If license creation fails, still report order created
             echo json_encode([
                 'success' => true,
-                'message' => 'Order created but license generation failed. Contact support.',
+                'message' => 'Đã tạo đơn nhưng tạo key thất bại. Vui lòng liên hệ hỗ trợ.',
                 'order_id' => $created['id']
             ]);
         }
@@ -126,7 +139,7 @@ try {
         // Pending payment - return order for further processing
         echo json_encode([
             'success' => true,
-            'message' => 'Order created successfully',
+            'message' => 'Tạo đơn hàng thành công',
             'order_id' => $created['id'],
             'status' => 'pending'
         ]);

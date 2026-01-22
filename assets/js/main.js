@@ -165,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-});
 
 // Close sidebar with Escape key
 document.addEventListener('keydown', (e) => {

@@ -4,7 +4,7 @@ session_start();
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Không có quyền']);
     exit;
 }
 
@@ -15,7 +15,7 @@ $topupId = $_GET['id'] ?? 0;
 
 if (!$topupId) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid topup ID']);
+    echo json_encode(['success' => false, 'message' => 'ID yêu cầu nạp không hợp lệ']);
     exit;
 }
 
@@ -24,7 +24,7 @@ try {
     $db = $database->connect();
     
     if (!$db) {
-        throw new Exception('Database connection failed');
+        throw new Exception('Kết nối cơ sở dữ liệu thất bại');
     }
     
     $topupClass = new TopupRequest($db);
@@ -32,14 +32,14 @@ try {
     
     if (!$topup) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Topup not found']);
+        echo json_encode(['success' => false, 'message' => 'Không tìm thấy yêu cầu nạp']);
         exit;
     }
     
     // Verify user owns this topup
     if ($topup['user_id'] != $_SESSION['user_id']) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Forbidden']);
+        echo json_encode(['success' => false, 'message' => 'Không đủ quyền']);
         exit;
     }
     

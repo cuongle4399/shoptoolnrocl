@@ -44,13 +44,26 @@ if (!$product || !$user) {
 }
 
 $discount = 0;
-// Prefer explicit duration record; if missing but caller provided duration_price (client-side), use it as fallback
+// Get price from duration record; fallback to URL param only if it's numeric and > 0
 $finalPrice = $selectedDuration ? $selectedDuration['price'] : $product['price'];
-if (empty($selectedDuration) && isset($_GET['duration_price'])) {
-    // sanitize numeric input
-    $p = str_replace(',', '', $_GET['duration_price']);
-    $finalPrice = is_numeric($p) ? (float)$p : $finalPrice;
-} 
+
+if (empty($selectedDuration)) {
+    // Try to extract price from query string as fallback
+    if (isset($_GET['duration_price'])) {
+        $p = str_replace([',', '.'], '', $_GET['duration_price']); // Remove thousand separators
+        $p = (float)$p;
+        if ($p > 0 && is_numeric($p)) {
+            $finalPrice = $p;
+        }
+    }
+    
+    // If still no valid duration and price is negative, show error
+    if (empty($selectedDuration) && $finalPrice < 0) {
+        echo '<div class="alert alert-danger">Lỗi: Vui lòng chọn thời hạn hợp lệ từ trang sản phẩm</div>';
+        include '../layout/footer.php';
+        exit;
+    }
+}
 ?>
 
 <div class="main-content fade-in container-md">
@@ -137,6 +150,17 @@ if (typeof showNotification === 'undefined') {
 let currentDiscount = 0;
 const basePrice = <?php echo $finalPrice; ?>;
 
+console.log('=== CHECKOUT PAGE LOADED ===');
+console.log('basePrice:', basePrice);
+console.log('durationId:', document.querySelector('input[name="duration_id"]').value);
+
+// Validate basePrice on page load
+if (basePrice < 0) {
+    console.error('ERROR: basePrice is negative:', basePrice);
+    document.getElementById('checkoutForm').innerHTML = '<div class="alert alert-danger" style="margin: 20px 0;"><strong>Lỗi:</strong> Giá sản phẩm không hợp lệ (âm). Vui lòng quay lại trang sản phẩm và chọn một thời hạn cụ thể.</div>';
+    document.querySelector('button[type="submit"]').disabled = true;
+}
+
 function updatePaymentMethod() {
     const method = document.querySelector('select[name="payment_method"]').value;
     document.getElementById('walletInfo').style.display = method === 'wallet' ? 'block' : 'none';
@@ -180,6 +204,20 @@ function number_format(num) {
 
 document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // Validate basePrice
+    if (basePrice < 0) {
+        showNotification('Lỗi: Giá sản phẩm không hợp lệ. Vui lòng quay lại trang sản phẩm và chọn một thời hạn cụ thể.', 'error');
+        return;
+    }
+    
+    // Validate duration_id is present
+    const durationId = document.querySelector('input[name="duration_id"]').value;
+    if (!durationId || parseInt(durationId) <= 0) {
+        showNotification('Lỗi: Vui lòng quay lại trang sản phẩm và chọn thời hạn cụ thể', 'error');
+        return;
+    }
+    
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     const originalText = submitBtn.textContent;
@@ -189,6 +227,17 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
     data.product_id = <?php echo $product['id']; ?>;
     data.total_price = basePrice - currentDiscount;
     
+    console.log('Checkout data:', data);
+    console.log('Final total_price:', data.total_price);
+    
+    // Validate total_price before sending
+    if (data.total_price === null || data.total_price === undefined || parseFloat(data.total_price) < 0) {
+        showNotification('Lỗi: Giá thanh toán không hợp lệ (' + data.total_price + '). Vui lòng quay lại trang sản phẩm và chọn lại', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return;
+    }
+    
     try {
         const response = await fetch('/ShopToolNro/api/checkout/process.php', {
             method: 'POST',
@@ -197,6 +246,8 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
         });
         
         const result = await response.json();
+        console.log('Checkout response:', result);
+        
         if (result.success) {
             showNotification('Thanh toán thành công', 'success');
             setTimeout(() => { window.location.href = '/ShopToolNro/views/pages/orders.php'; }, 700);
@@ -204,6 +255,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
             showNotification(result.message || 'Lỗi', 'error');
         }
     } catch (error) {
+        console.error('Checkout error:', error);
         showNotification('Lỗi: ' + (error.message || ''), 'error');
     } finally {
         submitBtn.disabled = false;

@@ -9,7 +9,7 @@ session_start();
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Không có quyền (admin)']);
     exit;
 }
 
@@ -25,17 +25,17 @@ $topup_id = isset($input['topup_id']) ? (int)$input['topup_id'] : 0;
 
 try {
     if (!$topup_id) {
-        throw new Exception('topup_id is required');
+        throw new Exception('Thiếu topup_id');
     }
 
     $topup = $topupClass->getTopupById($topup_id);
     if (!$topup) {
-        throw new Exception('Topup request not found');
+        throw new Exception('Không tìm thấy yêu cầu nạp');
     }
     
     // Check current status - prevent double approval
     if ($topup['status'] !== 'pending') {
-        throw new Exception('This request is not in pending status (current: ' . $topup['status'] . ')');
+        throw new Exception('Yêu cầu không ở trạng thái chờ (hiện tại: ' . $topup['status'] . ')');
     }
 
     // Update topup status to 'approved'
@@ -43,13 +43,13 @@ try {
     // 1. Add balance to user (balance = balance + amount)
     // 2. Set approved_at to current time
     if (!$topupClass->updateTopupStatus($topup_id, 'approved', $_SESSION['user_id'], null)) {
-        throw new Exception('Failed to approve topup request');
+        throw new Exception('Duyệt yêu cầu nạp thất bại');
     }
 
     http_response_code(200);
     echo json_encode([
         'success' => true,
-        'message' => 'Topup request approved. Balance has been added to user account.',
+        'message' => 'Yêu cầu nạp đã được duyệt. Số dư đã cộng vào tài khoản.',
         'topup_id' => $topup_id,
         'amount' => $topup['amount'],
         'user_id' => $topup['user_id']

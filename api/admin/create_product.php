@@ -9,7 +9,7 @@ session_start();
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     @ob_end_clean();
     http_response_code(401);
-    exit(json_encode(['success' => false, 'message' => 'Unauthorized - Admin only']));
+    exit(json_encode(['success' => false, 'message' => 'Không có quyền (chỉ admin)']));
 }
 
 require_once '../../config/database.php';
@@ -23,7 +23,7 @@ try {
     $db = $database->connect();
 
     if (!$db) {
-        throw new Exception('Database connection failed');
+        throw new Exception('Kết nối cơ sở dữ liệu thất bại');
     }
 
     $errorLogger = new ErrorLogger();
@@ -35,15 +35,15 @@ try {
     $data = json_decode($rawInput, true);
 
     if (json_last_error() !== JSON_ERROR_NONE) {
-        throw new Exception('Invalid JSON: ' . json_last_error_msg());
+        throw new Exception('JSON không hợp lệ: ' . json_last_error_msg());
     }
 
     // Require essential product fields
     if (empty($data['name'])) {
-        throw new Exception('Missing required field: name');
+        throw new Exception('Thiếu trường bắt buộc: name');
     }
     if (empty($data['description'])) {
-        throw new Exception('Missing required field: description');
+        throw new Exception('Thiếu trường bắt buộc: description');
     }
 
     // Ensure durations provided
@@ -100,7 +100,7 @@ try {
             try {
                 $durResult = $durClass->create($toInsert);
                 if (!$durResult) {
-                    throw new Exception('Failed to create duration');
+                    throw new Exception('Không thể tạo thời hạn');
                 }
             } catch (Exception $e) {
                 error_log('Duration creation error: ' . $e->getMessage());

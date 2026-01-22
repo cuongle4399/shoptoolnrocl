@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../src/classes/License.php';
 require_once __DIR__ . '/../../src/classes/PromotionCode.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    response('error', 'Method not allowed');
+    response('error', 'Phương thức không được hỗ trợ');
 }
 
 $auth = authenticate();
@@ -26,7 +26,7 @@ $idempotency_key = !empty($input['idempotency_key']) ? trim($input['idempotency_
 $payment_method = $input['payment_method'] ?? 'vietqr';
 
 if (!$product_id || empty($duration_id)) {
-    response('error', 'Invalid product or duration selection');
+    response('error', 'Sản phẩm hoặc gói thời hạn không hợp lệ');
 }
 
 try {
@@ -37,14 +37,14 @@ try {
     $product = $productClass->getProductById($product_id);
     
     if (!$product) {
-        response('error', 'Product not found');
+        response('error', 'Không tìm thấy sản phẩm');
     }
 
     $durationClass = new ProductDuration($db);
     $duration = $durationClass->getById($duration_id);
     
     if (!$duration || $duration['product_id'] != $product_id || $duration['status'] !== 'active') {
-        response('error', 'Product duration not found or not active');
+        response('error', 'Gói thời hạn không tồn tại hoặc không hoạt động');
     }
 
     $total_price = floatval($duration['price']);
@@ -57,15 +57,15 @@ try {
         
         if ($promo) {
             if (!empty($promo['expires_at']) && strtotime($promo['expires_at']) < time()) {
-                response('error', 'Promotion code has expired');
+                response('error', 'Mã khuyến mãi đã hết hạn');
             }
             
             if (!empty($promo['max_uses']) && $promo['usage_count'] >= $promo['max_uses']) {
-                response('error', 'Promotion code has reached maximum usage');
+                response('error', 'Mã khuyến mãi đã hết lượt sử dụng');
             }
             
             if (!empty($promo['min_order_amount']) && $total_price < $promo['min_order_amount']) {
-                response('error', 'Order does not meet minimum amount for promotion');
+                response('error', 'Đơn hàng chưa đạt giá trị tối thiểu để áp dụng khuyến mãi');
             }
             
             if (!empty($promo['discount_percent'])) {
@@ -78,7 +78,7 @@ try {
             $total_price = max(0, $total_price);
             $promotion_id = $promo['id'];
         } else {
-            response('error', 'Invalid or expired promotion code');
+            response('error', 'Mã khuyến mãi không hợp lệ hoặc đã hết hạn');
         }
     }
     
@@ -86,7 +86,7 @@ try {
     $user = $userClass->getUserById($user_id);
     
     if (!$user) {
-        response('error', 'User not found');
+        response('error', 'Không tìm thấy người dùng');
     }
 
     if (!$idempotency_key) {
@@ -108,17 +108,17 @@ try {
     $order = $orderClass->createOrder($orderData);
     
     if (!$order) {
-        response('error', 'Failed to create order');
+        response('error', 'Tạo đơn hàng thất bại');
     }
 
     // If wallet payment, deduct balance and mark order completed
     if ($payment_method === 'wallet') {
         if ($user['balance'] < $total_price) {
-            response('error', 'Insufficient balance');
+            response('error', 'Số dư không đủ');
         }
 
         if (!$userClass->updateUserBalance($user_id, -$total_price)) {
-            response('error', 'Failed to deduct balance');
+            response('error', 'Khấu trừ số dư thất bại');
         }
 
         $license = new License($db);
@@ -141,7 +141,7 @@ try {
         $createdKey = $license->createKey($createKeyData);
         if (!$createdKey) {
             $userClass->updateUserBalance($user_id, $total_price);
-            response('error', 'Failed to create license key after payment');
+            response('error', 'Tạo key sau thanh toán thất bại');
         }
 
         $infokey_id = !empty($createdKey['id']) ? $createdKey['id'] : null;
@@ -150,7 +150,7 @@ try {
             'infokey_id' => $infokey_id
         ]);
 
-        response('success', 'Order created and paid', [
+        response('success', 'Tạo đơn và thanh toán thành công', [
             'order_id' => $order['id'],
             'total_price' => $total_price,
             'license_key' => $keyStr,
@@ -158,7 +158,7 @@ try {
         ]);
     }
     
-    response('success', 'Order created', [
+    response('success', 'Tạo đơn hàng thành công', [
         'order_id' => $order['id'],
         'total_price' => $total_price,
         'vietqr_link' => ($payment_method === 'vietqr') ? generateVietQRLink($total_price, $order['id']) : null
@@ -177,14 +177,14 @@ try {
             $result = $db->callApi($endpoint, 'GET');
             if ($result && $result->code == 200 && !empty($result->response)) {
                 $existing = $result->response[0];
-                response('success', 'Duplicate order detected', [
+                response('success', 'Phát hiện đơn hàng trùng', [
                     'order_id' => $existing['id']
                 ]);
             }
         }
     }
 
-    response('error', 'Failed to create order: ' . $msg);
+    response('error', 'Tạo đơn hàng thất bại: ' . $msg);
 }
 ?>
 
@@ -197,7 +197,7 @@ require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    response('error', 'Method not allowed');
+    response('error', 'Phương thức không được hỗ trợ');
 }
 
 $auth = authenticate();
@@ -223,7 +223,7 @@ try {
     $countStmt->execute([$user_id]);
     $total = $countStmt->fetch()['total'];
     
-    response('success', 'Orders fetched', [
+    response('success', 'Lấy đơn hàng thành công', [
         'orders' => $orders,
         'pagination' => [
             'page' => $page,
@@ -234,6 +234,6 @@ try {
     ]);
     
 } catch (Exception $e) {
-    response('error', 'Failed to fetch orders');
+    response('error', 'Không thể tải danh sách đơn hàng');
 }
 ?>

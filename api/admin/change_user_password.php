@@ -5,12 +5,12 @@ require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    response('error', 'Method not allowed');
+    response('error', 'Phương thức không được hỗ trợ');
 }
 
 // Check if PDO connection is available
 if (!isset($pdo) || $pdo === null) {
-    response('error', 'Database connection error');
+    response('error', 'Lỗi kết nối cơ sở dữ liệu');
 }
 
 $auth = requireRole('admin');
@@ -24,15 +24,15 @@ $confirm_password = $input['confirm_password'] ?? '';
 
 // Validate input
 if (!$target_user_id || !$new_password || !$confirm_password) {
-    response('error', 'User ID and password fields are required');
+    response('error', 'Thiếu mã người dùng hoặc mật khẩu');
 }
 
 if (strlen($new_password) < 6) {
-    response('error', 'New password must be at least 6 characters');
+    response('error', 'Mật khẩu mới phải tối thiểu 6 ký tự');
 }
 
 if ($new_password !== $confirm_password) {
-    response('error', 'Passwords do not match');
+    response('error', 'Mật khẩu nhập lại không khớp');
 }
 
 try {
@@ -42,7 +42,7 @@ try {
     $user = $stmt->fetch();
     
     if (!$user) {
-        response('error', 'User not found');
+        response('error', 'Không tìm thấy người dùng');
     }
     
     // Hash and update password
@@ -53,7 +53,7 @@ try {
     $details = "Password changed by admin {$admin_name} for user {$user['username']}";
     logAudit($pdo, 'ADMIN_PASSWORD_CHANGE', $admin_name, $details, 'success');
     
-    response('success', 'User password changed successfully', [
+    response('success', 'Đổi mật khẩu người dùng thành công', [
         'user_id' => $target_user_id,
         'username' => $user['username']
     ]);

@@ -21,17 +21,17 @@ class License {
         $result = $this->db->callApi($endpoint, 'GET');
 
         if (!($result && $result->code == 200 && !empty($result->response))) {
-            return ['valid' => false, 'message' => 'License key not found for product'];
+            return ['valid' => false, 'message' => 'Không tìm thấy key cho sản phẩm này'];
         }
 
         $key = $result->response[0];
 
         if (!empty($key['expires_at']) && strtotime($key['expires_at']) < time()) {
-            return ['valid' => false, 'message' => 'License expired'];
+            return ['valid' => false, 'message' => 'Key đã hết hạn'];
         }
 
         if (!empty($key['hwid']) && $key['hwid'] !== $hwid) {
-            return ['valid' => false, 'message' => 'HWID mismatch'];
+            return ['valid' => false, 'message' => 'HWID không khớp'];
         }
 
         // REMOVED: updateLastCheck() call - reduces API calls by 1 per verification
@@ -39,7 +39,7 @@ class License {
 
         return [
             'valid' => true,
-            'message' => 'License valid',
+            'message' => 'Key hợp lệ',
             'user_info' => $key['user_info'] ?? null,
             'expires_at' => $key['expires_at'] ?? null,
             'key_id' => $key['id'] ?? null,
@@ -82,7 +82,7 @@ class License {
             return $result->response[0];
         }
 
-        $msg = 'Failed to create license key';
+        $msg = 'Tạo key thất bại';
         if ($result && !empty($result->response)) {
             if (is_array($result->response)) {
                 if (isset($result->response['message'])) $msg = $result->response['message'];

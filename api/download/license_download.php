@@ -5,7 +5,7 @@ session_start();
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo 'Unauthorized';
+    echo 'Không có quyền';
     exit;
 }
 
@@ -17,7 +17,7 @@ require_once '../../config.php';
 $license_key = $_GET['license'] ?? '';
 if (empty($license_key)) {
     http_response_code(400);
-    echo 'Missing license';
+    echo 'Thiếu mã license';
     exit;
 }
 
@@ -29,7 +29,7 @@ $userClass = new User($db);
 $key = $licenseClass->getKeyByLicense($license_key);
 if (!$key) {
     http_response_code(404);
-    echo 'License not found';
+    echo 'Không tìm thấy license';
     exit;
 }
 
@@ -43,13 +43,13 @@ if (!empty($key['user_info'])) {
 }
 if (!$owner_ok && (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin')) {
     http_response_code(403);
-    echo 'Forbidden';
+    echo 'Không đủ quyền';
     exit;
 }
 
 if (empty($key['hwid'])) {
     http_response_code(400);
-    echo 'HWID not set for this license';
+    echo 'License này chưa được gán HWID';
     exit;
 }
 

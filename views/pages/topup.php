@@ -708,10 +708,18 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             // Parse số từ input đã format
             const amountInput = document.getElementById('amount');
-            const rawAmount = parseFormattedNumber(amountInput.value);
+            let rawAmount = amountInput.value;
+            
+            // Remove Vietnamese thousand separators (.): "200.000" -> "200000"
+            rawAmount = rawAmount.replace(/\./g, '');
+            // Replace comma with empty if needed: "200,00" -> "20000"
+            rawAmount = rawAmount.replace(/,/g, '');
+            
             const amount = parseInt(rawAmount);
             
-            if (!amount || amount < 10000) {
+            console.log('Amount input:', amountInput.value, 'Parsed:', amount);
+            
+            if (!amount || isNaN(amount) || amount < 10000) {
                 showNotification('Vui lòng nhập số tiền hợp lệ (tối thiểu 10.000)', 'error');
                 return;
             }
@@ -721,6 +729,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'vietqr'
             };
             
+            console.log('Sending data:', data);
+            
             fetch('/ShopToolNro/api/topup/create_request.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -728,6 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(result => {
+                console.log('Response:', result);
                 if (result.success) {
                     showNotification('Yêu cầu nạp tiền đã được tạo. Vui lòng chuyển khoản!', 'success');
                     setTimeout(() => location.reload(), 1500);
