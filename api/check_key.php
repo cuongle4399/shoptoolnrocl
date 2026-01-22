@@ -58,69 +58,126 @@ try {
         throw new Exception('Database connection failed');
     }
 
-    // Call Supabase check_license function
-    // Signature: check_license(p_product_id, p_license_key, p_hwid, p_bind_hwid)
-    $endpoint = 'rest/v1/rpc/check_license';
+    // Call Supabase check_license RPC function
+    // Signature: check_license(p_product_id bigint, p_license_key text, p_hwid text, p_bind_hwid boolean)
+    // Returns: TABLE(valid boolean, infokey_id bigint, product_id bigint, license_key text, hwid text, status text, expires_at timestamptz, message text)
+    // NOTE: callApi() already adds "rest/v1/" prefix, so we only need "rpc/check_license"
+    $endpoint = 'rpc/check_license';
     $payload = [
-        'p_product_id' => $product_id,
-        'p_license_key' => $license_key,
-        'p_hwid' => $hwid,
-        'p_bind_hwid' => $bind_hwid
+        'p_product_id' => (int)$product_id,
+        'p_license_key' => (string)$license_key,
+        'p_hwid' => (string)$hwid,
+        'p_bind_hwid' => (bool)$bind_hwid
     ];
 
     $result = $db->callApi($endpoint, 'POST', $payload);
 
+    // Debug logging (remove in production)
+    error_log("check_key.php - API call to: $endpoint");
+    error_log("check_key.php - Payload: " . json_encode($payload));
+    error_log("check_key.php - Result code: " . ($result->code ?? 'null'));
+    error_log("check_key.php - Response: " . json_encode($result->response ?? null));
+
     if (!$result) {
-        throw new Exception('API call failed');
+        throw new Exception('API call failed - no result returned');
     }
 
-    // check_license returns array of records
-    if ($result->code != 200 || empty($result->response)) {
+    // Handle Supabase RPC error responses
+    if ($result->code >= 400) {
+        $errorMsg = 'License verification failed';
+        if (is_array($result->response) && isset($result->response['message'])) {
+            $errorMsg = $result->response['message'];
+        } elseif (is_object($result->response) && isset($result->response->message)) {
+            $errorMsg = $result->response->message;
+        }
+        
         http_response_code(400);
         echo json_encode([
             'success' => false,
             'valid' => false,
-            'message' => 'License verification failed',
+            'message' => $errorMsg,
             'error_code' => 'VERIFICATION_FAILED'
         ]);
         exit;
     }
 
-    if (!is_array($result->response) || empty($result->response)) {
+    // check_license returns array of records (even if just 1 row)
+    $response = null;
+    
+    if (is_array($result->response)) {
+        if (isset($result->response[0])) {
+            // Array of objects/arrays
+            $response = is_object($result->response[0]) 
+                ? (array)$result->response[0] 
+                : $result->response[0];
+        } elseif (isset($result->response['valid'])) {
+            // Single object returned as array
+            $response = $result->response;
+        }
+    } elseif (is_object($result->response)) {
+        $response = (array)$result->response;
+    }
+
+    if (empty($response)) {
         http_response_code(400);
         echo json_encode([
             'success' => false,
             'valid' => false,
-            'message' => 'Invalid response from server',
+            'message' => 'Invalid response from license check function',
             'error_code' => 'INVALID_RESPONSE'
         ]);
         exit;
     }
 
-    $response = $result->response[0];
-
-    // Prepare response
+    // Extract response fields
     $valid = (bool)($response['valid'] ?? false);
-    $message = $response['message'] ?? 'Unknown error';
+    $message = $response['message'] ?? ($valid ? 'License valid' : 'License invalid');
+    
+    // Map error_code based on message
+    $error_code = 'SUCCESS';
+    if (!$valid) {
+        $msgLower = strtolower($message);
+        if (strpos($msgLower, 'not found') !== false) {
+            $error_code = 'KEY_NOT_FOUND';
+        } elseif (strpos($msgLower, 'expired') !== false) {
+            $error_code = 'KEY_EXPIRED';
+        } elseif (strpos($msgLower, 'hwid') !== false || strpos($msgLower, 'mismatch') !== false) {
+            $error_code = 'HWID_MISMATCH';
+        } elseif (strpos($msgLower, 'not active') !== false || strpos($msgLower, 'inactive') !== false) {
+            $error_code = 'KEY_INACTIVE';
+        } else {
+            $error_code = 'INVALID_KEY';
+        }
+    }
+
+    // ✅ user_id và username đã được trả về trực tiếp từ Supabase check_license function
+    // (Không cần query thêm - đã JOIN trong SQL function)
+    $user_id = $response['user_id'] ?? null;
+    $username = $response['username'] ?? null;
+    
+    error_log("check_key.php - user_id: $user_id, username: $username");
 
     http_response_code($valid ? 200 : 401);
     echo json_encode([
         'success' => $valid,
         'valid' => $valid,
         'message' => $message,
-        'error_code' => $valid ? 'SUCCESS' : 'INVALID_KEY',
+        'error_code' => $error_code,
         'data' => [
             'infokey_id' => $response['infokey_id'] ?? null,
             'product_id' => $response['product_id'] ?? $product_id,
             'license_key' => $response['license_key'] ?? $license_key,
             'hwid' => $response['hwid'] ?? null,
             'status' => $response['status'] ?? 'inactive',
-            'expires_at' => $response['expires_at'] ?? null
+            'expires_at' => $response['expires_at'] ?? null,
+            'user_id' => $user_id,
+            'username' => $username
         ]
     ]);
 
 } catch (Exception $e) {
-    error_log('check_key.php error: ' . $e->getMessage());
+    error_log('check_key.php EXCEPTION: ' . $e->getMessage());
+    error_log('check_key.php TRACE: ' . $e->getTraceAsString());
     http_response_code(500);
     echo json_encode([
         'success' => false,

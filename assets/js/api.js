@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost/ShopToolNro/api';
+// Auto-detect base URL (works for localhost and production)
+const SITE_BASE = window.location.origin + window.location.pathname.split('/').slice(0, -1).join('/').replace(/\/views.*|\/api.*/, '') || '';
+const API_BASE = SITE_BASE + '/api';
 let token = localStorage.getItem('token');
 
 // Initialize loading overlay on DOM ready
@@ -229,7 +231,7 @@ function isLoggedIn() {
 function logout() {
     token = null;
     localStorage.removeItem('token');
-    location.href = 'http://localhost/ShopToolNro/';
+    location.href = SITE_BASE + '/' || '/';
 }
 // Helper to set button loading state
 function setButtonLoading(button, isLoading) {
