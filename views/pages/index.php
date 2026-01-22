@@ -29,6 +29,14 @@ if ($notification) {
     ];
 }
 
+// Build avatar pool for public order feed (exclude logo files)
+$avatarFiles = glob(__DIR__ . '/../../img/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
+$avatarFiles = array_values(array_filter($avatarFiles, function($path) {
+    $name = strtolower(basename($path));
+    return strpos($name, 'logo') === false;
+}));
+$avatarUrls = array_map(function($path) { return '/ShopToolNro/img/' . basename($path); }, $avatarFiles);
+
 $perPage = 12;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $perPage;
@@ -240,9 +248,25 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
 </style>
 
 <script>
+// Avatar pool for public orders (precomputed in PHP)
+const publicOrderAvatarPool = <?php echo json_encode($avatarUrls); ?>;
+
+function pickAvatarFromPool(seed) {
+    if (!publicOrderAvatarPool || !publicOrderAvatarPool.length) return null;
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+    }
+    const idx = Math.abs(hash) % publicOrderAvatarPool.length;
+    return publicOrderAvatarPool[idx];
+}
+
 // Hide skeleton and show products quickly with stagger animation
 window.addEventListener('DOMContentLoaded', () => {
-    // Chỉ giữ skeleton rất ngắn để tránh cảm giác chờ lâu
+    // Mobile: tắt skeleton, hiện luôn để nhanh hơn
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const skeletonDelay = isMobile ? 100 : 300; // Mobile chỉ 100ms
+    
     setTimeout(() => {
         const skeleton = document.getElementById('skeletonLoader');
         const container = document.getElementById('productsContainer');
@@ -345,39 +369,67 @@ document.addEventListener('click', (e) => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7);
     z-index: 8888;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(2px);
+}
+
+/* Tắt backdrop-filter trên mobile - rất nặng */
+@media (min-width: 769px) {
+    .homepage-notification-modal {
+        backdrop-filter: blur(2px);
+    }
 }
 
 .homepage-notification-modal.active {
     display: flex;
-    animation: fadeIn 0.4s ease-in-out;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Mobile: animation nhanh hơn */
+@media (max-width: 768px) {
+    .homepage-notification-modal.active {
+        animation: fadeIn 0.15s ease-out;
+    }
 }
 
 .notification-modal-content {
     background: white;
     border-radius: 16px;
-    padding: 50px 40px;
+    padding: 40px 30px;
     text-align: center;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-    animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease-out;
     max-width: 450px;
     position: relative;
     overflow: hidden;
+    will-change: transform;
+    transform: translateZ(0);
 }
 
-.notification-modal-content::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 250px;
-    height: 250px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-    pointer-events: none;
+/* Mobile: giảm padding và animation */
+@media (max-width: 768px) {
+    .notification-modal-content {
+        padding: 25px 20px;
+        max-width: 90%;
+        animation: slideUp 0.2s ease-out;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+}
+
+/* Tắt hiệu ứng nặng trên mobile */
+@media (min-width: 769px) {
+    .notification-modal-content::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+        pointer-events: none;
+    }
 }
 
 .notification-close-btn {
@@ -406,11 +458,26 @@ document.addEventListener('click', (e) => {
 }
 
 .notification-icon {
-    font-size: 60px;
-    margin-bottom: 20px;
-    animation: bounce 0.6s ease-in-out;
+    font-size: 50px;
+    margin-bottom: 15px;
     position: relative;
     z-index: 1;
+}
+
+/* Desktop: có animation */
+@media (min-width: 769px) {
+    .notification-icon {
+        font-size: 60px;
+        animation: bounce 0.6s ease-in-out;
+    }
+}
+
+/* Mobile: không animation, nhẹ hơn */
+@media (max-width: 768px) {
+    .notification-icon {
+        font-size: 45px;
+        margin-bottom: 12px;
+    }
 }
 
 .notification-modal-content h2 {
@@ -484,12 +551,26 @@ document.addEventListener('click', (e) => {
 
 @keyframes slideUp {
     from {
-        transform: translateY(40px);
+        transform: translateY(20px) translateZ(0);
         opacity: 0;
     }
     to {
-        transform: translateY(0);
+        transform: translateY(0) translateZ(0);
         opacity: 1;
+    }
+}
+
+/* Mobile: animation ngắn hơn */
+@media (max-width: 768px) {
+    @keyframes slideUp {
+        from {
+            transform: translateY(10px) translateZ(0);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0) translateZ(0);
+            opacity: 1;
+        }
     }
 }
 </style>
@@ -529,11 +610,17 @@ function initializeHomepageNotification() {
     // Update modal content with notification data
     updateNotificationContent();
     
-    // Show the notification
-    const modal = document.getElementById('homepageNotificationModal');
-    if (modal) {
-        modal.classList.add('active');
-    }
+    // Delay modal trên mobile để tránh lag khi load trang
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const delay = isMobile ? 800 : 300; // Mobile: 800ms delay
+    
+    // Show the notification sau một chút delay
+    setTimeout(() => {
+        const modal = document.getElementById('homepageNotificationModal');
+        if (modal) {
+            modal.classList.add('active');
+        }
+    }, delay);
 }
 
 function updateNotificationContent() {
@@ -649,9 +736,12 @@ function renderPublicOrders() {
         orderItem.style.animationDelay = `${index * 0.1}s`;
         
         const firstLetter = order.username.charAt(0).toUpperCase();
+        const avatarUrl = pickAvatarFromPool(order.username + order.product_name + order.created_at);
         
         orderItem.innerHTML = `
-            <div class="public-order-avatar">${firstLetter}</div>
+            <div class="public-order-avatar ${avatarUrl ? 'has-img' : ''}">
+                ${avatarUrl ? `<img src="${avatarUrl}" alt="avatar">` : firstLetter}
+            </div>
             <div class="public-order-content">
                 <div class="public-order-user">${order.username}</div>
                 <div class="public-order-product">đã mua: ${order.product_name}</div>

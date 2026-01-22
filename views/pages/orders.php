@@ -32,6 +32,16 @@ $orders = array_values($orders);
 // Log for debugging to detect unexpected empty items
 error_log("orders.php: loaded orders count = " . count($orders));
 
+// Prefetch related users/products to avoid N+1 REST calls
+$productIds = [];
+$userIds = [];
+foreach ($orders as $o) {
+    if (!empty($o['product_id'])) $productIds[] = (int)$o['product_id'];
+    if (!empty($o['user_id'])) $userIds[] = (int)$o['user_id'];
+}
+$productMap = $productClass->getProductsByIds($productIds);
+$userMap = $userClass->getUsersByIds($userIds);
+
 // If current page is beyond available results, redirect back one page
 if ($page > 1 && empty($orders)) {
     header('Location: ?page=' . ($page - 1));
@@ -162,9 +172,9 @@ function compactStr($s, $front = 8, $back = 4) {
                         }
                         // string to display/use for license actions
                         $license_display = $order['license_key'] ?? ($key['license_key'] ?? null);
-                        $customer = $userClass->getUserById($order['user_id']);
-                        $customerName = $customer ? $customer['username'] : ('User-' . $order['user_id']);
-                        $product = $productClass->getProductById($order['product_id'] ?? null, false);
+                        $customer = $userMap[$order['user_id']] ?? null;
+                        $customerName = $customer ? ($customer['username'] ?? ('User-' . $order['user_id'])) : ('User-' . $order['user_id']);
+                        $product = $productMap[$order['product_id']] ?? null;
                         $isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
                     ?>
                     <tr>

@@ -1,0 +1,41 @@
+{
+  "name": "ShopToolNro",
+  "short_name": "ShopToolNro",
+  "description": "Shop Tool Nro - Mua Tool Game Online",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#00bcd4",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/ShopToolNro/img/Logo.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ShopToolNro/img/Logo.ico",
+      "sizes": "512x512",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Trang chủ",
+      "short_name": "Home",
+      "description": "Mở trang chủ",
+      "url": "/",
+      "icons": [{ "src": "/ShopToolNro/img/Logo.ico", "sizes": "192x192" }]
+    },
+    {
+      "name": "Đơn hàng",
+      "short_name": "Orders",
+      "description": "Xem đơn hàng",
+      "url": "/ShopToolNro/views/pages/orders.php",
+      "icons": [{ "src": "/ShopToolNro/img/Logo.ico", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

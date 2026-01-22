@@ -1,0 +1,480 @@
+/* ===========================
+   MOBILE PERFORMANCE OPTIMIZATION
+   Tối ưu hóa hiệu suất cho thiết bị di động
+   =========================== */
+
+/* HARDWARE ACCELERATION & GPU OPTIMIZATION */
+* {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* Bật GPU cho các phần tử chuyển động */
+.card,
+.btn,
+.modal,
+.topbar,
+.sidebar,
+.product-card,
+.fade-in,
+[class*="skeleton"] {
+    will-change: transform;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+/* Optimized smooth scrolling */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+body {
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Touch optimization */
+button,
+a,
+input,
+select,
+textarea {
+    -webkit-tap-highlight-color: rgba(0, 188, 212, 0.1);
+    touch-action: manipulation;
+}
+
+/* Prevent double-tap zoom */
+input,
+select,
+textarea {
+    font-size: 16px !important;
+}
+
+/* MOBILE-FIRST ANIMATIONS - Faster & Smoother */
+@media (max-width: 768px) {
+    * {
+        animation-duration: 0.15s !important;
+        transition-duration: 0.15s !important;
+    }
+    
+    /* Tắt hover effects trên mobile */
+    .card:hover {
+        transform: none !important;
+        box-shadow: var(--shadow) !important;
+    }
+    
+    .fade-in {
+        animation-duration: 0.2s !important;
+    }
+    
+    /* Tắt các hiệu ứng nặng trên mobile */
+    *::before,
+    *::after {
+        animation: none !important;
+    }
+    
+    /* Tắt blur effects - rất nặng */
+    .backdrop-blur,
+    [class*="blur"] {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+}
+
+/* MOBILE TOUCH GESTURES */
+@media (max-width: 768px) {
+    /* Tăng kích thước vùng chạm */
+    button,
+    a.btn,
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 20px;
+    }
+    
+    /* Card touch feedback */
+    .card {
+        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+                    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .card:active {
+        transform: scale(0.98) translateZ(0);
+    }
+    
+    /* Button touch feedback */
+    .btn:active {
+        transform: scale(0.96) translateZ(0);
+    }
+}
+
+/* MOBILE RESPONSIVE TYPOGRAPHY */
+@media (max-width: 768px) {
+    html {
+        font-size: 14px;
+    }
+    
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.25rem; }
+    h4 { font-size: 1.1rem; }
+    h5 { font-size: 1rem; }
+    h6 { font-size: 0.9rem; }
+    
+    body {
+        line-height: 1.5;
+    }
+}
+
+/* MOBILE GRID OPTIMIZATION */
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+        max-width: 100%;
+    }
+    
+    .row {
+        margin: 0 -6px;
+    }
+    
+    [class*="col-"] {
+        padding: 0 6px;
+    }
+}
+
+/* MOBILE NAVIGATION OPTIMIZATION */
+@media (max-width: 768px) {
+    .topbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+    }
+    
+    .sidebar {
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .sidebar.active {
+        transform: translateX(0) translateZ(0);
+    }
+}
+
+/* MOBILE MODAL OPTIMIZATION */
+@media (max-width: 768px) {
+    .modal {
+        align-items: flex-end;
+    }
+    
+    .modal-content {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+        max-height: 85vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        animation: slideUpMobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes slideUpMobile {
+        from {
+            transform: translateY(100%) translateZ(0);
+        }
+        to {
+            transform: translateY(0) translateZ(0);
+        }
+    }
+}
+
+/* MOBILE IMAGE OPTIMIZATION */
+@media (max-width: 768px) {
+    img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        image-rendering: -webkit-optimize-contrast;
+    }
+    
+    .product-img,
+    .card-img {
+        object-fit: cover;
+        will-change: transform;
+    }
+}
+
+/* MOBILE FORM OPTIMIZATION */
+@media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+        padding: 12px 16px;
+        border-radius: 8px;
+    }
+    
+    input:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.1);
+    }
+    
+    .form-group {
+        margin-bottom: 16px;
+    }
+}
+
+/* MOBILE PERFORMANCE - Reduce Layout Shifts */
+@media (max-width: 768px) {
+    /* Prevent layout shift from images */
+    .product-card img {
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+    }
+    
+    /* Skeleton loading with fixed dimensions */
+    .skeleton-image {
+        height: 180px;
+        aspect-ratio: 16 / 9;
+    }
+}
+
+/* MOBILE SCROLL PERFORMANCE */
+@media (max-width: 768px) {
+    .scroll-container {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    
+    /* Smooth scrolling for lists */
+    .product-list,
+    .order-list,
+    .notification-list {
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* MOBILE LOADING STATES */
+@media (max-width: 768px) {
+    .loading {
+        pointer-events: none;
+    }
+    
+    .loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid var(--accent);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg) translateZ(0); }
+    }
+}
+
+/* MOBILE UTILITY CLASSES */
+@media (max-width: 768px) {
+    .hide-mobile { display: none !important; }
+    .show-mobile { display: block !important; }
+    
+    .text-center-mobile { text-align: center !important; }
+    .text-left-mobile { text-align: left !important; }
+    
+    .full-width-mobile { width: 100% !important; }
+    
+    .p-mobile-sm { padding: 8px !important; }
+    .p-mobile-md { padding: 12px !important; }
+    .p-mobile-lg { padding: 16px !important; }
+    
+    .m-mobile-sm { margin: 8px !important; }
+    .m-mobile-md { margin: 12px !important; }
+    .m-mobile-lg { margin: 16px !important; }
+}
+
+/* MOBILE MENU SMOOTH */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        transform: translateX(-100%) translateZ(0);
+        will-change: transform;
+    }
+    
+    .sidebar.active {
+        transform: translateX(0) translateZ(0);
+    }
+    
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: opacity;
+    }
+    
+    .sidebar-overlay.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+}
+
+/* MOBILE CONTENT SPACING */
+@media (max-width: 768px) {
+    main,
+    .content {
+        padding-top: 80px;
+    }
+    
+    .page-header {
+        padding: 16px 12px;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+}
+
+/* MOBILE CARDS GRID */
+@media (max-width: 768px) {
+    .products-grid,
+    .cards-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 12px;
+    }
+}
+
+@media (min-width: 480px) and (max-width: 768px) {
+    .products-grid,
+    .cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* MOBILE TABLE RESPONSIVE */
+@media (max-width: 768px) {
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+        min-width: 600px;
+    }
+    
+    /* Hoặc chuyển sang card layout */
+    .mobile-card-view {
+        display: block;
+    }
+    
+    .mobile-card-view tr {
+        display: block;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-card);
+    }
+    
+    .mobile-card-view td {
+        display: block;
+        text-align: left;
+        padding: 8px;
+        border: none;
+    }
+    
+    .mobile-card-view td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        margin-right: 8px;
+        color: var(--text-secondary);
+    }
+}
+
+/* MOBILE ANIMATIONS - Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* MOBILE FOCUS VISIBLE */
+@media (max-width: 768px) {
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+}
+
+/* MOBILE SAFE AREAS (iPhone notch, etc.) */
+@media (max-width: 768px) {
+    .topbar {
+        padding-top: env(safe-area-inset-top);
+    }
+    
+    .sidebar {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .modal-content {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    }
+}
+
+/* MOBILE PERFORMANCE - Lazy Loading Images */
+@media (max-width: 768px) {
+    img[loading="lazy"] {
+        background: linear-gradient(90deg, 
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(77, 208, 225, 0.08) 50%,
+            rgba(255, 255, 255, 0.05) 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s ease-in-out infinite;
+    }
+}
+
+/* MOBILE OPTIMIZATION - Reduce Repaints */
+@media (max-width: 768px) {
+    .fixed-header {
+        position: fixed;
+        contain: layout style paint;
+    }
+    
+    .scroll-item {
+        contain: layout;
+    }
+}

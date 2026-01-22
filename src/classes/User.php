@@ -32,6 +32,42 @@ class User {
     }
 
     /**
+     * Get many users by id in a single REST call (helps avoid N+1)
+     */
+    public function getUsersByIds(array $ids) {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if (empty($ids)) return [];
+
+        // Serve from cache where possible
+        $resultMap = [];
+        $missingIds = [];
+        foreach ($ids as $id) {
+            if (isset(self::$cache[$id])) {
+                $resultMap[$id] = self::$cache[$id];
+            } else {
+                $missingIds[] = $id;
+            }
+        }
+
+        if (!empty($missingIds)) {
+            $idList = implode(',', $missingIds);
+            $endpoint = $this->table . "?id=in.(" . $idList . ")";
+            $resp = $this->db->callApi($endpoint, 'GET');
+            if ($resp && $resp->code == 200 && !empty($resp->response)) {
+                foreach ($resp->response as $u) {
+                    if (isset($u['id'])) {
+                        $uid = (int)$u['id'];
+                        self::$cache[$uid] = $u;
+                        $resultMap[$uid] = $u;
+                    }
+                }
+            }
+        }
+
+        return $resultMap;
+    }
+
+    /**
      * Get user by username (with in-memory caching)
      */
     public function getUserByUsername($username) {

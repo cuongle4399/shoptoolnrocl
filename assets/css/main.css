@@ -54,15 +54,28 @@ body{
   box-shadow: var(--shadow);
   color:var(--text);
   transition: all var(--transition);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .card:hover{
   border-color: rgba(77, 208, 225, 0.6);
   box-shadow: var(--shadow-lg);
-  transform: translateY(-4px);
+  transform: translateY(-4px) translateZ(0);
   transition: all var(--transition-smooth);
-  will-change: transform, box-shadow;
   background:linear-gradient(180deg, rgba(37,37,37,1), rgba(26,26,26,0.95));
+}
+
+/* Mobile optimization - disable hover effects */
+@media (max-width: 768px) {
+  .card:hover {
+    transform: none;
+    box-shadow: var(--shadow);
+  }
+  
+  .card:active {
+    transform: scale(0.98) translateZ(0);
+  }
 }
 
 .btn-lg { padding: 14px 26px; font-size: 16px; border-radius: 12px; }
@@ -70,28 +83,44 @@ body{
 .fade-in { animation: fadeInUp 500ms var(--transition-smooth) both; }
 
 @keyframes fadeInUp { 
-  from { opacity:0; transform: translateY(12px);} 
-  to {opacity:1; transform:translateY(0);} 
+  from { opacity:0; transform: translateY(12px) translateZ(0);} 
+  to {opacity:1; transform:translateY(0) translateZ(0);} 
 }
 
 @keyframes slideDown {
-  from{ opacity:0; transform: translateY(-10px); }
-  to{ opacity:1; transform: translateY(0); }
+  from{ opacity:0; transform: translateY(-10px) translateZ(0); }
+  to{ opacity:1; transform: translateY(0) translateZ(0); }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(20px) translateZ(0); }
+  to { opacity: 1; transform: translateY(0) translateZ(0); }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.95) translateZ(0); }
+  to { opacity: 1; transform: scale(1) translateZ(0); }
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
+}
+
+/* Mobile animation optimization */
+@media (max-width: 768px) {
+  @keyframes fadeInUp { 
+    from { opacity:0; transform: translateY(8px) translateZ(0);} 
+    to {opacity:1; transform:translateY(0) translateZ(0);} 
+  }
+  
+  * {
+    animation-duration: 0.2s !important;
+  }
+  
+  .fade-in {
+    animation-duration: 0.25s !important;
+  }
 }
 
 /* PASSWORD TOGGLE */

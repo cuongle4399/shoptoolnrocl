@@ -41,6 +41,29 @@ class Product {
     }
 
     /**
+     * Get many products by id in a single REST call
+     */
+    public function getProductsByIds(array $ids) {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if (empty($ids)) return [];
+
+        $idList = implode(',', $ids);
+        $endpoint = $this->table . "?id=in.(" . $idList . ")";
+        $result = $this->db->callApi($endpoint, 'GET');
+
+        if ($result && $result->code == 200 && !empty($result->response)) {
+            $map = [];
+            foreach ($result->response as $p) {
+                if (isset($p['id'])) {
+                    $map[(int)$p['id']] = $p;
+                }
+            }
+            return $map;
+        }
+        return [];
+    }
+
+    /**
      * Get product by code (unique code / sku)
      */
     public function getByCode($code) {

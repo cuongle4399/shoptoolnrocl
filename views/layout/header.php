@@ -7,12 +7,30 @@ if (session_status() === PHP_SESSION_NONE) {
 <html lang="vi" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="theme-color" content="#00bcd4">
     <title><?php echo $page_title ?? 'ShopToolNro'; ?></title>
     <link rel="icon" type="image/x-icon" href="/ShopToolNro/img/Logo.ico">
+    <link rel="manifest" href="/ShopToolNro/manifest.json">
+    <link rel="apple-touch-icon" href="/ShopToolNro/img/Logo.ico">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/style.css">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/header-mobile-fix.css">
+    <link rel="stylesheet" href="/ShopToolNro/assets/css/mobile-performance.css">
+    
+    <!-- Preload critical scripts -->
+    <link rel="preload" href="/ShopToolNro/assets/js/api.js" as="script">
+    <link rel="preload" href="/ShopToolNro/assets/js/main.js" as="script">
+    
     <script defer src="/ShopToolNro/assets/js/api.js"></script>
     <script defer src="/ShopToolNro/assets/js/main.js"></script>
     <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
@@ -32,12 +50,39 @@ if (session_status() === PHP_SESSION_NONE) {
             $userClass = new User($db);
             $userInfo = $userClass->getUserById($_SESSION['user_id']);
         }
+
+        // Pick a random avatar once per login and keep it in the session
+        if (!isset($_SESSION['user_avatar'])) {
+            $imageDir = __DIR__ . '/../../img';
+            $imageFiles = [];
+            foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+                $imageFiles = array_merge($imageFiles, glob($imageDir . '/*.' . $ext));
+            }
+
+            // Avoid using the logo as an avatar
+            $imageFiles = array_filter($imageFiles, function ($filePath) {
+                $name = strtolower(basename($filePath));
+                return strpos($name, 'logo') === false;
+            });
+
+            if (!empty($imageFiles)) {
+                $chosen = $imageFiles[array_rand($imageFiles)];
+                $_SESSION['user_avatar'] = '/ShopToolNro/img/' . basename($chosen);
+            } else {
+                $_SESSION['user_avatar'] = '/ShopToolNro/img/Logo.ico';
+            }
+        }
+
+        $userAvatarUrl = $_SESSION['user_avatar'] ?? '/ShopToolNro/img/Logo.ico';
     ?>
     <header class="topbar">
         <div class="topbar-content">
             <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu" type="button">☰</button>
             <div class="logo">ShopToolNroCL</div>
             <div class="header-user-info">
+                <div class="user-avatar" aria-hidden="true">
+                    <img src="<?php echo htmlspecialchars($userAvatarUrl); ?>" alt="Avatar ngẫu nhiên">
+                </div>
                 <?php if ($userInfo): ?>
                     <span class="user-name"><?php echo htmlspecialchars($userInfo['username']); ?></span>
                     <span class="user-balance">Số dư: <strong><?php echo number_format($userInfo['balance'] ?? 0, 0, ',', '.'); ?> ₫</strong></span>
