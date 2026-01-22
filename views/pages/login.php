@@ -1,7 +1,9 @@
 <?php
 $page_title = 'Đăng nhập - ShopToolNro';
-include '../layout/header.php';
+// Load env/constants before reading TURNSTILE vars (needed when only .env is present)
+require_once '../../config/constants.php';
 require_once '../../config/database.php';
+include '../layout/header.php';
 
 $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
 ?>
