@@ -34,7 +34,7 @@ if (session_status() === PHP_SESSION_NONE) {
     ?>
     <header class="topbar">
         <div class="topbar-content">
-            <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu" onclick="document.getElementById('mainSidebar').classList.toggle('open'); document.body.classList.toggle('sidebar-open'); document.getElementById('sidebarBackdrop').classList.toggle('visible');">☰</button>
+            <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu" type="button">☰</button>
             <div class="logo">ShopToolNro</div>
             <div class="header-user-info">
                 <?php if ($userInfo): ?>
@@ -69,7 +69,7 @@ if (session_status() === PHP_SESSION_NONE) {
             </nav>
         </div>
     </aside>
-    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true" onclick="document.getElementById('mainSidebar').classList.remove('open'); document.body.classList.remove('sidebar-open'); this.classList.remove('visible');"></div>
+    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
 
     <main class="content">
 <?php else: ?>

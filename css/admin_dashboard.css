@@ -57,7 +57,7 @@ body {
 
 .container {
     max-width: 1400px;
-    margin: 24px auto;
+    margin: 60px auto 24px auto;
     padding: 28px;
     background-color: var(--bg-white);
     border-radius: var(--radius-lg);
@@ -667,7 +667,7 @@ hr {
 /* ===== RESPONSIVE - TABLET ===== */
 @media (max-width: 1024px) {
     .container {
-        margin: 15px auto;
+        margin: 60px auto 15px auto;
         padding: 15px;
         max-width: 95%;
     }
@@ -690,31 +690,44 @@ hr {
 /* ===== RESPONSIVE - MOBILE ===== */
 @media (max-width: 768px) {
     .container {
-        margin: 10px auto;
-        padding: 10px;
+        margin: 60px auto 10px auto;
+        padding: 4px;
         max-width: 100%;
     }
 
+    h1 {
+        font-size: 20px;
+        margin-bottom: 4px;
+        margin-top: 0;
+        padding-top: 0;
+    }
+
     h2 {
-        font-size: 22px;
+        font-size: 16px;
+        margin-bottom: 6px;
+        margin-top: 4px;
+        padding-bottom: 4px;
     }
 
     h3 {
-        font-size: 16px;
+        font-size: 13px;
+        margin-top: 6px;
+        margin-bottom: 4px;
     }
 
     table {
-        font-size: 11px;
+        font-size: 10px;
+        margin-top: 6px;
     }
 
     table th {
-        padding: 6px 4px;
-        font-size: 9px;
+        padding: 3px 2px;
+        font-size: 8px;
     }
 
     table td {
-        padding: 5px 4px;
-        font-size: 11px;
+        padding: 2px 2px;
+        font-size: 10px;
     }
 
     /* Ẩn các cột kém quan trọng trên mobile */
@@ -725,48 +738,69 @@ hr {
 
     .header-bar {
         flex-direction: column;
-        gap: 10px;
+        gap: 4px;
         align-items: flex-start;
+        margin-bottom: 6px;
+        margin-top: 0;
+        padding: 6px 8px;
+    }
+
+    .header-bar h2 {
+        margin: 0;
+        padding: 0;
+        font-size: 14px;
+    }
+
+    .header-bar div {
+        font-size: 11px;
     }
 
     fieldset {
-        padding: 10px;
-        margin-bottom: 12px;
+        padding: 6px;
+        margin-bottom: 8px;
+        margin-top: 0;
+    }
+
+    fieldset legend {
+        font-size: 11px;
+        margin-bottom: 4px;
     }
 
     input[type="text"],
     input[type="number"],
     textarea {
         width: 100% !important;
-        font-size: 14px;
-        padding: 8px;
+        font-size: 12px;
+        padding: 5px;
+        margin-bottom: 3px;
     }
 
     #selectedKeyInfo {
-        padding: 12px;
-        margin-top: 15px;
+        padding: 6px;
+        margin-top: 6px;
     }
 
     .key-details-grid {
         grid-template-columns: 1fr;
-        gap: 8px;
-        padding: 10px;
+        gap: 4px;
+        padding: 6px;
     }
 
     .copy-buttons {
         flex-direction: column;
-        gap: 6px;
+        gap: 3px;
     }
 
     .copy-buttons button {
         width: 100%;
         min-width: auto;
-        padding: 8px 10px;
-        font-size: 12px;
+        padding: 5px 6px;
+        font-size: 10px;
     }
 
     .action-buttons-group {
         flex-direction: column;
+        gap: 3px;
     }
 
     .action-buttons-group form {
@@ -774,41 +808,62 @@ hr {
     }
 
     .action-buttons-group form button {
-        font-size: 12px;
-        padding: 8px 12px;
+        font-size: 10px;
+        padding: 5px 8px;
     }
 
     .renew-form {
         flex-direction: column;
-        gap: 6px;
-        padding: 6px;
+        gap: 3px;
+        padding: 4px;
     }
 
     .renew-form input[type="number"] {
         width: 100%;
         flex: none;
+        font-size: 11px;
+        padding: 4px;
     }
 
     .renew-form button {
         width: 100%;
+        font-size: 10px;
+        padding: 4px;
     }
 
     .toast-notification {
-        bottom: 10px;
-        right: 10px;
-        left: 10px;
+        bottom: 6px;
+        right: 6px;
+        left: 6px;
         max-width: none;
+        font-size: 11px;
+        padding: 8px 10px;
     }
 }
 
 /* ===== SMALL MOBILE (320px) ===== */
 @media (max-width: 480px) {
     .container {
-        padding: 8px;
+        padding: 3px;
+        margin: 60px auto 8px auto;
+    }
+
+    h1 {
+        font-size: 18px;
+        margin-bottom: 3px;
+        margin-top: 0;
     }
 
     h2 {
-        font-size: 18px;
+        font-size: 14px;
+        margin-bottom: 4px;
+        margin-top: 2px;
+        padding-bottom: 2px;
+    }
+
+    table th, table td {
+        padding: 2px 1px;
+        font-size: 9px;
     }
 
     table th:nth-child(5), table td:nth-child(5),
@@ -816,13 +871,20 @@ hr {
         display: none;
     }
 
+    .header-bar {
+        padding: 5px 6px;
+        margin-bottom: 4px;
+        gap: 3px;
+    }
+
     .header-bar h2 {
-        font-size: 18px;
+        font-size: 14px;
+        margin: 0;
     }
 
     .copy-buttons button {
-        padding: 6px 8px;
-        font-size: 11px;
+        padding: 4px 5px;
+        font-size: 9px;
     }
 }
 

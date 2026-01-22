@@ -671,6 +671,11 @@ header .logo { color: var(--header-text); font-weight: 700; }
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    padding: 8px 12px;
+    pointer-events: auto;
+    z-index: 110;
+    position: relative;
+    flex-shrink: 0;
 }
 
 .small-link {
@@ -869,11 +874,13 @@ aside.sidebar nav hr {
     z-index: 99;
     opacity: 0;
     transition: opacity 200ms ease;
+    pointer-events: none;
 }
 
 .sidebar-backdrop.visible {
     display: block;
     opacity: 1;
+    pointer-events: auto;
 }
 
 nav a {
@@ -914,7 +921,7 @@ nav a:hover::after {
 /* ===== MAIN CONTENT ===== */
 .main-content {
     max-width: 1200px;
-    margin: 40px auto;
+    margin: 60px auto 40px auto;
     padding: 0 20px;
     min-height: calc(100vh - 160px);
 }
@@ -923,6 +930,7 @@ h1 {
     font-size: 36px;
     font-weight: 700;
     margin-bottom: 28px;
+    margin-top: 0;
     color: var(--text-primary);
     position: relative;
     padding-bottom: 16px;
@@ -1780,7 +1788,7 @@ footer a:hover {
     }
 
     .main-content {
-        margin: 20px auto;
+        margin: 60px auto 20px auto;
         padding: 0 16px;
     }
 
@@ -1822,6 +1830,7 @@ footer a:hover {
 
     /* tighten paddings/margins in admin pages */
     .main-content {
+        margin: 60px auto 16px auto;
         padding: 0 10px;
     }
     .info-card, .card, fieldset {
@@ -1863,12 +1872,13 @@ footer a:hover {
     /* create breathing room below the fixed topbar on small screens */
     .content,
     main {
-        margin-top: 0;
+        margin-top: 60px;
         padding: 84px 14px 28px;
     }
 
     .main-content {
-        margin-top: 0;
+        margin-top: 60px;
+        margin-bottom: 0;
         padding: 0 14px 28px;
     }
 

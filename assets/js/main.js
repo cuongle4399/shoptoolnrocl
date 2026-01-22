@@ -135,18 +135,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('mainSidebar');
     const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
+    // Debug log
+    console.log('Sidebar toggle init:', { 
+        btn: !!sidebarToggleBtn, 
+        sidebar: !!sidebar, 
+        backdrop: !!sidebarBackdrop 
+    });
+
     if (sidebarToggleBtn && sidebar) {
         sidebarToggleBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
+            console.log('Toggle clicked');
             document.body.classList.toggle('sidebar-open');
             sidebar.classList.toggle('open');
             if (sidebarBackdrop) sidebarBackdrop.classList.toggle('visible');
         });
+    } else {
+        console.warn('Sidebar toggle elements not found');
     }
 
     // Backdrop click closes sidebar
     if (sidebarBackdrop) {
-        sidebarBackdrop.addEventListener('click', function() {
+        sidebarBackdrop.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Backdrop clicked');
             document.body.classList.remove('sidebar-open');
             if (sidebar) sidebar.classList.remove('open');
             sidebarBackdrop.classList.remove('visible');
