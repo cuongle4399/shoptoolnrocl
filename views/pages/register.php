@@ -1,20 +1,30 @@
 <?php
 $page_title = 'Đăng ký - ShopToolNro';
 include '../layout/header.php';
+require_once '../../config/database.php';
+
+$turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
 ?>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
 <script>
-// Toggle password visibility - LOAD EARLY
-function togglePassword(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
+// Toggle password visibility for both password fields
+function toggleAllPasswords() {
+    const password = document.getElementById('registerPassword');
+    const confirmPassword = document.getElementById('registerConfirmPassword');
+    const btn = document.querySelector('.password-toggle-btn');
     
-    const btn = input.parentElement.querySelector('.password-toggle-btn');
-    if (input.type === 'password') {
-        input.type = 'text';
+    if (!password || !confirmPassword) return;
+    
+    // Toggle both inputs
+    if (password.type === 'password') {
+        password.type = 'text';
+        confirmPassword.type = 'text';
         if (btn) btn.innerHTML = '👁️';
     } else {
-        input.type = 'password';
+        password.type = 'password';
+        confirmPassword.type = 'password';
         if (btn) btn.innerHTML = '👁️‍🗨️';
     }
 }
@@ -38,9 +48,9 @@ window.setButtonLoading = function(button, isLoading) {
 };
 </script>
 
-<div class="main-content fade-in container-narrow">
+<div class="main-content auth-container fade-in container-narrow">
     <h1 class="text-center mb-30">Đăng ký</h1>
-    <form id="registerForm">
+    <form id="registerForm" class="no-global-loading">
         <div class="form-group">
             <label>Tên đăng nhập</label>
             <input type="text" name="username" required>
@@ -51,21 +61,19 @@ window.setButtonLoading = function(button, isLoading) {
         </div>
         <div class="form-group">
             <label>Mật khẩu</label>
-            <div class="password-input-wrapper">
-                <input type="password" name="password" id="registerPassword" required>
-                <button type="button" class="password-toggle-btn" onclick="togglePassword('registerPassword'); return false;" title="Hiện/Ẩn mật khẩu">
-                    👁️‍🗨️
-                </button>
-            </div>
+            <input type="password" name="password" id="registerPassword" required>
         </div>
         <div class="form-group">
             <label>Xác nhận mật khẩu</label>
             <div class="password-input-wrapper">
                 <input type="password" name="confirm_password" id="registerConfirmPassword" required>
-                <button type="button" class="password-toggle-btn" onclick="togglePassword('registerConfirmPassword'); return false;" title="Hiện/Ẩn mật khẩu">
+                <button type="button" class="password-toggle-btn" onclick="toggleAllPasswords(); return false;" title="Hiện/Ẩn cả 2 mật khẩu">
                     👁️‍🗨️
                 </button>
             </div>
+        </div>
+        <div class="form-group">
+            <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars($turnstile_site_key); ?>" data-theme="dark"></div>
         </div>
         <button type="submit" class="btn btn-primary btn-fullwidth">Đăng ký</button>
         <p class="mt-15 text-center">Đã có tài khoản? <a href="/ShopToolNro/views/pages/login.php">Đăng nhập</a></p>
@@ -129,6 +137,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const email = document.querySelector('input[name="email"]').value;
         const password = document.querySelector('input[name="password"]').value;
         const confirm_password = document.querySelector('input[name="confirm_password"]').value;
+        const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
+        
+        if (!turnstileToken) {
+            setButtonLoading(btn, false);
+            showNotification('Vui lòng hoàn thành xác minh Turnstile', 'error');
+            return;
+        }
         
         if (password !== confirm_password) {
             showNotification('Mật khẩu không khớp', 'error');
@@ -147,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/ShopToolNro/api/auth/register.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username, email, password, confirm_password})
+                body: JSON.stringify({username, email, password, confirm_password, 'cf-turnstile-response': turnstileToken})
             });
             
             const result = await response.json();

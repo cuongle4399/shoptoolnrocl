@@ -1,9 +1,39 @@
 const API_BASE = 'http://localhost/ShopToolNro/api';
 let token = localStorage.getItem('token');
 
+// Initialize loading overlay on DOM ready
+function initLoadingOverlay() {
+    if (document.getElementById('loadingOverlay')) return; // Already exists
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.className = 'loading-overlay';
+    
+    overlay.innerHTML = `
+        <div class="spinner">
+            <div class="dot"></div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+// Initialize on script load (before any API calls)
+document.addEventListener('DOMContentLoaded', initLoadingOverlay);
+// Also try immediate init in case DOMContentLoaded already fired
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLoadingOverlay);
+} else {
+    initLoadingOverlay();
+}
+
 // Helper functions for loading overlay
 function showLoading() {
-    const overlay = document.getElementById('loadingOverlay');
+    let overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        initLoadingOverlay();
+        overlay = document.getElementById('loadingOverlay');
+    }
     if (overlay) {
         overlay.classList.add('active');
     }

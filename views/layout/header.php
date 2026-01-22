@@ -12,6 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="icon" type="image/x-icon" href="/ShopToolNro/img/Logo.ico">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/style.css">
+    <link rel="stylesheet" href="/ShopToolNro/assets/css/header-mobile-fix.css">
     <script defer src="/ShopToolNro/assets/js/api.js"></script>
     <script defer src="/ShopToolNro/assets/js/main.js"></script>
     <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
@@ -35,7 +36,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <header class="topbar">
         <div class="topbar-content">
             <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle menu" type="button">☰</button>
-            <div class="logo">ShopToolNro</div>
+            <div class="logo">ShopToolNroCL</div>
             <div class="header-user-info">
                 <?php if ($userInfo): ?>
                     <span class="user-name"><?php echo htmlspecialchars($userInfo['username']); ?></span>
@@ -75,9 +76,10 @@ if (session_status() === PHP_SESSION_NONE) {
 <?php else: ?>
     <header>
         <div class="header-content">
-            <div class="logo">ShopToolNro</div>
+            <div class="logo">ShopToolNroCL</div>
             <nav>
                 <a href="/ShopToolNro/">Trang chủ</a>
+                <a href="https://www.facebook.com/cuong.le.810822" target="_blank" rel="noopener noreferrer">Liên hệ</a>
                 <a href="/ShopToolNro/views/pages/login.php">Đăng nhập</a>
                 <a href="/ShopToolNro/views/pages/register.php">Đăng ký</a>
             </nav>

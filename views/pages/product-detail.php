@@ -39,7 +39,7 @@ $durations = $product['durations'] ?? [];
                 <h3 class="mt-0">Hình ảnh demo</h3>
                 <?php if (count($demo_images) > 1): ?>
                     <div class="demo-carousel">
-                        <img id="demoImage" src="<?php echo htmlspecialchars($demo_images[0]); ?>" class="img-full mt-10" alt="Demo">
+                        <img id="demoImage" src="<?php echo htmlspecialchars($demo_images[0]); ?>" class="img-full mt-10" alt="Demo" loading="lazy">
                         <div class="carousel-controls">
                             <button class="carousel-btn prev" onclick="prevDemoImage()">❮</button>
                             <span class="carousel-counter"><span id="currentIndex">1</span>/<span id="totalCount"><?php echo count($demo_images); ?></span></span>
@@ -66,10 +66,10 @@ $durations = $product['durations'] ?? [];
                         }
                     </script>
                 <?php else: ?>
-                    <img src="<?php echo htmlspecialchars($demo_images[0]); ?>" class="img-full mt-10" alt="Demo">
+                    <img src="<?php echo htmlspecialchars($demo_images[0]); ?>" class="img-full mt-10" alt="Demo" loading="lazy">
                 <?php endif; ?>
             <?php else: ?>
-                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" class="img-full" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                <img src="<?php echo htmlspecialchars($product['image_url']); ?>" class="img-full" alt="<?php echo htmlspecialchars($product['name']); ?>" loading="lazy">
             <?php endif; ?>
         </div>
         <div>

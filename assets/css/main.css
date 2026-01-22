@@ -378,48 +378,108 @@ input:focus, select:focus, textarea:focus{
   .btn{ padding: 8px 12px; font-size: 11px; }
 }
 
-/* ===== LOADING SPINNER ===== */
+/* ===== MODERN LOADING SPINNER ===== */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, rgba(15, 15, 15, 0.92) 0%, rgba(20, 20, 20, 0.88) 100%);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .loading-overlay.active {
   display: flex;
+  opacity: 1;
 }
 
+/* Modern multi-layer spinner */
 .spinner {
-  width: 45px;
-  height: 45px;
-  border: 3px solid rgba(77, 208, 225, 0.15);
-  border-top: 3px solid var(--muted);
-  border-right: 3px solid var(--muted);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-@keyframes spin {
+.spinner::before,
+.spinner::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  animation: spinnerRotate 2s linear infinite;
+}
+
+.spinner::before {
+  width: 60px;
+  height: 60px;
+  border: 3px solid transparent;
+  border-top-color: #4dd0e1;
+  border-right-color: #00bcd4;
+  animation-direction: normal;
+}
+
+.spinner::after {
+  width: 50px;
+  height: 50px;
+  border: 2px solid transparent;
+  border-bottom-color: #4dd0e1;
+  border-left-color: #00bcd4;
+  animation-direction: reverse;
+  animation-duration: 1.5s;
+}
+
+/* Inner pulsing dot */
+.spinner .dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, #4dd0e1, #00bcd4);
+  border-radius: 50%;
+  animation: spinnerPulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  box-shadow: 0 0 20px rgba(77, 208, 225, 0.4);
+}
+
+@keyframes spinnerRotate {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
+@keyframes spinnerPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
 .loading-text {
   position: absolute;
-  top: 58%;
-  color: var(--muted);
-  font-size: 13px;
+  bottom: 30%;
+  color: #4dd0e1;
+  font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.5px;
-  display: none;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.8;
+  animation: fadeInOut 1.5s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 /* Button loading state */

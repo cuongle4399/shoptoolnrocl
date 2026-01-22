@@ -1,7 +1,12 @@
 <?php
 $page_title = 'Đăng nhập - ShopToolNro';
 include '../layout/header.php';
+require_once '../../config/database.php';
+
+$turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
 ?>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <script>
 // Toggle password visibility - LOAD EARLY
@@ -38,9 +43,9 @@ window.setButtonLoading = function(button, isLoading) {
 };
 </script>
 
-<div class="main-content fade-in container-sm">
+<div class="main-content auth-container fade-in container-sm">
     <h1 class="text-center mb-30">Đăng nhập</h1> 
-    <form id="loginForm">
+    <form id="loginForm" class="no-global-loading">
         <div class="form-group">
             <label>Tên đăng nhập</label>
             <input type="text" name="username" required>
@@ -53,6 +58,9 @@ window.setButtonLoading = function(button, isLoading) {
                     👁️‍🗨️
                 </button>
             </div>
+        </div>
+        <div class="form-group">
+            <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars($turnstile_site_key); ?>" data-theme="dark"></div>
         </div>
         <button type="submit" class="btn btn-primary btn-fullwidth">Đăng nhập</button>
         <p class="mt-15 text-center">Chưa có tài khoản? <a href="/ShopToolNro/views/pages/register.php">Đăng ký</a></p>
@@ -114,12 +122,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const username = document.querySelector('input[name="username"]').value;
         const password = document.querySelector('input[name="password"]').value;
+        const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
+        
+        if (!turnstileToken) {
+            setButtonLoading(btn, false);
+            showNotification('Vui lòng hoàn thành xác minh Turnstile', 'error');
+            return;
+        }
         
         try {
             const response = await fetch('/ShopToolNro/api/auth/login.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username, password})
+                body: JSON.stringify({username, password, 'cf-turnstile-response': turnstileToken})
             });
             
             const result = await response.json();

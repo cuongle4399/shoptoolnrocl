@@ -31,9 +31,11 @@ class ProductDuration {
 
     public function create($data) {
         $result = $this->db->callApi($this->table, 'POST', $data);
-        if ($result && ($result->code == 201 || $result->code == 200) && !empty($result->response)) {
-            return $result->response[0];
+        if ($result && ($result->code == 201 || $result->code == 200)) {
+            // Return true on successful creation, even if response is empty
+            return !empty($result->response) ? $result->response[0] : true;
         }
+        error_log('ProductDuration create failed - Code: ' . ($result->code ?? 'N/A') . ', Response: ' . json_encode($result->response ?? null));
         return false;
     }
 

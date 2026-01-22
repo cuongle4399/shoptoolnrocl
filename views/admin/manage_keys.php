@@ -33,49 +33,52 @@ foreach ($products as $p) { $productMap[$p['id']] = $p['name']; }
 
 <div class="main-content fade-in">
     <h1>Quản lý License Key</h1>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>License Key</th>
-                <th>Sản phẩm</th>
-                <th>Người dùng</th>
-                <th>HWID</th>
-                <th>Trạng thái</th>
-                <th>Hết hạn</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (!empty($keys)): foreach ($keys as $key): 
-                $getUserName = '-';
-                if (!empty($key['user_id'])) {
-                    $user = $userClass->getUserById((int)$key['user_id']);
-                    if ($user) $getUserName = htmlspecialchars($user['username']);
-                }
-            ?>
+
+    <div class="table-responsive">
+        <table class="table-elevated">
+            <thead>
                 <tr>
-                    <td><code style="background: #f0f0f0; padding: 3px 5px; border-radius: 3px;"><?php echo htmlspecialchars(substr($key['license_key'], 0, 15)); ?>...</code></td>
-                    <td><?php echo htmlspecialchars($productMap[$key['product_id']] ?? 'Unknown'); ?></td>
-                    <td><?php echo $getUserName; ?></td>
-                    <td><code style="background: #f0f0f0; padding: 3px 5px; border-radius: 3px;"><?php echo htmlspecialchars($key['hwid'] ? substr($key['hwid'], 0, 15) . '...' : '-'); ?></code></td>
-                    <td>
-                        <span style="padding: 3px 8px; border-radius: 3px; background: <?php echo $key['status'] === 'active' ? '#d4edda' : '#f8d7da'; ?>;">
-                            <?php echo $key['status'] === 'active' ? 'Hoạt động' : 'Bị khóa'; ?>
-                        </span>
-                    </td>
-                    <td><?php echo $key['expires_at'] ? date('d/m/Y', strtotime($key['expires_at'])) : 'Không hạn'; ?></td>
-                    <td>
-                        <?php if ($key['status'] === 'active'): ?>
-                            <button class="btn btn-warning btn-sm" onclick="toggleKeyStatus(<?php echo $key['id']; ?>, 'inactive')">Khóa</button>
-                        <?php else: ?>
-                            <button class="btn btn-success btn-sm" onclick="toggleKeyStatus(<?php echo $key['id']; ?>, 'active')">Mở khóa</button>
-                        <?php endif; ?>
-                    </td>
+                    <th>License Key</th>
+                    <th>Sản phẩm</th>
+                    <th>Người dùng</th>
+                    <th>HWID</th>
+                    <th>Trạng thái</th>
+                    <th>Hết hạn</th>
+                    <th>Hành động</th>
                 </tr>
-            <?php endforeach; endif; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php if (!empty($keys)): foreach ($keys as $key): 
+                    $getUserName = '-';
+                    if (!empty($key['user_id'])) {
+                        $user = $userClass->getUserById((int)$key['user_id']);
+                        if ($user) $getUserName = htmlspecialchars($user['username']);
+                    }
+                    $isActive = $key['status'] === 'active';
+                ?>
+                    <tr>
+                        <td><span class="code-chip small"><?php echo htmlspecialchars(substr($key['license_key'], 0, 15)); ?>...</span></td>
+                        <td><?php echo htmlspecialchars($productMap[$key['product_id']] ?? 'Unknown'); ?></td>
+                        <td><?php echo $getUserName; ?></td>
+                        <td><span class="code-chip small"><?php echo htmlspecialchars($key['hwid'] ? substr($key['hwid'], 0, 15) . '...' : '-'); ?></span></td>
+                        <td>
+                            <span class="pill" data-status="<?php echo $isActive ? 'active' : 'locked'; ?>">
+                                <?php echo $isActive ? 'Hoạt động' : 'Bị khóa'; ?>
+                            </span>
+                        </td>
+                        <td><?php echo $key['expires_at'] ? date('d/m/Y', strtotime($key['expires_at'])) : 'Không hạn'; ?></td>
+                        <td>
+                            <?php if ($isActive): ?>
+                                <button class="btn btn-danger btn-sm" onclick="toggleKeyStatus(<?php echo $key['id']; ?>, 'inactive')">Khóa</button>
+                            <?php else: ?>
+                                <button class="btn btn-success btn-sm" onclick="toggleKeyStatus(<?php echo $key['id']; ?>, 'active')">Mở khóa</button>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+    </div>
 
     <?php if (empty($keys)): ?>
         <div class="empty-state">Không có license key nào</div>

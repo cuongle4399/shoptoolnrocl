@@ -27,7 +27,8 @@ if (file_exists($envFile)) {
     }
 }
 
-define('SITE_URL', 'http://localhost/ShopToolNro');
+// SITE_URL - Load from environment or use default
+define('SITE_URL', getenv('SITE_URL') ?: 'http://localhost/ShopToolNro');
 define('UPLOAD_DIR', __DIR__ . '/../assets/uploads/');
 define('UPLOAD_URL', SITE_URL . '/assets/uploads/');
 define('MAX_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB

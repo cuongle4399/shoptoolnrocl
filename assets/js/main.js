@@ -274,3 +274,162 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(() => {});
     } catch (e) { /* no-op */ }
 });
+// ===== Enhanced UX Utilities =====
+
+// Add loading state to button
+window.addButtonLoading = function(button) {
+    if (!button) return;
+    button.classList.add('btn-loading');
+    button.disabled = true;
+    button.dataset.originalText = button.textContent;
+};
+
+// Remove loading state from button
+window.removeButtonLoading = function(button) {
+    if (!button) return;
+    button.classList.remove('btn-loading');
+    button.disabled = false;
+    if (button.dataset.originalText) {
+        button.textContent = button.dataset.originalText;
+    }
+};
+
+// Show progress bar
+window.showProgressBar = function() {
+    let bar = document.getElementById('globalProgressBar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'globalProgressBar';
+        bar.className = 'progress-bar loading';
+        document.body.appendChild(bar);
+    }
+    bar.style.display = 'block';
+};
+
+// Hide progress bar
+window.hideProgressBar = function() {
+    const bar = document.getElementById('globalProgressBar');
+    if (bar) {
+        setTimeout(() => {
+            bar.style.display = 'none';
+        }, 300);
+    }
+};
+
+// Lazy load images
+document.addEventListener('DOMContentLoaded', function() {
+    const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+    
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    
+                    // Add loading state
+                    img.style.opacity = '0';
+                    img.style.transform = 'scale(0.9)';
+                    
+                    const loadHandler = () => {
+                        // Smooth fade in
+                        requestAnimationFrame(() => {
+                            img.style.transition = 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                            img.style.opacity = '1';
+                            img.style.transform = 'scale(1)';
+                            img.classList.add('loaded');
+                        });
+                    };
+                    
+                    if (img.complete) {
+                        loadHandler();
+                    } else {
+                        img.addEventListener('load', loadHandler, { once: true });
+                    }
+                    
+                    observer.unobserve(img);
+                }
+            });
+        }, {
+            rootMargin: '50px' // Start loading 50px before entering viewport
+        });
+        
+        lazyImages.forEach(img => imageObserver.observe(img));
+    } else {
+        // Fallback for browsers without IntersectionObserver
+        lazyImages.forEach(img => {
+            img.classList.add('loaded');
+            img.style.opacity = '1';
+        });
+    }
+});
+
+// Add page transition effect
+document.addEventListener('DOMContentLoaded', function() {
+    document.body.classList.add('page-transition');
+    
+    // Add ripple effect to buttons
+    document.addEventListener('click', function(e) {
+        const button = e.target.closest('.btn');
+        if (!button) return;
+        
+        const ripple = document.createElement('span');
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            left: ${x}px;
+            top: ${y}px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple-effect 0.6s ease-out;
+            pointer-events: none;
+        `;
+        
+        button.style.position = 'relative';
+        button.style.overflow = 'hidden';
+        button.appendChild(ripple);
+        
+        setTimeout(() => ripple.remove(), 600);
+    });
+});
+
+// Add ripple animation to CSS dynamically
+const rippleStyle = document.createElement('style');
+rippleStyle.textContent = `
+    @keyframes ripple-effect {
+        to {
+            transform: scale(2);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(rippleStyle);
+
+// Auto add loading to all form submissions
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (form.tagName !== 'FORM') return;
+
+    // Allow forms to opt-out of global loading (for custom fetch handlers)
+    if (form.classList.contains('no-global-loading') || form.dataset.globalLoading === 'false') {
+        return;
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn && !submitBtn.classList.contains('no-loading')) {
+        addButtonLoading(submitBtn);
+        showProgressBar();
+
+        // Safety auto-reset after 6s to avoid stuck state
+        setTimeout(() => {
+            removeButtonLoading(submitBtn);
+            hideProgressBar();
+        }, 6000);
+    }
+});

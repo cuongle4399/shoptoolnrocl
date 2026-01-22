@@ -48,17 +48,95 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
 ?>
 
 <div class="main-content fade-in">
+    <?php if (!isset($_SESSION['user_id'])): ?>
+        <!-- Lịch sử mua hàng công khai - Chỉ hiển thị khi chưa đăng nhập -->
+        <div class="public-orders-section">
+            <div class="public-orders-header">
+                <h3>🔥 Hoạt động mua hàng gần đây</h3>
+                <p class="subtitle">Khách hàng tin tưởng và sử dụng dịch vụ của chúng tôi</p>
+            </div>
+            <div class="public-orders-list" id="publicOrdersList">
+                <!-- Loading skeleton -->
+                <div class="public-order-skeleton">
+                    <div class="skeleton skeleton-avatar"></div>
+                    <div class="skeleton-content">
+                        <div class="skeleton skeleton-line"></div>
+                        <div class="skeleton skeleton-line-short"></div>
+                    </div>
+                </div>
+                <div class="public-order-skeleton">
+                    <div class="skeleton skeleton-avatar"></div>
+                    <div class="skeleton-content">
+                        <div class="skeleton skeleton-line"></div>
+                        <div class="skeleton skeleton-line-short"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="public-orders-pagination" id="publicOrdersPagination" style="display: none;">
+                <button class="pagination-btn" id="prevPageBtn" disabled>&laquo; Trước</button>
+                <span class="pagination-info" id="paginationInfo">Trang 1 / 1</span>
+                <button class="pagination-btn" id="nextPageBtn" disabled>Sau &raquo;</button>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <h2>Danh sách sản phẩm</h2>
     
     <div class="search-bar">
         <input type="text" id="searchProduct" class="search-input" placeholder="Tìm kiếm sản phẩm...">
     </div>
     
-    <div class="product-listing products-grid" id="productsContainer">
+    <!-- Skeleton Loading -->
+    <div class="products-grid skeleton-container" id="skeletonLoader">
+        <div class="product-card skeleton-card">
+            <div class="skeleton skeleton-image"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-price"></div>
+        </div>
+        <div class="product-card skeleton-card">
+            <div class="skeleton skeleton-image"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-price"></div>
+        </div>
+        <div class="product-card skeleton-card">
+            <div class="skeleton skeleton-image"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-price"></div>
+        </div>
+        <div class="product-card skeleton-card">
+            <div class="skeleton skeleton-image"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-price"></div>
+        </div>
+        <div class="product-card skeleton-card">
+            <div class="skeleton skeleton-image"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-price"></div>
+        </div>
+        <div class="product-card skeleton-card">
+            <div class="skeleton skeleton-image"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-price"></div>
+        </div>
+    </div>
+    
+    <div class="product-listing products-grid" id="productsContainer" style="display: none;">
         <?php if (empty($products)): ?>
             <div class="empty-state empty-state-lg">Không có sản phẩm</div>
         <?php else: foreach ($products as $item): ?>
-            <div class="product-card fade-in" data-name="<?php echo strtolower($item['name']); ?>">
+            <div class="product-card fade-in stagger" data-name="<?php echo strtolower($item['name']); ?>">
                 <?php 
                     $imageUrl = $item['image_url'];
                     if (empty($imageUrl)) {
@@ -71,7 +149,7 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
                         }
                     }
                 ?>
-                <img src="<?php echo htmlspecialchars($imageUrl); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="product-image">
+                <img src="<?php echo htmlspecialchars($imageUrl); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="product-image" loading="lazy">
                 <div class="product-info">
                     <h3 class="product-name"><?php echo htmlspecialchars($item['name']); ?></h3>
                     <p class="product-description"><?php echo htmlspecialchars(substr($item['description'] ?? '', 0, 80)); ?>...</p>
@@ -162,6 +240,29 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
 </style>
 
 <script>
+// Hide skeleton and show products quickly with stagger animation
+window.addEventListener('DOMContentLoaded', () => {
+    // Chỉ giữ skeleton rất ngắn để tránh cảm giác chờ lâu
+    setTimeout(() => {
+        const skeleton = document.getElementById('skeletonLoader');
+        const container = document.getElementById('productsContainer');
+        if (!skeleton || !container) return;
+
+        // Fade out skeleton nhanh
+        skeleton.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        skeleton.style.opacity = '0';
+        skeleton.style.transform = 'scale(0.97)';
+
+        setTimeout(() => {
+            skeleton.style.display = 'none';
+            container.style.display = 'grid';
+
+            // Stagger animation (delay đã cấu hình trong CSS)
+            container.querySelectorAll('.product-card').forEach(card => card.classList.add('show'));
+        }, 240);
+    }, 200);
+});
+
 document.getElementById('searchProduct').addEventListener('keyup', (e) => {
     const keyword = e.target.value.toLowerCase();
     document.querySelectorAll('.product-card').forEach(card => {
@@ -477,6 +578,146 @@ if (document.readyState === 'loading') {
 } else {
     initializeHomepageNotification();
 }
+
+// ===== PUBLIC ORDERS - Load and display public order history =====
+let allOrders = [];
+let currentPage = 1;
+
+// Get items per page based on screen size
+function getItemsPerPage() {
+    return window.innerWidth >= 769 ? 3 : 2;
+}
+
+async function loadPublicOrders() {
+    const container = document.getElementById('publicOrdersList');
+    if (!container) {
+        console.log('Public orders container not found');
+        return;
+    }
+    
+    console.log('Loading public orders...');
+    
+    try {
+        const response = await fetch('/ShopToolNro/api/orders/public_history.php');
+        const data = await response.json();
+        
+        console.log('Public orders data:', data);
+        
+        if (data.success && data.orders && data.orders.length > 0) {
+            console.log('Found', data.orders.length, 'orders');
+            
+            allOrders = data.orders;
+            currentPage = 1;
+            renderPublicOrders();
+            
+            console.log('Successfully rendered public orders with pagination');
+        } else {
+            console.log('No orders found or data not valid');
+            // No orders, hide section or show message
+            container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Chưa có đơn hàng nào</p>';
+        }
+    } catch (error) {
+        console.error('Error loading public orders:', error);
+        container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Không thể tải lịch sử</p>';
+    }
+}
+
+function renderPublicOrders() {
+    const container = document.getElementById('publicOrdersList');
+    const pagination = document.getElementById('publicOrdersPagination');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pageInfo = document.getElementById('paginationInfo');
+    
+    if (!container) return;
+    
+    const itemsPerPage = getItemsPerPage();
+    
+    // Calculate pagination
+    const totalPages = Math.ceil(allOrders.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageOrders = allOrders.slice(startIndex, endIndex);
+    
+    // Clear container
+    container.innerHTML = '';
+    
+    // Render current page items
+    pageOrders.forEach((order, index) => {
+        const orderItem = document.createElement('div');
+        orderItem.className = 'public-order-item';
+        orderItem.style.animationDelay = `${index * 0.1}s`;
+        
+        const firstLetter = order.username.charAt(0).toUpperCase();
+        
+        orderItem.innerHTML = `
+            <div class="public-order-avatar">${firstLetter}</div>
+            <div class="public-order-content">
+                <div class="public-order-user">${order.username}</div>
+                <div class="public-order-product">đã mua: ${order.product_name}</div>
+                <div class="public-order-time">${order.time_ago}</div>
+            </div>
+        `;
+        
+        container.appendChild(orderItem);
+    });
+    
+    // Update pagination controls
+    if (pagination && totalPages > 1) {
+        pagination.style.display = 'flex';
+        pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages;
+    } else if (pagination) {
+        pagination.style.display = 'none';
+    }
+}
+
+function changePage(direction) {
+    const itemsPerPage = getItemsPerPage();
+    const totalPages = Math.ceil(allOrders.length / itemsPerPage);
+    
+    if (direction === 'prev' && currentPage > 1) {
+        currentPage--;
+        renderPublicOrders();
+    } else if (direction === 'next' && currentPage < totalPages) {
+        currentPage++;
+        renderPublicOrders();
+    }
+}
+
+// Load public orders when page loads
+// Load public orders when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, checking for public orders list...');
+    const publicOrdersList = document.getElementById('publicOrdersList');
+    if (publicOrdersList) {
+        console.log('Public orders list found, loading...');
+        loadPublicOrders();
+        
+        // Setup pagination event listeners
+        const prevBtn = document.getElementById('prevPageBtn');
+        const nextBtn = document.getElementById('nextPageBtn');
+        
+        if (prevBtn) prevBtn.addEventListener('click', () => changePage('prev'));
+        if (nextBtn) nextBtn.addEventListener('click', () => changePage('next'));
+        
+        // Re-render on window resize to adjust items per page
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (allOrders.length > 0) {
+                    currentPage = 1; // Reset to first page on resize
+                    renderPublicOrders();
+                }
+            }, 250);
+        });
+    } else {
+        console.log('Public orders list not found (user might be logged in)');
+    }
+});
+
 </script>
 
 <?php include '../layout/footer.php'; ?>
