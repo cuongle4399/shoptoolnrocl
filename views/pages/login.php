@@ -147,10 +147,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => { window.location = '/ShopToolNro/'; }, 700);
             } else {
                 showNotification(result.message || 'Lỗi', 'error');
+                // Reset Turnstile khi đăng nhập thất bại
+                if (typeof turnstile !== 'undefined') {
+                    turnstile.reset();
+                }
             }
         } catch (error) {
             setButtonLoading(btn, false);
             showNotification(error.message || 'Lỗi', 'error');
+            // Reset Turnstile khi có lỗi
+            if (typeof turnstile !== 'undefined') {
+                turnstile.reset();
+            }
         }
     });
 });

@@ -175,10 +175,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => { window.location.href = '/ShopToolNro/views/pages/login.php'; }, 700);
             } else {
                 showNotification(result.message || 'Lỗi', 'error');
+                // Reset Turnstile khi đăng ký thất bại
+                if (typeof turnstile !== 'undefined') {
+                    turnstile.reset();
+                }
             }
         } catch (error) {
             setButtonLoading(btn, false);
             showNotification('Lỗi: ' + (error.message || ''), 'error');
+            // Reset Turnstile khi có lỗi
+            if (typeof turnstile !== 'undefined') {
+                turnstile.reset();
+            }
         }
     });
 });

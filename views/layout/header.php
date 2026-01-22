@@ -103,7 +103,6 @@ if (session_status() === PHP_SESSION_NONE) {
                 <a href="/ShopToolNro/views/pages/profile.php">Đổi mật khẩu</a>
                 <?php if ($_SESSION['role'] === 'admin'): ?>
                     <hr>
-                    <h5 style="padding: 12px 20px; margin: 0; font-weight: 600; color: #999; font-size: 12px; text-transform: uppercase;">Admin Tools</h5>
                     <a href="/ShopToolNro/views/admin/manage_products.php">Quản lý sản phẩm</a>
                     <a href="/ShopToolNro/views/admin/manage_keys.php">Quản lý License Key</a>
                     <a href="/ShopToolNro/views/admin/manage_users.php">Quản lý người dùng</a>
