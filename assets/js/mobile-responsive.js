@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('mainSidebar');
     const backdrop = document.getElementById('sidebarBackdrop');
+    const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
     
     if (sidebarToggle && sidebar) {
         // Click button để toggle
@@ -32,6 +33,15 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
             toggleSidebar();
         });
+        
+        // Click nút đóng để đóng sidebar
+        if (sidebarCloseBtn) {
+            sidebarCloseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeSidebar();
+            });
+        }
         
         // Click backdrop để đóng
         if (backdrop) {

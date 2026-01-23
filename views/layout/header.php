@@ -96,6 +96,10 @@ if (session_status() === PHP_SESSION_NONE) {
     </header>
 
     <aside class="sidebar" id="mainSidebar">
+        <div class="sidebar-header-mobile">
+            <span class="sidebar-title">Menu</span>
+            <button id="sidebarCloseBtn" class="sidebar-close-btn" aria-label="Đóng menu" type="button">✕</button>
+        </div>
         <div class="sidebar-inner">
             <div class="sidebar-logo" aria-hidden="true"></div>
             <nav>

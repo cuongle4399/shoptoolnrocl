@@ -30,6 +30,21 @@ if (!empty($topupRequests)) {
         }
     }
 }
+
+// VietQR config + nội dung chuyển khoản cho request đang chờ
+$vietqrConfig = [
+    'bank_code' => VIETQR_BANK_CODE ?: '',
+    'bank_name' => VIETQR_BANK_FULL_NAME ?: (VIETQR_BANK_NAME ?: (VIETQR_BANK_CODE ?: '')),
+    'account_no' => VIETQR_ACCOUNT_NO ?: '',
+    'account_name' => VIETQR_ACCOUNT_NAME ?: ''
+];
+
+$pendingTopupId = $pendingTopup['id'] ?? 0;
+$pendingAmountRaw = $pendingTopup['amount'] ?? 0;
+$normalizedUsername = strtolower(preg_replace('/\s+/', '', $user['username'] ?? 'user'));
+$transferContent = $pendingTopup
+    ? sprintf('shoptoolnro-%s-%d', $normalizedUsername, (int)$pendingAmountRaw)
+    : '';
 ?>
 
 <div class="main-content fade-in">
@@ -40,7 +55,7 @@ if (!empty($topupRequests)) {
         <div>
             <h3><?php echo $pendingTopup ? 'Chuyển khoản nạp tiền' : 'Nạp tiền'; ?></h3>
             
-            <div class="card card-pad mt-15">
+            <div class="card card-pad mt-15" style="margin-bottom: 5px;">
                 <p><strong>Số dư hiện tại:</strong> <span class="accent-amount"><?php echo number_format($user['balance'], 0, ',', '.'); ?> ₫</span></p>
             </div>
             
@@ -80,22 +95,24 @@ if (!empty($topupRequests)) {
                         
                         <div class="form-field">
                             <label>Ngân hàng</label>
-                            <div class="field-value">
-                                <input type="text" value="MB - Ngân hàng Quân Đội" readonly>
+                            <div class="field-value copy-field">
+                                <input type="text" id="bankName" value="<?php echo htmlspecialchars($vietqrConfig['bank_name'] ?: 'Chưa cấu hình'); ?>" readonly>
+                                <button type="button" class="copy-btn" onclick="copyToClipboard('bankName', this)">Copy</button>
                             </div>
                         </div>
                         
                         <div class="form-field">
                             <label>Tên tài khoản</label>
-                            <div class="field-value">
-                                <input type="text" value="LE QUOC CUONG" readonly>
+                            <div class="field-value copy-field">
+                                <input type="text" id="accountName" value="<?php echo htmlspecialchars($vietqrConfig['account_name'] ?: 'Chưa cấu hình'); ?>" readonly>
+                                <button type="button" class="copy-btn" onclick="copyToClipboard('accountName', this)">Copy</button>
                             </div>
                         </div>
                         
                         <div class="form-field">
                             <label>Số tài khoản</label>
                             <div class="field-value copy-field">
-                                <input type="text" id="accountNo" value="0865134328" readonly>
+                                <input type="text" id="accountNo" value="<?php echo htmlspecialchars($vietqrConfig['account_no'] ?: ''); ?>" readonly>
                                 <button type="button" class="copy-btn" onclick="copyToClipboard('accountNo', this)">Copy</button>
                             </div>
                         </div>
@@ -103,7 +120,7 @@ if (!empty($topupRequests)) {
                         <div class="form-field">
                             <label>Nội dung chuyển khoản</label>
                             <div class="field-value copy-field">
-                                <input type="text" id="transferDesc" value="shoptoolnro<?php echo htmlspecialchars($user['username']); ?><?php echo $pendingTopup['amount']; ?>" readonly style="font-size: 12px;">
+                                <input type="text" id="transferDesc" value="<?php echo htmlspecialchars($transferContent); ?>" readonly>
                                 <button type="button" class="copy-btn" onclick="copyToClipboard('transferDesc', this)">Copy</button>
                             </div>
                         </div>
@@ -162,35 +179,79 @@ if (!empty($topupRequests)) {
 </div>
 
 <style>
+/* Fix overflow toàn trang trên mobile */
+@media (max-width: 540px) {
+    html, body {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+    }
+    
+    * {
+        box-sizing: border-box !important;
+    }
+}
+
 /* QR Code Box */
 .qr-code-box {
     background: #f8f9fa;
     border: 2px dashed #ddd;
     border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 16px;
+    margin: 0 0 20px 0;
     text-align: center;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .qr-code-box img {
-    max-width: 100%;
+    width: 100%;
     height: auto;
+    max-width: 100%;
     border-radius: 8px;
     background: white;
     padding: 10px;
+    display: block;
+    margin: 0 auto;
+    object-fit: contain;
 }
 
-/* Transfer Form */
+.card.card-pad {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+@media (min-width: 768px) {
+    .card.card-pad {
+        max-width: 520px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* Transfer Form - RESPONSIVE FIX */
 .transfer-form {
-    background: #fff;
-    padding: 15px;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    margin-bottom: 15px;
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+/* Center transfer form on desktop */
+@media (min-width: 768px) {
+    .card.card-pad .transfer-form {
+        margin-left: auto;
+        margin-right: auto;
+    }
 }
 
 .form-field {
     margin-bottom: 12px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .form-field:last-child {
@@ -207,20 +268,30 @@ if (!empty($topupRequests)) {
     letter-spacing: 0.5px;
 }
 
+/* Field Value - RESPONSIVE FIX */
 .field-value {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .field-value input {
-    flex: 1;
+    width: 100%;
     padding: 10px 12px;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 6px 6px 0 0;
     font-size: 13px;
     background: #f8f9fa;
     color: #333;
+    box-sizing: border-box;
+    word-break: break-all;
+    display: block;
+    margin: 0;
+}
+
+#transferDesc {
+    font-size: 11px;
 }
 
 .field-value input:focus {
@@ -230,28 +301,271 @@ if (!empty($topupRequests)) {
 }
 
 .copy-btn {
-    padding: 8px 14px;
+    width: 100%;
+    padding: 10px 12px;
     background: #667eea;
     color: white;
-    border: none;
-    border-radius: 6px;
+    border: 1px solid #667eea;
+    border-radius: 0 0 6px 6px;
+    border-top: none;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
     white-space: nowrap;
+    margin-top: 0;
+    display: block;
+    box-sizing: border-box;
 }
 
 .copy-btn:hover {
     background: #5568d3;
-    transform: translateY(-1px);
+    border-color: #5568d3;
 }
 
 .copy-btn:active {
-    transform: translateY(0);
+    background: #4557c1;
 }
 
+/* Desktop - 768px+ */
+@media (min-width: 768px) {
+    .transfer-form {
+        max-width: 500px;
+        padding: 15px;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        background: #fff;
+    }
 
+    .form-field {
+        margin-bottom: 12px;
+    }
+
+    .field-value {
+        display: flex;
+        gap: 0;
+        align-items: stretch;
+    }
+
+    .field-value input {
+        flex: 1;
+        min-width: 0;
+        border-radius: 6px 0 0 6px;
+    }
+
+    .copy-btn {
+        width: auto;
+        padding: 8px 14px;
+        border-radius: 0 6px 6px 0;
+        border-left: none;
+        flex-shrink: 0;
+    }
+}
+
+/* Tablet - 541px to 767px */
+@media (min-width: 541px) and (max-width: 767px) {
+    .transfer-form {
+        max-width: 100%;
+        padding: 12px;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        background: #fff;
+    }
+
+    .form-field {
+        margin-bottom: 10px;
+    }
+
+    .field-value {
+        display: block;
+        gap: 0;
+    }
+
+    .field-value input {
+        font-size: 12px;
+        border-radius: 6px 6px 0 0;
+    }
+
+    #transferDesc {
+        font-size: 10px;
+    }
+
+    .copy-btn {
+        padding: 8px 12px;
+        font-size: 11px;
+        border-radius: 0 0 6px 6px;
+        width: 100%;
+    }
+}
+
+/* Mobile - 540px and below */
+@media (max-width: 540px) {
+    html, body {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+    }
+
+    * {
+        box-sizing: border-box !important;
+    }
+
+    .main-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 10px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    .grid-2 {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .grid-2 > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .qr-code-box {
+        display: none !important;
+    }
+
+    .card.card-pad {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 15px !important;
+        margin: 0 !important;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    .transfer-form {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+        border: none !important;
+        background: transparent !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    .transfer-form h4 {
+        display: none !important;
+    }
+
+    .form-field {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 15px !important;
+        box-sizing: border-box !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .form-field:last-child {
+        margin-bottom: 0 !important;
+    }
+
+    .form-field label {
+        font-size: 12px !important;
+        margin-bottom: 6px !important;
+        display: block !important;
+    }
+
+    .copy-btn {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 10px 12px !important;
+        font-size: 13px !important;
+        border-radius: 0 0 6px 6px !important;
+        border-top: 1px solid #ddd !important;
+        margin-top: 0 !important;
+        box-sizing: border-box !important;
+        border: 1px solid #667eea !important;
+        background: #667eea !important;
+        color: white !important;
+    }
+
+    .field-value {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        gap: 0 !important;
+    }
+
+    .field-value input {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: auto !important;
+        font-size: 14px !important;
+        padding: 12px 12px !important;
+        box-sizing: border-box !important;
+        cursor: pointer !important;
+        display: block !important;
+        margin: 0 !important;
+        border: 1px solid #ddd !important;
+        border-radius: 6px 6px 0 0 !important;
+        background: #f8f9fa !important;
+    }
+
+    .field-value input:focus {
+        outline: none !important;
+        border-color: #667eea !important;
+        background: white !important;
+    }
+
+    #transferDesc {
+        font-size: 13px !important;
+        letter-spacing: 0 !important;
+    }
+
+    .card.card-pad > .btn-secondary,
+    .card.card-pad > button.btn-secondary,
+    button.btn-secondary[onclick="cancelPendingTopup()"] {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 14px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        margin-top: 15px !important;
+        box-sizing: border-box !important;
+        text-align: center !important;
+    }
+
+    .table-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+    }
+
+    table {
+        width: 100% !important;
+        font-size: 13px !important;
+    }
+
+    table th, table td {
+        padding: 10px 8px !important;
+    }
+}
 
 /* Amount Highlight */
 .amount-highlight {
@@ -275,7 +589,9 @@ if (!empty($topupRequests)) {
     font-weight: bold;
     color: #667eea;
     margin: 0;
-}/* Pending Status */
+}
+
+/* Pending Status */
 .pending-status {
     background: linear-gradient(135deg, #fff3cd 0%, #fffbf0 100%);
     border: 1px solid #ffc107;
@@ -379,6 +695,7 @@ if (!empty($topupRequests)) {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
 .btn-secondary {
     background: #6c757d;
     color: white;
@@ -482,6 +799,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const username = '<?php echo htmlspecialchars($user['username'] ?? 'user'); ?>';
     const hasPending = <?php echo $pendingTopup ? 'true' : 'false'; ?>;
     const pendingAmount = <?php echo $pendingTopup ? intval($pendingTopup['amount']) : 0; ?>;
+    const pendingTopupId = <?php echo (int)$pendingTopupId; ?>;
+    const bankCode = <?php echo json_encode($vietqrConfig['bank_code'] ?? ''); ?>;
+    const bankName = <?php echo json_encode($vietqrConfig['bank_name'] ?? ''); ?>;
+    const accountNo = <?php echo json_encode($vietqrConfig['account_no'] ?? ''); ?>;
+    const accountName = <?php echo json_encode($vietqrConfig['account_name'] ?? ''); ?>;
+    const transferContent = <?php echo json_encode($transferContent); ?>;
     
     let checkInterval = null;
     
@@ -561,14 +884,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupPagination();
     
-    // Copy to clipboard
+    // Copy to clipboard with enhanced mobile support
     window.copyToClipboard = function(elementId, button) {
         const element = document.getElementById(elementId);
         const text = element.value || element.textContent;
         
-        navigator.clipboard.writeText(text).then(() => {
+        // Try modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                handleCopySuccess(element, button, text);
+            }).catch(() => {
+                fallbackCopy(text, element, button);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopy(text, element, button);
+        }
+    };
+
+    function handleCopySuccess(element, button, text) {
+        if (button) {
             const originalText = button.textContent;
-            button.textContent = 'Đã copy';
+            button.textContent = 'Đã copy ✓';
             button.style.background = '#20c997';
             button.style.color = 'white';
             
@@ -577,22 +914,74 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.style.background = '#667eea';
                 button.style.color = 'white';
             }, 1500);
-        }).catch(() => {
-            showNotification('Copy thất bại', 'error');
+        } else {
+            // Mobile: show visual feedback
+            element.style.background = '#d4edda';
+            element.style.borderColor = '#20c997';
+            setTimeout(() => {
+                element.style.background = '#f8f9fa';
+                element.style.borderColor = '#ddd';
+            }, 1000);
+        }
+        showNotification('Đã copy ✓', 'success');
+    }
+
+    function fallbackCopy(text, element, button) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
+            handleCopySuccess(element, button, text);
+        } catch (err) {
+            showNotification('Copy thất bại, vui lòng thử lại', 'error');
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    }
+
+    // Mobile: tap input to copy
+    if (window.innerWidth <= 540) {
+        document.querySelectorAll('.field-value.copy-field input').forEach(input => {
+            input.addEventListener('click', function(e) {
+                e.preventDefault();
+                copyToClipboard(this.id, null);
+            });
+            // Add visual feedback on touch
+            input.addEventListener('touchstart', function() {
+                this.style.opacity = '0.7';
+            });
+            input.addEventListener('touchend', function() {
+                this.style.opacity = '1';
+            });
         });
-    };
+    }
     
     // Generate QR code
+    function buildTransferContent(amount) {
+        if (transferContent) return transferContent;
+        const safeUser = (username || 'user').replace(/\s+/g, '').toLowerCase();
+        const safeAmount = Number.isFinite(amount) ? Math.round(amount) : 0;
+        return `shoptoolnro-${safeUser}-${safeAmount}`;
+    }
+
     function generateQRCode(amount) {
-        const transferDesc = `shoptoolnro${username}${amount}`;
-        const bankId = 'mbbank';
-        const accountNo = '0865134328';
-        const accountName = 'LE QUOC CUONG';
-        const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferDesc)}&accountName=${encodeURIComponent(accountName)}`;
+        const safeAmount = Number.isFinite(amount) ? Math.round(amount) : 0;
+        if (!safeAmount || !accountNo) return;
+
+        const transferDesc = buildTransferContent(safeAmount);
+        const bankId = bankCode || bankName || 'mbbank';
+        const cacheBuster = Date.now();
+        const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${safeAmount}&addInfo=${encodeURIComponent(transferDesc)}&accountName=${encodeURIComponent(accountName || bankName || '')}&t=${cacheBuster}`;
         
         const qrImage = document.getElementById('qrImage');
         if (qrImage) {
             qrImage.src = qrUrl;
+            qrImage.alt = `QR ${bankId} ${accountNo}`;
         }
     }
     
@@ -759,6 +1148,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Nếu có pending, bắt đầu check và generate QR
     if (hasPending && pendingAmount > 0) {
+        const transferDescInput = document.getElementById('transferDesc');
+        if (transferDescInput && !transferDescInput.value) {
+            transferDescInput.value = buildTransferContent(pendingAmount);
+        }
+
         generateQRCode(pendingAmount);
         startStatusCheck();
     }
