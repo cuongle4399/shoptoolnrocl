@@ -62,13 +62,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function openSidebar() {
         sidebar.classList.add('open');
         document.body.classList.add('sidebar-open');
-        if (backdrop) backdrop.classList.add('visible');
     }
     
     function closeSidebar() {
         sidebar.classList.remove('open');
         document.body.classList.remove('sidebar-open');
-        if (backdrop) backdrop.classList.remove('visible');
     }
     
     // ESC key để đóng

@@ -126,23 +126,12 @@ img {
         transform: translateX(0) !important;
     }
     
-    /* Backdrop khi sidebar mở */
-    .sidebar-backdrop {
-        display: none;
-        position: fixed;
-        top: 60px;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.7);
-        z-index: 999;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    
+    /* Backdrop tắt (không làm tối trang, vẫn giữ để tránh layout shift) */
+    .sidebar-backdrop,
     .sidebar-backdrop.visible {
-        display: block;
-        opacity: 1;
+        display: none !important;
+        pointer-events: none;
+        opacity: 0 !important;
     }
     
     /* Ngăn body scroll khi sidebar mở */

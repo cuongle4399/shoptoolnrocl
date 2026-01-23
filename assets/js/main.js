@@ -170,7 +170,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const dismissed = id ? localStorage.getItem('hide_notification_' + id) : null;
             if (dismissed) return; // user dismissed this message
 
-            const style = (noti.display_style || 'banner');
+            // Ưu tiên hiển thị pop-up ngay giữa màn hình cho thông báo quan trọng/khẩn
+            const priority = (noti.priority || 'normal');
+            const style = (priority === 'urgent' || priority === 'important')
+                ? 'popup'
+                : (noti.display_style || 'banner');
 
             if (style === 'popup') {
                 const overlay = document.createElement('div');

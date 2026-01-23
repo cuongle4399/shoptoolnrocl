@@ -20,7 +20,7 @@ try {
     $productClass = new Product($db);
     
     // Lấy 10 đơn hàng đã hoàn thành gần nhất
-    $endpoint = "orders?completed_at=not.is.null&order=created_at.desc&limit=10";
+    $endpoint = "orders?completed_at=not.is.null&order=completed_at.desc&limit=10";
     $result = $db->callApi($endpoint, 'GET');
     
     if (!$result || $result->code != 200) {
@@ -54,13 +54,17 @@ try {
         $username = $user['username'];
         $maskedUsername = mb_substr($username, 0, 1) . str_repeat('*', max(3, mb_strlen($username) - 2)) . mb_substr($username, -1);
         
-        // Format thời gian
-        $createdAt = $order['created_at'];
+        // Format thời gian theo completed_at để khớp lúc đơn hoàn tất
+        $rawTimestamp = $order['completed_at'] ?? $order['created_at'] ?? null;
         $timeAgo = '';
+        $formattedLocal = '';
         
         try {
-            $datetime = new DateTime($createdAt);
-            $now = new DateTime();
+            $datetime = new DateTime($rawTimestamp);
+            $datetime->setTimezone(new DateTimeZone('Asia/Ho_Chi_Minh'));
+            $formattedLocal = $datetime->format('H:i d/m/Y');
+            
+            $now = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
             $interval = $now->diff($datetime);
             
             if ($interval->days > 0) {
@@ -74,13 +78,15 @@ try {
             }
         } catch (Exception $e) {
             $timeAgo = 'Gần đây';
+            $formattedLocal = 'Không xác định';
         }
         
         $publicOrders[] = [
             'username' => $maskedUsername,
             'product_name' => $product['name'],
             'time_ago' => $timeAgo,
-            'created_at' => $createdAt
+            'timestamp' => $rawTimestamp,
+            'completed_at_local' => $formattedLocal
         ];
     }
     

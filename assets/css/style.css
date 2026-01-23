@@ -1456,22 +1456,12 @@ aside.sidebar nav hr {
     .sidebar-toggle { display: none; }
 }
 
-/* Mobile: overlay when open */
-.sidebar-backdrop {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 99;
-    opacity: 0;
-    transition: opacity 200ms ease;
-    pointer-events: none;
-}
-
+/* Mobile: overlay disabled to avoid dimming entire page when sidebar opens */
+.sidebar-backdrop,
 .sidebar-backdrop.visible {
-    display: block;
-    opacity: 1;
-    pointer-events: auto;
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 nav a {
@@ -2854,7 +2844,15 @@ footer a:hover {
 .public-order-time {
     font-size: 11px;
     color: var(--text-muted);
+    display: flex;
+    gap: 6px;
+    align-items: center;
     opacity: 0.7;
+
+.public-order-time-ago {
+    font-size: 12px;
+    color: var(--text-fade);
+}
 }
 
 /* Pagination for public orders */

@@ -745,7 +745,10 @@ function renderPublicOrders() {
             <div class="public-order-content">
                 <div class="public-order-user">${order.username}</div>
                 <div class="public-order-product">đã mua: ${order.product_name}</div>
-                <div class="public-order-time">${order.time_ago}</div>
+                <div class="public-order-time" title="${order.completed_at_local || order.timestamp || ''}">
+                    ${order.completed_at_local || order.time_ago || ''}
+                    <span class="public-order-time-ago">(${order.time_ago})</span>
+                </div>
             </div>
         `;
         
