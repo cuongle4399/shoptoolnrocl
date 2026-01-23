@@ -29,48 +29,50 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
 <div class="main-content fade-in">
     <h1>Quản lý người dùng</h1> 
     
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Tên đăng nhập</th>
-                <th>Email</th>
-                <th>Số dư</th>
-                <th>Vai trò</th>
-                <th>Trạng thái</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (!empty($users)): foreach ($users as $user): ?>
+    <div class="table-wrapper">
+        <table>
+            <thead>
                 <tr>
-                    <td><?php echo $user['id']; ?></td>
-                    <td><?php echo htmlspecialchars($user['username']); ?></td>
-                    <td><?php echo htmlspecialchars($user['email']); ?></td>
-                    <td><?php echo number_format($user['balance'] ?? 0, 0, ',', '.'); ?> ₫</td>
-                    <td>
-                        <select onchange="changeRole(<?php echo $user['id']; ?>, this.value)" class="select-sm" <?php echo $user['id'] == $_SESSION['user_id'] ? 'disabled title="Không thể thay đổi quyền của chính bạn"' : ''; ?>>
-                            <option value="customer" <?php echo ($user['role'] ?? '') === 'customer' ? 'selected' : ''; ?>>Khách hàng</option>
-                            <option value="admin" <?php echo ($user['role'] ?? '') === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                        </select>
-                    </td>
-                    <td><?php echo ($user['status'] ?? '') === 'active' ? 'Kích hoạt' : 'Khóa'; ?></td>
-                    <td>
-                        <button class="btn btn-secondary btn-sm" onclick="editBalance(<?php echo $user['id']; ?>)">Điều chỉnh</button>
-                        <button class="btn btn-danger btn-sm" onclick="toggleUserStatus(<?php echo $user['id']; ?>, this)">
-                            <?php echo ($user['status'] ?? '') === 'active' ? 'Khóa' : 'Mở'; ?>
-                        </button>
-                    </td>
+                    <th>ID</th>
+                    <th>Tên đăng nhập</th>
+                    <th>Email</th>
+                    <th>Số dư</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
                 </tr>
-            <?php endforeach; else: ?>
-                <tr>
-                    <td colspan="7" style="text-align: center;">
-                        <div class="empty-state">Chưa có người dùng</div>
-                    </td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php if (!empty($users)): foreach ($users as $user): ?>
+                    <tr>
+                        <td><?php echo $user['id']; ?></td>
+                        <td><?php echo htmlspecialchars($user['username']); ?></td>
+                        <td><?php echo htmlspecialchars($user['email']); ?></td>
+                        <td><?php echo number_format($user['balance'] ?? 0, 0, ',', '.'); ?> ₫</td>
+                        <td>
+                            <select onchange="changeRole(<?php echo $user['id']; ?>, this.value)" class="select-sm" <?php echo $user['id'] == $_SESSION['user_id'] ? 'disabled title="Không thể thay đổi quyền của chính bạn"' : ''; ?>>
+                                <option value="customer" <?php echo ($user['role'] ?? '') === 'customer' ? 'selected' : ''; ?>>Khách hàng</option>
+                                <option value="admin" <?php echo ($user['role'] ?? '') === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                            </select>
+                        </td>
+                        <td><?php echo ($user['status'] ?? '') === 'active' ? 'Kích hoạt' : 'Khóa'; ?></td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick="editBalance(<?php echo $user['id']; ?>)">Điều chỉnh</button>
+                            <button class="btn btn-danger btn-sm" onclick="toggleUserStatus(<?php echo $user['id']; ?>, this)">
+                                <?php echo ($user['status'] ?? '') === 'active' ? 'Khóa' : 'Mở'; ?>
+                            </button>
+                        </td>
+                    </tr>
+                <?php endforeach; else: ?>
+                    <tr>
+                        <td colspan="7" style="text-align: center;">
+                            <div class="empty-state">Chưa có người dùng</div>
+                        </td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
 
     <?php
         $hasPrev = $page > 1;

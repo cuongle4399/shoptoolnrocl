@@ -37,6 +37,8 @@ body {
     justify-content: center;
     align-items: center;
     padding: 20px;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 .customer-portal {

@@ -52,6 +52,7 @@ $topupRequests = $topupClass->getPendingRequests(5, 0);
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;">
         <div>
             <h3><a href="/ShopToolNro/views/admin/manage_users.php" style="text-decoration: none; color: inherit;">Quản lý người dùng →</a></h3>
+            <div class="table-wrapper">
             <table style="margin-top: 15px;">
                 <thead>
                     <tr>
@@ -70,10 +71,12 @@ $topupRequests = $topupClass->getPendingRequests(5, 0);
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
         </div>
         
         <div>
             <h3><a href="/ShopToolNro/views/admin/manage_topup.php" style="text-decoration: none; color: inherit;">Yêu cầu nạp tiền →</a></h3>
+            <div class="table-wrapper">
             <table style="margin-top: 15px;">
                 <thead>
                     <tr>
@@ -92,6 +95,7 @@ $topupRequests = $topupClass->getPendingRequests(5, 0);
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
     

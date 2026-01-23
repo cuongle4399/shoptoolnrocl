@@ -30,43 +30,45 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
     
     <button class="btn btn-primary" onclick="openCreatePromoModal()" style="margin-bottom: 20px;">+ Tạo mã mới</button>
     
-    <table>
-        <thead>
-            <tr>
-                <th>Mã</th>
-                <th>Giảm giá</th>
-                <th>Số lần dùng</th>
-                <th>Giá trị đơn tối thiểu</th>
-                <th>Hết hạn</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (!empty($promos)): foreach ($promos as $promo): ?> 
-
-
+    <div class="table-wrapper">
+        <table>
+            <thead>
                 <tr>
-                    <td><strong><?php echo htmlspecialchars($promo['code']); ?></strong></td>
-                    <td>
-                        <?php 
-                        if ($promo['discount_percent']) {
-                            echo $promo['discount_percent'] . '%';
-                        } elseif ($promo['discount_amount']) {
-                            echo number_format($promo['discount_amount'], 0, ',', '.') . ' ₫';
-                        }
-                        ?>
-                    </td>
-                    <td><?php echo $promo['usage_count']; ?><?php echo $promo['max_uses'] ? '/' . $promo['max_uses'] : ''; ?></td>
-                    <td><?php echo $promo['min_order_amount'] ? number_format($promo['min_order_amount'], 0, ',', '.') . ' ₫' : 'Không'; ?></td>
-                    <td><?php echo $promo['expires_at'] ? date('d/m/Y', strtotime($promo['expires_at'])) : 'Không hạn'; ?></td>
-                    <td>
-                        <button class="btn btn-secondary btn-sm" onclick="editPromo(<?php echo $promo['id']; ?>)">Sửa</button>
-                        <button class="btn btn-danger btn-sm" onclick="deletePromo(<?php echo $promo['id']; ?>)">Xóa</button>
-                    </td>
+                    <th>Mã</th>
+                    <th>Giảm giá</th>
+                    <th>Số lần dùng</th>
+                    <th>Giá trị đơn tối thiểu</th>
+                    <th>Hết hạn</th>
+                    <th>Hành động</th>
                 </tr>
-            <?php endforeach; endif; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php if (!empty($promos)): foreach ($promos as $promo): ?> 
+
+
+                    <tr>
+                        <td><strong><?php echo htmlspecialchars($promo['code']); ?></strong></td>
+                        <td>
+                            <?php 
+                            if ($promo['discount_percent']) {
+                                echo $promo['discount_percent'] . '%';
+                            } elseif ($promo['discount_amount']) {
+                                echo number_format($promo['discount_amount'], 0, ',', '.') . ' ₫';
+                            }
+                            ?>
+                        </td>
+                        <td><?php echo $promo['usage_count']; ?><?php echo $promo['max_uses'] ? '/' . $promo['max_uses'] : ''; ?></td>
+                        <td><?php echo $promo['min_order_amount'] ? number_format($promo['min_order_amount'], 0, ',', '.') . ' ₫' : 'Không'; ?></td>
+                        <td><?php echo $promo['expires_at'] ? date('d/m/Y', strtotime($promo['expires_at'])) : 'Không hạn'; ?></td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick="editPromo(<?php echo $promo['id']; ?>)">Sửa</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePromo(<?php echo $promo['id']; ?>)">Xóa</button>
+                        </td>
+                    </tr>
+                <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+    </div>
 
     <?php if (empty($promos)): ?>
         <div class="empty-state">Không có mã khuyến mãi</div>

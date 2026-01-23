@@ -31,34 +31,36 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
 <div class="main-content fade-in">
     <h1>Quản lý yêu cầu nạp tiền</h1>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Người dùng</th>
-                <th>Số tiền</th>
-                <th>Ngày tạo</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (!empty($requests)): ?>
-                <?php foreach ($requests as $r): ?>
-                    <?php $user = $userClass->getUserById($r['user_id']); ?> 
-                    <tr>
-                        <td><?php echo $r['id']; ?></td>
-                        <td><?php echo htmlspecialchars($user['username'] ?? ('UID:' . $r['user_id'])); ?></td>
-                        <td><?php echo number_format($r['amount'], 0, ',', '.'); ?> ₫</td>
-                        <td><?php echo date('d/m/Y H:i', strtotime($r['created_at'])); ?></td>
-                        <td>
-                            <button class="btn btn-success btn-sm" onclick="openApproveModal(<?php echo $r['id']; ?>)">Duyệt</button>
-                            <button class="btn btn-danger btn-sm" onclick="openRejectModal(<?php echo $r['id']; ?>)">Từ chối</button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Người dùng</th>
+                    <th>Số tiền</th>
+                    <th>Ngày tạo</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($requests)): ?>
+                    <?php foreach ($requests as $r): ?>
+                        <?php $user = $userClass->getUserById($r['user_id']); ?> 
+                        <tr>
+                            <td><?php echo $r['id']; ?></td>
+                            <td><?php echo htmlspecialchars($user['username'] ?? ('UID:' . $r['user_id'])); ?></td>
+                            <td><?php echo number_format($r['amount'], 0, ',', '.'); ?> ₫</td>
+                            <td><?php echo date('d/m/Y H:i', strtotime($r['created_at'])); ?></td>
+                            <td>
+                                <button class="btn btn-success btn-sm" onclick="openApproveModal(<?php echo $r['id']; ?>)">Duyệt</button>
+                                <button class="btn btn-danger btn-sm" onclick="openRejectModal(<?php echo $r['id']; ?>)">Từ chối</button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
 
     <?php if (empty($requests)): ?>
         <div class="empty-state">Không có yêu cầu nào</div>

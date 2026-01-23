@@ -129,55 +129,11 @@ function showNotification(message, type = 'success', duration = 3200) {
     setTimeout(remove, duration);
 }
 
-// Sidebar toggle (mobile) - Wait for DOM
+// Sidebar toggle - Handled by mobile-responsive.js
+// (Code moved to mobile-responsive.js to avoid conflicts)
 document.addEventListener('DOMContentLoaded', function() {
-    const sidebarToggleBtn = document.getElementById('sidebarToggle');
-    const sidebar = document.getElementById('mainSidebar');
-    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-
-    // Debug log
-    console.log('Sidebar toggle init:', { 
-        btn: !!sidebarToggleBtn, 
-        sidebar: !!sidebar, 
-        backdrop: !!sidebarBackdrop 
-    });
-
-    if (sidebarToggleBtn && sidebar) {
-        sidebarToggleBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Toggle clicked');
-            document.body.classList.toggle('sidebar-open');
-            sidebar.classList.toggle('open');
-            if (sidebarBackdrop) sidebarBackdrop.classList.toggle('visible');
-        });
-    } else {
-        console.warn('Sidebar toggle elements not found');
-    }
-
-    // Backdrop click closes sidebar
-    if (sidebarBackdrop) {
-        sidebarBackdrop.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Backdrop clicked');
-            document.body.classList.remove('sidebar-open');
-            if (sidebar) sidebar.classList.remove('open');
-            sidebarBackdrop.classList.remove('visible');
-        });
-    }
-
-    // Close sidebar when clicking outside on mobile (safety fallback)
-    document.addEventListener('click', (e) => {
-        if (!sidebar || !sidebarToggleBtn) return;
-        if (document.body.classList.contains('sidebar-open')) {
-            if (!sidebar.contains(e.target) && !sidebarToggleBtn.contains(e.target)) {
-                document.body.classList.remove('sidebar-open');
-                sidebar.classList.remove('open');
-                if (sidebarBackdrop) sidebarBackdrop.classList.remove('visible');
-            }
-        }
-    });
+    // Sidebar logic is now in mobile-responsive.js
+    console.log('Sidebar toggle: handled by mobile-responsive.js');
 });
 
 // Close sidebar with Escape key

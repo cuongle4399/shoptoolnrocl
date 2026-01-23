@@ -74,9 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Thông tin tài khoản</title>
     <link rel="stylesheet" href="css/customer_dashboard.css">
+    <link rel="stylesheet" href="assets/css/mobile-responsive.css">
     <link rel="icon" href="img/Logo.ico" type="image/x-icon">
 </head>
 <body>
@@ -164,5 +167,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     </div>
 
     <script src="javascript/index.js"></script>
+    <script src="assets/js/mobile-responsive.js"></script>
 </body>
 </html>

@@ -113,10 +113,13 @@ try {
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Admin Dashboard</title>
     <link rel="icon" href="img/Logo.ico" type="image/x-icon">
     <link rel="stylesheet" href="css/admin_dashboard.css">
+    <link rel="stylesheet" href="assets/css/mobile-responsive.css">
 </head>
 <body>
     <div class="container">
@@ -448,5 +451,6 @@ PHP Version: <?php echo phpversion(); ?>
             document.getElementById('selectedKeyInfo').style.display = 'none';
         }
     </script>
+    <script src="assets/js/mobile-responsive.js"></script>
 </body>
 </html>

@@ -19,7 +19,10 @@
 <!-- Critical CSS -->
 <link rel="stylesheet" href="/assets/css/main.css">
 <link rel="stylesheet" href="/assets/css/mobile-performance.css">
+<link rel="stylesheet" href="/assets/css/mobile-responsive.css">
+<link rel="stylesheet" href="/assets/css/table-scroll.css">
 
 <!-- Preload critical resources -->
 <link rel="preload" href="/assets/js/main.js" as="script">
 <link rel="preload" href="/assets/js/mobile-performance.js" as="script">
+<link rel="preload" href="/assets/js/mobile-responsive.js" as="script">

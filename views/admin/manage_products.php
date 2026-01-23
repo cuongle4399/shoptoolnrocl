@@ -37,29 +37,31 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
     
     <button id="addProductBtn" class="btn btn-primary" style="margin-bottom: 20px;">+ Thêm sản phẩm</button>
     
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Tên</th>
-                <th>Danh mục</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (!empty($products)): foreach ($products as $product): ?>
+    <div class="table-wrapper">
+        <table>
+            <thead>
                 <tr>
-                    <td><?php echo htmlspecialchars($product['id']); ?></td>
-                    <td><?php echo htmlspecialchars($product['name']); ?></td>
-                    <td><?php echo htmlspecialchars($product['category'] ?? '-'); ?></td>
-                    <td>
-                        <button class="btn btn-secondary btn-sm" onclick="editProduct(<?php echo $product['id']; ?>)">Sửa</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteProduct(<?php echo $product['id']; ?>)">Xóa</button>
-                    </td>
+                    <th>ID</th>
+                    <th>Tên</th>
+                    <th>Danh mục</th>
+                    <th>Hành động</th>
                 </tr>
-            <?php endforeach; endif; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php if (!empty($products)): foreach ($products as $product): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($product['id']); ?></td>
+                        <td><?php echo htmlspecialchars($product['name']); ?></td>
+                        <td><?php echo htmlspecialchars($product['category'] ?? '-'); ?></td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick="editProduct(<?php echo $product['id']; ?>)">Sửa</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProduct(<?php echo $product['id']; ?>)">Xóa</button>
+                        </td>
+                    </tr>
+                <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+    </div>
 
     <?php if (empty($products)): ?>
         <div class="empty-state">Không có sản phẩm</div>

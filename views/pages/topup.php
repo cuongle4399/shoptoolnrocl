@@ -117,6 +117,7 @@ if (!empty($topupRequests)) {
         <!-- Cột phải: Lịch sử nạp tiền -->
         <div>
             <h3>Lịch sử nạp tiền</h3>
+            <div class="table-wrapper">
             <table class="mt-15">
                 <thead>
                     <tr>
@@ -152,6 +153,7 @@ if (!empty($topupRequests)) {
                     <?php endif; ?>
                 </tbody>
             </table>
+            </div>
             
             <!-- Pagination -->
             <div id="paginationContainer" style="margin-top: 15px; text-align: center;"></div>

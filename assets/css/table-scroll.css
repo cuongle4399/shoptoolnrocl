@@ -1,0 +1,110 @@
+/* ===========================
+   UNIVERSAL TABLE SCROLL CSS
+   Áp dụng cho tất cả bảng khi vượt quá viewport
+   =========================== */
+
+/* Wrapper cho horizontal scroll */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 16px;
+    position: relative;
+    border-radius: 8px;
+}
+
+/* Scrollbar styling */
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #00bcd4;
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #4dd0e1;
+}
+
+/* Firefox scrollbar */
+.table-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: #00bcd4 rgba(255, 255, 255, 0.05);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    /* Ensure no page-level overflow */
+    body {
+        overflow-x: hidden;
+    }
+    
+    /* Main containers must have overflow hidden */
+    .main-content,
+    .container,
+    .content-area {
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+    
+    .table-wrapper {
+        display: block !important;
+        box-sizing: border-box;
+        border: 1px solid rgba(77, 208, 225, 0.2);
+        margin-bottom: 16px;
+        border-radius: 8px;
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    
+    /* Table trong wrapper - KHÔNG dùng display: table! */
+    .table-wrapper table {
+        width: auto;
+        min-width: 750px;
+        margin: 0 !important;
+        border-collapse: collapse;
+        display: table;
+    }
+    
+    .table-wrapper table th,
+    .table-wrapper table td {
+        white-space: nowrap;
+        padding: 10px 8px !important;
+        font-size: 12px !important;
+        min-width: 80px;
+        box-sizing: border-box;
+    }
+    
+    /* Indicator scroll */
+    .table-wrapper::after {
+        content: '← Vuốt sang để xem thêm →';
+        display: block;
+        text-align: center;
+        font-size: 10px;
+        color: #00bcd4;
+        padding: 8px;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+}
+
+@media (max-width: 480px) {
+    .table-wrapper table th,
+    .table-wrapper table td {
+        padding: 8px 6px !important;
+        font-size: 11px !important;
+        min-width: 70px;
+    }
+}
+
+/* Auto-wrap tables without wrapper */
+table:not(.table-wrapper table) {
+    max-width: 100%;
+    overflow-x: auto;
+}

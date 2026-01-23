@@ -35,6 +35,7 @@
 <script src="/ShopToolNro/assets/js/api.js"></script>
 <script src="/ShopToolNro/assets/js/main.js"></script>
 <script src="/ShopToolNro/assets/js/mobile-performance.js"></script>
+<script src="/ShopToolNro/assets/js/mobile-responsive.js"></script>
 
 <!-- Service Worker Registration (Temporarily Disabled for Testing) -->
 <script>

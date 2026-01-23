@@ -31,27 +31,29 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
     
     <button class="btn btn-primary mb-20" onclick="document.getElementById('notifyModal').classList.add('active')">+ Thêm thông báo</button>
     
-    <table>
-        <thead>
-            <tr>
-                <th>Nội dung</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($notifications)): ?>
-                <tr><td colspan="2"><div class="empty-state">Không có thông báo nào</div></td></tr>
-            <?php else: foreach ($notifications as $notify): ?>
-                <tr data-id="<?php echo $notify['id']; ?>" data-message="<?php echo htmlspecialchars($notify['message'], ENT_QUOTES); ?>">
-                    <td><?php echo htmlspecialchars(substr($notify['message'], 0, 80)); ?><?php echo strlen($notify['message']) > 80 ? '...' : ''; ?></td>
-                    <td>
-                        <button class="btn btn-secondary btn-sm" onclick="editNotify(<?php echo $notify['id']; ?>)">Sửa</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteNotify(<?php echo $notify['id']; ?>)">Xóa</button>
-                    </td>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nội dung</th>
+                    <th>Hành động</th>
                 </tr>
-            <?php endforeach; endif; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php if (empty($notifications)): ?>
+                    <tr><td colspan="2"><div class="empty-state">Không có thông báo nào</div></td></tr>
+                <?php else: foreach ($notifications as $notify): ?>
+                    <tr data-id="<?php echo $notify['id']; ?>" data-message="<?php echo htmlspecialchars($notify['message'], ENT_QUOTES); ?>">
+                        <td><?php echo htmlspecialchars(substr($notify['message'], 0, 80)); ?><?php echo strlen($notify['message']) > 80 ? '...' : ''; ?></td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick="editNotify(<?php echo $notify['id']; ?>)">Sửa</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteNotify(<?php echo $notify['id']; ?>)">Xóa</button>
+                        </td>
+                    </tr>
+                <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+    </div>
 
 <?php
     $hasPrev = $page > 1;

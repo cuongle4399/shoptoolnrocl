@@ -26,6 +26,8 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="stylesheet" href="/ShopToolNro/assets/css/style.css">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/header-mobile-fix.css">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/mobile-performance.css">
+    <link rel="stylesheet" href="/ShopToolNro/assets/css/mobile-responsive.css">
+    <link rel="stylesheet" href="/ShopToolNro/assets/css/table-scroll.css">
     
     <!-- Preload critical scripts -->
     <link rel="preload" href="/ShopToolNro/assets/js/api.js" as="script">
@@ -121,11 +123,15 @@ if (session_status() === PHP_SESSION_NONE) {
     <header>
         <div class="header-content">
             <div class="logo">ShopToolNroCL</div>
-            <nav>
-                <a href="/ShopToolNro/">Trang chủ</a>
-                <a href="https://www.facebook.com/cuong.le.810822" target="_blank" rel="noopener noreferrer">Liên hệ</a>
-                <a href="/ShopToolNro/views/pages/login.php">Đăng nhập</a>
-                <a href="/ShopToolNro/views/pages/register.php">Đăng ký</a>
+            <nav class="header-nav-guest">
+                <div class="nav-row-1">
+                    <a href="/ShopToolNro/">Trang chủ</a>
+                    <a href="https://www.facebook.com/cuong.le.810822" target="_blank" rel="noopener noreferrer">Liên hệ</a>
+                </div>
+                <div class="nav-row-2">
+                    <a href="/ShopToolNro/views/pages/login.php">Đăng nhập</a>
+                    <a href="/ShopToolNro/views/pages/register.php">Đăng ký</a>
+                </div>
             </nav>
         </div>
     </header>

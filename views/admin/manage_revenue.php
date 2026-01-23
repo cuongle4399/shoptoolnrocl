@@ -73,27 +73,29 @@ function getOrderStatus($order) {
     </div>
 
     <h3 class="mt-28">Đơn hàng gần đây</h3>
-    <table>
-        <thead>
-            <tr><th>ID</th><th>Người mua</th><th>Tổng</th><th>Trạng thái</th><th>Ngày</th></tr>
-        </thead>
-        <tbody>
-            <?php if (empty($recentOrders)): ?>
-                <tr><td colspan="5" class="text-center">Không có đơn hàng</td></tr>
-            <?php else: ?>
-                <?php foreach ($recentOrders as $o): ?>
-                    <?php $buyer = $userClass->getUserById($o['user_id']); ?>
-                    <tr>
-                        <td><?php echo $o['id']; ?></td>
-                        <td><?php echo htmlspecialchars($buyer['username'] ?? 'UID:'.$o['user_id']); ?></td>
-                        <td><span class="money"><?php echo number_format($o['total_price'] ?? 0, 0, ',', '.'); ?> ₫</span></td>
-                        <td><?php echo htmlspecialchars(getOrderStatus($o)); ?></td>
-                        <td><?php echo date('d/m/Y H:i', strtotime($o['created_at'] ?? '')); ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr><th>ID</th><th>Người mua</th><th>Tổng</th><th>Trạng thái</th><th>Ngày</th></tr>
+            </thead>
+            <tbody>
+                <?php if (empty($recentOrders)): ?>
+                    <tr><td colspan="5" class="text-center">Không có đơn hàng</td></tr>
+                <?php else: ?>
+                    <?php foreach ($recentOrders as $o): ?>
+                        <?php $buyer = $userClass->getUserById($o['user_id']); ?>
+                        <tr>
+                            <td><?php echo $o['id']; ?></td>
+                            <td><?php echo htmlspecialchars($buyer['username'] ?? 'UID:'.$o['user_id']); ?></td>
+                            <td><span class="money"><?php echo number_format($o['total_price'] ?? 0, 0, ',', '.'); ?> ₫</span></td>
+                            <td><?php echo htmlspecialchars(getOrderStatus($o)); ?></td>
+                            <td><?php echo date('d/m/Y H:i', strtotime($o['created_at'] ?? '')); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
     
     <?php if ($totalOrders > $perPage): ?>
     <div class="flex-center mt-14">
@@ -108,27 +110,29 @@ function getOrderStatus($order) {
     <?php endif; ?>
 
     <h3 style="margin-top:28px;">Nạp tiền đã duyệt gần đây</h3>
-    <table>
-        <thead>
-            <tr><th>ID</th><th>Người dùng</th><th>Số tiền</th><th>Ghi chú</th><th>Ngày</th></tr>
-        </thead>
-        <tbody>
-            <?php if (empty($recentTopups)): ?>
-                <tr><td colspan="5" class="text-center">Không có ghi nhận nạp tiền đã duyệt</td></tr> 
-            <?php else: ?>
-                <?php foreach ($recentTopups as $t): ?>
-                    <?php $user = $userClass->getUserById($t['user_id']); ?>
-                    <tr>
-                        <td><?php echo $t['id']; ?></td>
-                        <td><?php echo htmlspecialchars($user['username'] ?? 'UID:'.$t['user_id']); ?></td>
-                        <td><span class="money"><?php echo number_format($t['amount'] ?? 0, 0, ',', '.'); ?> ₫</span></td>
-                        <td><?php echo htmlspecialchars($t['admin_note'] ?? '-'); ?></td>
-                        <td><?php echo date('d/m/Y H:i', strtotime($t['approved_at'] ?? $t['created_at'] ?? '')); ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr><th>ID</th><th>Người dùng</th><th>Số tiền</th><th>Ghi chú</th><th>Ngày</th></tr>
+            </thead>
+            <tbody>
+                <?php if (empty($recentTopups)): ?>
+                    <tr><td colspan="5" class="text-center">Không có ghi nhận nạp tiền đã duyệt</td></tr> 
+                <?php else: ?>
+                    <?php foreach ($recentTopups as $t): ?>
+                        <?php $user = $userClass->getUserById($t['user_id']); ?>
+                        <tr>
+                            <td><?php echo $t['id']; ?></td>
+                            <td><?php echo htmlspecialchars($user['username'] ?? 'UID:'.$t['user_id']); ?></td>
+                            <td><span class="money"><?php echo number_format($t['amount'] ?? 0, 0, ',', '.'); ?> ₫</span></td>
+                            <td><?php echo htmlspecialchars($t['admin_note'] ?? '-'); ?></td>
+                            <td><?php echo date('d/m/Y H:i', strtotime($t['approved_at'] ?? $t['created_at'] ?? '')); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
     
     <?php if ($totalApprovedCount > $topupsPerPage): ?>
     <div class="flex-center mt-14">

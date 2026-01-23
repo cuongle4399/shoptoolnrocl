@@ -1,0 +1,476 @@
+/* ===========================
+   MOBILE RESPONSIVE OPTIMIZATION
+   Tối ưu hoá responsive cho mobile
+   =========================== */
+
+/* BASE MOBILE SETUP - Ngăn overflow ngang */
+html {
+    overflow-x: hidden;
+    width: 100%;
+}
+
+body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+}
+
+/* Ngăn tất cả element vượt quá viewport */
+* {
+    max-width: 100%;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ===========================
+   MOBILE BREAKPOINTS
+   =========================== */
+
+/* Tablets và Mobile lớn: <= 768px */
+@media (max-width: 768px) {
+    
+    /* CONTAINER & LAYOUT */
+    body {
+        padding: 10px !important;
+        font-size: 14px;
+    }
+    
+    .container {
+        padding: 12px !important;
+        margin: 0 auto !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    
+    .customer-portal,
+    .admin-portal {
+        padding: 16px !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    
+    /* HEADER & NAVIGATION */
+    .account-header,
+    .header-bar {
+        padding: 12px 16px !important;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    /* Sidebar toggle button - Luôn hiển thị */
+    .sidebar-toggle {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 24px !important;
+        background: rgba(77, 208, 225, 0.1) !important;
+        border-radius: 8px !important;
+        color: var(--accent, #00bcd4) !important;
+        cursor: pointer;
+        border: 1px solid rgba(77, 208, 225, 0.3) !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .sidebar-toggle:active {
+        background: rgba(77, 208, 225, 0.2) !important;
+        transform: scale(0.95) !important;
+    }
+    
+    .account-header h3,
+    .header-bar h1,
+    .header-bar h2 {
+        font-size: 18px !important;
+        word-break: break-word;
+    }
+    
+    /* TOPBAR */
+    .topbar {
+        padding: 10px 16px !important;
+        flex-wrap: wrap;
+    }
+    
+    .topbar .top-left,
+    .topbar .top-right {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .topbar .balance {
+        font-size: 14px !important;
+    }
+    
+    /* SIDEBAR - Thu gọn trên mobile */
+    .sidebar {
+        position: fixed !important;
+        left: 0 !important;
+        top: 60px !important;
+        bottom: 0 !important;
+        width: 280px !important;
+        height: auto !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s ease !important;
+        z-index: 1000 !important;
+        background: var(--bg-dark, #121212) !important;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5) !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Sidebar mở */
+    .sidebar.open,
+    body.sidebar-open .sidebar {
+        transform: translateX(0) !important;
+    }
+    
+    /* Backdrop khi sidebar mở */
+    .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .sidebar-backdrop.visible {
+        display: block;
+        opacity: 1;
+    }
+    
+    /* Ngăn body scroll khi sidebar mở */
+    body.sidebar-open {
+        overflow: hidden;
+    }
+    
+    .sidebar nav a {
+        padding: 12px 16px !important;
+        font-size: 15px !important;
+    }
+    
+    /* CONTENT WRAPPER */
+    .content-wrapper {
+        padding: 12px 16px !important;
+        width: 100% !important;
+    }
+    
+    /* TYPOGRAPHY */
+    h1 {
+        font-size: 22px !important;
+    }
+    
+    h2 {
+        font-size: 20px !important;
+    }
+    
+    h3 {
+        font-size: 16px !important;
+    }
+    
+    h4 {
+        font-size: 14px !important;
+    }
+    
+    p, li, td, th {
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+    }
+    
+    /* CARD COMPONENTS */
+    .card {
+        padding: 12px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .stat-card,
+    .product-card {
+        padding: 14px !important;
+    }
+    
+    /* GRID LAYOUTS - Chuyển thành 1 cột */
+    .stats-grid,
+    .products-grid,
+    .key-info-list {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    /* TABLES - Dùng table-scroll.css thay vì rules này */
+    /* Tất cả table rules đã được move sang table-scroll.css */
+    
+    /* FORMS & INPUTS */
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    select,
+    textarea {
+        font-size: 16px !important; /* Ngăn iOS zoom khi focus */
+        padding: 10px 12px !important;
+        width: 100% !important;
+    }
+    
+    /* Password input cần padding-right nhiều hơn cho icon */
+    .password-input-wrapper input[type="password"],
+    .password-input-wrapper input[type="text"] {
+        padding-right: 68px !important;
+    }
+    
+    .password-toggle-btn {
+        right: 16px !important;
+    }
+    
+    .form-group {
+        margin-bottom: 12px !important;
+    }
+    
+    label {
+        font-size: 13px !important;
+        margin-bottom: 6px !important;
+        display: block;
+    }
+    
+    /* BUTTONS */
+    button,
+    .btn,
+    a.btn {
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn-group button,
+    .btn-group .btn {
+        width: 100% !important;
+    }
+    
+    /* MODALS */
+    .modal-content {
+        width: 95% !important;
+        max-width: 95% !important;
+        padding: 16px !important;
+        margin: 20px auto !important;
+    }
+    
+    .modal h2,
+    .modal h3 {
+        font-size: 18px !important;
+    }
+    
+    /* IMAGES */
+    .product-image,
+    .item-image {
+        max-height: 200px !important;
+        object-fit: cover;
+    }
+    
+    /* SPACING */
+    .mt-4, .my-4 { margin-top: 16px !important; }
+    .mb-4, .my-4 { margin-bottom: 16px !important; }
+    .p-4 { padding: 16px !important; }
+    
+    /* NOTIFICATION */
+    .notification,
+    .message-success,
+    .message-error {
+        font-size: 13px !important;
+        padding: 10px 12px !important;
+    }
+}
+
+/* Mobile nhỏ: <= 480px */
+@media (max-width: 480px) {
+    
+    body {
+        padding: 5px !important;
+        font-size: 13px;
+    }
+    
+    .container {
+        padding: 8px !important;
+    }
+    
+    .customer-portal,
+    .admin-portal {
+        padding: 12px !important;
+    }
+    
+    h1 {
+        font-size: 20px !important;
+    }
+    
+    h2 {
+        font-size: 18px !important;
+    }
+    
+    h3 {
+        font-size: 15px !important;
+    }
+    
+    .account-header,
+    .header-bar {
+        padding: 10px 12px !important;
+    }
+    
+    .content-wrapper {
+        padding: 10px 12px !important;
+    }
+    
+    /* Tables - xem table-scroll.css cho styling */
+    
+    /* Buttons */
+    button,
+    .btn {
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+    }
+    
+    /* Cards */
+    .card {
+        padding: 10px !important;
+    }
+}
+
+/* TABLE SCROLLBAR STYLING được quản lý bởi table-scroll.css */
+
+/* ===========================
+   FIX SPECIFIC COMPONENTS
+   =========================== */
+
+@media (max-width: 768px) {
+    
+    /* Dashboard Stats */
+    .stats-overview {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Product Grid */
+    .products-container {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Order History */
+    .orders-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Admin Menu */
+    .admin-menu {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .admin-menu a {
+        width: 100%;
+        text-align: center;
+    }
+    
+    /* Balance Display */
+    .balance-display {
+        font-size: 16px !important;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .action-buttons button,
+    .action-buttons .btn {
+        width: 100% !important;
+    }
+}
+
+/* ===========================
+   LANDSCAPE MODE (Mobile ngang)
+   =========================== */
+
+@media (max-width: 768px) and (orientation: landscape) {
+    .customer-portal,
+    .admin-portal {
+        max-height: 100vh;
+        overflow-y: auto;
+    }
+    
+    .header-bar,
+    .account-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--bg-white, #252525);
+    }
+}
+
+/* ===========================
+   UTILITIES
+   =========================== */
+
+/* Hide on mobile */
+.hide-mobile {
+    display: none !important;
+}
+
+/* Show only on mobile */
+.show-mobile {
+    display: block !important;
+}
+
+@media (min-width: 769px) {
+    .hide-mobile {
+        display: block !important;
+    }
+    
+    .show-mobile {
+        display: none !important;
+    }
+}
+
+/* Text utilities */
+@media (max-width: 768px) {
+    .text-truncate-mobile {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .word-break-mobile {
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+}
+
+/* ===========================
+   PERFORMANCE OPTIMIZATIONS
+   =========================== */
+
+@media (max-width: 768px) {
+    /* Tắt animations phức tạp trên mobile */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.2s !important;
+        transition-duration: 0.15s !important;
+    }
+    
+    /* Giảm shadow để tăng performance */
+    .card,
+    .modal,
+    .dropdown {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+}

@@ -143,6 +143,7 @@ function compactStr($s, $front = 8, $back = 4) {
         <?php endfor; ?>
     </div>
     
+    <div class="table-wrapper">
     <table class="table" id="ordersTable" style="display: none;">
         <thead>
             <tr>
@@ -253,6 +254,7 @@ function compactStr($s, $front = 8, $back = 4) {
             <?php endif; ?>
         </tbody>
     </table>
+    </div>
 
     <?php if (empty($orders)): ?>
         <div class="empty-state">Không có đơn hàng nào.</div>

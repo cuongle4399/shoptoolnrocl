@@ -132,12 +132,12 @@ body{
 
 .password-input-wrapper input {
   width: 100%;
-  padding-right: 55px;
+  padding-right: 68px; /* Icon 38px + right 16px + spacing 14px */
 }
 
 .password-toggle-btn {
   position: absolute;
-  right: 10px;
+  right: 16px; /* Khoảng cách từ viền phải */
   top: 50%;
   transform: translateY(-50%);
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));

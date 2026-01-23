@@ -1023,6 +1023,20 @@ nav {
     flex-wrap: nowrap;
 }
 
+/* Header guest navigation - desktop 1 dòng */
+.header-nav-guest {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.nav-row-1,
+.nav-row-2 {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
 nav a {
     color: var(--text-secondary);
     text-decoration: none;
@@ -1035,8 +1049,45 @@ nav a {
 }
 
 @media (max-width: 520px) {
-    .logo { font-size: 16px; }
-    nav a { font-size: 12px; padding: 6px 6px; }
+    .logo { 
+        font-size: 14px;
+        flex: 0 0 auto;
+    }
+    
+    header {
+        padding: 8px 0;
+    }
+    
+    .header-content {
+        gap: 8px;
+        padding: 0 10px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .header-nav-guest {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+    
+    .nav-row-1,
+    .nav-row-2 {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+    
+    .nav-row-2 a {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .header-nav-guest a { 
+        font-size: 11px;
+        padding: 6px 12px;
+    }
 
     .topbar .top-right { gap: 8px; }
     .topbar .top-right .balance { display: none; }
@@ -1055,9 +1106,6 @@ nav a {
     .user-balance { font-size: 11px; display: none; }
     .btn-logout { padding: 5px 10px; font-size: 11px; }
     .btn-topup { padding: 6px 12px; font-size: 11px; }
-
-    /* Hide sidebar toggle on mobile (restore old behavior) */
-    .sidebar-toggle { display: none; }
 
     .product-card img { height: 140px; }
 
@@ -1204,7 +1252,7 @@ header .logo { color: var(--header-text); font-weight: 700; }
     color: var(--header-link-color);
     font-size: 20px;
     cursor: pointer;
-    display: inline-flex;
+    display: none; /* Ẩn mặc định */
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
@@ -1212,6 +1260,13 @@ header .logo { color: var(--header-text); font-weight: 700; }
     z-index: 110;
     position: relative;
     flex-shrink: 0;
+}
+
+/* Chỉ hiện trên mobile <= 768px */
+@media (max-width: 768px) {
+    .sidebar-toggle {
+        display: inline-flex;
+    }
 }
 
 .small-link {
@@ -2328,13 +2383,26 @@ footer a:hover {
     }
 
     .header-content {
-        gap: 16px;
-        flex-wrap: wrap;
+        gap: 10px;
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
+    .logo {
+        font-size: 15px;
+        flex-shrink: 0;
     }
 
     nav {
-        gap: 8px;
-        font-size: 13px;
+        gap: 6px;
+        font-size: 12px;
+        display: flex;
+        flex-wrap: nowrap;
+    }
+    
+    nav a {
+        padding: 6px 8px;
+        font-size: 12px;
     }
 
     h1 {
@@ -2447,14 +2515,27 @@ footer a:hover {
     }
 
     .header-content {
-        padding: 0 14px;
-        gap: 10px;
-        flex-wrap: wrap;
+        padding: 0 10px;
+        gap: 8px;
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+    
+    .logo {
+        font-size: 14px;
+        flex-shrink: 0;
     }
 
     nav {
-        flex-wrap: wrap;
-        gap: 8px;
+        flex-wrap: nowrap;
+        gap: 5px;
+        font-size: 11px;
+        display: flex;
+    }
+    
+    nav a {
+        padding: 5px 7px;
+        font-size: 11px;
     }
 }
 
@@ -2901,5 +2982,27 @@ footer a:hover {
     .public-orders-list {
         grid-template-columns: 1fr;
         display: grid;
+    }
+}
+
+/* ===== GLOBAL MOBILE FIX - Ngăn overflow ngang ===== */
+@media (max-width: 768px) {
+    html {
+        overflow-x: hidden;
+        width: 100%;
+    }
+    
+    body {
+        overflow-x: hidden;
+        width: 100%;
+    }
+    
+    * {
+        max-width: 100%;
+    }
+    
+    img, video, iframe {
+        max-width: 100%;
+        height: auto;
     }
 }

@@ -34,7 +34,7 @@ foreach ($products as $p) { $productMap[$p['id']] = $p['name']; }
 <div class="main-content fade-in">
     <h1>Quản lý License Key</h1>
 
-    <div class="table-responsive">
+    <div class="table-wrapper">
         <table class="table-elevated">
             <thead>
                 <tr>
