@@ -3,7 +3,7 @@
    Cache static assets for offline use
    ================================= */
 
-const CACHE_NAME = 'shoptoolnro-v1';
+const CACHE_NAME = 'shoptoolnro-v2';
 const STATIC_ASSETS = [
   '/ShopToolNro/',
   '/ShopToolNro/assets/css/style.css',
@@ -42,7 +42,7 @@ self.addEventListener('activate', (event) => {
         })
       );
     })
-    .then(() => self.clients.claim())
+      .then(() => self.clients.claim())
   );
 });
 
@@ -50,10 +50,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-  
+
   // Skip API calls
   if (event.request.url.includes('/api/')) return;
-  
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -100,7 +100,7 @@ self.addEventListener('push', (event) => {
       url: data.url || '/'
     }
   };
-  
+
   event.waitUntil(
     self.registration.showNotification(title, options)
   );
@@ -109,7 +109,7 @@ self.addEventListener('push', (event) => {
 // Notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
+
   event.waitUntil(
     clients.openWindow(event.notification.data.url)
   );
