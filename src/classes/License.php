@@ -1,10 +1,12 @@
 <?php
-class License {
+class License
+{
     private $db;
     private $table = 'infokey';
     private static $cache = []; // In-memory cache
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->db = $db;
     }
 
@@ -12,10 +14,11 @@ class License {
      * Verify a license key via Supabase REST (OPTIMIZED - no updateLastCheck)
      * Optional: provide product_id to ensure the key belongs to that product
      */
-    public function verifyKey($hwid, $license_key, $product_id = null) {
+    public function verifyKey($hwid, $license_key, $product_id = null)
+    {
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key) . "&status=eq.active&limit=1";
         if (!empty($product_id)) {
-            $endpoint .= "&product_id=eq." . (int)$product_id;
+            $endpoint .= "&product_id=eq." . (int) $product_id;
         }
 
         $result = $this->db->callApi($endpoint, 'GET');
@@ -49,12 +52,27 @@ class License {
     }
 
     /**
+     * Get keys by user ID
+     */
+    public function getUserKeys($user_id)
+    {
+        // Fetch keys and associated product name using PostgREST embedding
+        $endpoint = $this->table . "?user_id=eq." . (int) $user_id . "&select=*,products(name)&order=created_at.desc";
+        $result = $this->db->callApi($endpoint, 'GET');
+        if ($result && $result->code == 200 && is_array($result->response)) {
+            return $result->response;
+        }
+        return [];
+    }
+
+    /**
      * Get all license keys
      */
-    public function getAllKeys($limit = 0, $offset = 0) {
+    public function getAllKeys($limit = 0, $offset = 0)
+    {
         $endpoint = $this->table . "?order=created_at.desc";
         if ($limit > 0) {
-            $endpoint .= "&limit=" . (int)$limit . "&offset=" . (int)$offset;
+            $endpoint .= "&limit=" . (int) $limit . "&offset=" . (int) $offset;
         }
         $result = $this->db->callApi($endpoint, 'GET');
         if ($result && $result->code == 200 && is_array($result->response)) {
@@ -66,12 +84,13 @@ class License {
     /**
      * Create a new license key
      */
-    public function createKey($data) {
+    public function createKey($data)
+    {
         $payload = [
             'hwid' => $data['hwid'] ?? null,
             'license_key' => $data['license_key'] ?? null,
             'user_info' => $data['user_info'] ?? null,
-            'product_id' => isset($data['product_id']) ? (int)$data['product_id'] : null,
+            'product_id' => isset($data['product_id']) ? (int) $data['product_id'] : null,
             'status' => $data['status'] ?? 'active',
             'created_at' => date('c'),
             'expires_at' => !empty($data['expires_at']) ? $data['expires_at'] : null
@@ -85,11 +104,14 @@ class License {
         $msg = 'Tạo key thất bại';
         if ($result && !empty($result->response)) {
             if (is_array($result->response)) {
-                if (isset($result->response['message'])) $msg = $result->response['message'];
-                elseif (isset($result->response[0]['message'])) $msg = $result->response[0]['message'];
-                else $msg = json_encode($result->response);
+                if (isset($result->response['message']))
+                    $msg = $result->response['message'];
+                elseif (isset($result->response[0]['message']))
+                    $msg = $result->response[0]['message'];
+                else
+                    $msg = json_encode($result->response);
             } else {
-                $msg = (string)$result->response;
+                $msg = (string) $result->response;
             }
         }
 
@@ -99,14 +121,15 @@ class License {
     /**
      * Update HWID for a license key
      */
-    public function updateKeyHWID($new_hwid, $license_key) {
+    public function updateKeyHWID($new_hwid, $license_key)
+    {
         if (empty($license_key) || empty($new_hwid)) {
-            return (object)['code' => 0, 'response' => null];
+            return (object) ['code' => 0, 'response' => null];
         }
-        
+
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
         $data = ['hwid' => $new_hwid];
-        
+
         $result = $this->db->callApi($endpoint, 'PATCH', $data);
         return $result;
     }
@@ -114,19 +137,21 @@ class License {
     /**
      * Get license key by license_key value (with caching)
      */
-    public function getKeyByLicense($license_key, $product_id = null) {
-        if (empty($license_key)) return null;
-        
+    public function getKeyByLicense($license_key, $product_id = null)
+    {
+        if (empty($license_key))
+            return null;
+
         $cache_key = "license_" . md5($license_key . ($product_id ?? ''));
         if (isset(self::$cache[$cache_key])) {
             return self::$cache[$cache_key];
         }
-        
+
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key) . "&limit=1";
         if (!empty($product_id)) {
-            $endpoint .= "&product_id=eq." . (int)$product_id;
+            $endpoint .= "&product_id=eq." . (int) $product_id;
         }
-        
+
         $result = $this->db->callApi($endpoint, 'GET');
         if ($result && $result->code == 200 && !empty($result->response)) {
             $key = $result->response[0];
@@ -139,17 +164,19 @@ class License {
     /**
      * Get license key by ID (with caching)
      */
-    public function getKeyById($id) {
-        if (empty($id)) return null;
-        
-        $id = (int)$id;
+    public function getKeyById($id)
+    {
+        if (empty($id))
+            return null;
+
+        $id = (int) $id;
         if (isset(self::$cache[$id])) {
             return self::$cache[$id];
         }
-        
+
         $endpoint = $this->table . "?id=eq." . $id . "&limit=1";
         $result = $this->db->callApi($endpoint, 'GET');
-        
+
         if ($result && $result->code == 200 && !empty($result->response)) {
             $key = $result->response[0];
             self::$cache[$id] = $key;
@@ -161,36 +188,42 @@ class License {
     /**
      * Deactivate a license key
      */
-    public function deactivateKey($license_key) {
-        if (empty($license_key)) return false;
-        
+    public function deactivateKey($license_key)
+    {
+        if (empty($license_key))
+            return false;
+
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
         $result = $this->db->callApi($endpoint, 'PATCH', ['status' => 'inactive']);
-        
+
         return ($result && ($result->code == 200 || $result->code == 204));
     }
 
     /**
      * Update license with custom data
      */
-    public function updateLicense($license_key, $data) {
-        if (empty($license_key)) return false;
-        
+    public function updateLicense($license_key, $data)
+    {
+        if (empty($license_key))
+            return false;
+
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
         $result = $this->db->callApi($endpoint, 'PATCH', $data);
-        
+
         // Invalidate cache
         $cache_key = "license_" . md5($license_key);
         unset(self::$cache[$cache_key]);
-        
+
         return ($result && ($result->code == 200 || $result->code == 204));
     }
 
     /**
      * Ban a license key (status = banned)
      */
-    public function banKey($license_key) {
-        if (empty($license_key)) return false;
+    public function banKey($license_key)
+    {
+        if (empty($license_key))
+            return false;
 
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
         $result = $this->db->callApi($endpoint, 'PATCH', ['status' => 'banned']);
@@ -204,8 +237,10 @@ class License {
     /**
      * Unban a license key (status = active)
      */
-    public function unbanKey($license_key) {
-        if (empty($license_key)) return false;
+    public function unbanKey($license_key)
+    {
+        if (empty($license_key))
+            return false;
 
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
         $result = $this->db->callApi($endpoint, 'PATCH', ['status' => 'active']);
@@ -219,8 +254,10 @@ class License {
     /**
      * Renew a license by extending expires_at by $days days
      */
-    public function renewKey($license_key, $days) {
-        if (empty($license_key) || !is_numeric($days) || $days <= 0) return false;
+    public function renewKey($license_key, $days)
+    {
+        if (empty($license_key) || !is_numeric($days) || $days <= 0)
+            return false;
 
         $key = $this->getKeyByLicense($license_key);
         $baseTs = 0;
@@ -231,7 +268,7 @@ class License {
             $baseTs = time();
         }
 
-        $newExpires = date('c', $baseTs + ((int)$days * 86400));
+        $newExpires = date('c', $baseTs + ((int) $days * 86400));
 
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
         $result = $this->db->callApi($endpoint, 'PATCH', [
@@ -248,8 +285,10 @@ class License {
     /**
      * Delete a license key
      */
-    public function deleteKey($license_key) {
-        if (empty($license_key)) return false;
+    public function deleteKey($license_key)
+    {
+        if (empty($license_key))
+            return false;
 
         $endpoint = $this->table . "?license_key=eq." . urlencode($license_key);
         $result = $this->db->callApi($endpoint, 'DELETE');
@@ -263,7 +302,8 @@ class License {
     /**
      * Clear cache
      */
-    public static function clearCache() {
+    public static function clearCache()
+    {
         self::$cache = [];
     }
 }

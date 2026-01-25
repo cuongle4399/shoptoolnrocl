@@ -61,23 +61,23 @@ textarea {
         animation-duration: 0.15s !important;
         transition-duration: 0.15s !important;
     }
-    
+
     /* Tắt hover effects trên mobile */
     .card:hover {
         transform: none !important;
         box-shadow: var(--shadow) !important;
     }
-    
+
     .fade-in {
         animation-duration: 0.2s !important;
     }
-    
+
     /* Tắt các hiệu ứng nặng trên mobile */
     *::before,
     *::after {
         animation: none !important;
     }
-    
+
     /* Tắt blur effects - rất nặng */
     .backdrop-blur,
     [class*="blur"] {
@@ -88,6 +88,7 @@ textarea {
 
 /* MOBILE TOUCH GESTURES */
 @media (max-width: 768px) {
+
     /* Tăng kích thước vùng chạm */
     button,
     a.btn,
@@ -96,17 +97,17 @@ textarea {
         min-width: 44px;
         padding: 12px 20px;
     }
-    
+
     /* Card touch feedback */
     .card {
         transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
-                    box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
+
     .card:active {
         transform: scale(0.98) translateZ(0);
     }
-    
+
     /* Button touch feedback */
     .btn:active {
         transform: scale(0.96) translateZ(0);
@@ -118,14 +119,31 @@ textarea {
     html {
         font-size: 14px;
     }
-    
-    h1 { font-size: 1.75rem; }
-    h2 { font-size: 1.5rem; }
-    h3 { font-size: 1.25rem; }
-    h4 { font-size: 1.1rem; }
-    h5 { font-size: 1rem; }
-    h6 { font-size: 0.9rem; }
-    
+
+    h1 {
+        font-size: 1.75rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.25rem;
+    }
+
+    h4 {
+        font-size: 1.1rem;
+    }
+
+    h5 {
+        font-size: 1rem;
+    }
+
+    h6 {
+        font-size: 0.9rem;
+    }
+
     body {
         line-height: 1.5;
     }
@@ -137,11 +155,11 @@ textarea {
         padding: 12px;
         max-width: 100%;
     }
-    
+
     .row {
         margin: 0 -6px;
     }
-    
+
     [class*="col-"] {
         padding: 0 6px;
     }
@@ -158,15 +176,20 @@ textarea {
         transform: translateZ(0);
         -webkit-transform: translateZ(0);
     }
-    
+
     .sidebar {
         transform: translateZ(0);
         -webkit-transform: translateZ(0);
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
+
     .sidebar.active {
         transform: translateX(0) translateZ(0);
+    }
+
+    /* Ensure no conflicting overlay exists here, rely on mobile-responsive.css */
+    .sidebar-overlay {
+        display: none !important;
     }
 }
 
@@ -175,7 +198,7 @@ textarea {
     .modal {
         align-items: flex-end;
     }
-    
+
     .modal-content {
         width: 100%;
         max-width: 100%;
@@ -185,11 +208,12 @@ textarea {
         -webkit-overflow-scrolling: touch;
         animation: slideUpMobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
+
     @keyframes slideUpMobile {
         from {
             transform: translateY(100%) translateZ(0);
         }
+
         to {
             transform: translateY(0) translateZ(0);
         }
@@ -204,7 +228,7 @@ textarea {
         display: block;
         image-rendering: -webkit-optimize-contrast;
     }
-    
+
     .product-img,
     .card-img {
         object-fit: cover;
@@ -214,6 +238,7 @@ textarea {
 
 /* MOBILE FORM OPTIMIZATION */
 @media (max-width: 768px) {
+
     input,
     select,
     textarea {
@@ -221,7 +246,7 @@ textarea {
         padding: 12px 16px;
         border-radius: 8px;
     }
-    
+
     input:focus,
     select:focus,
     textarea:focus {
@@ -229,7 +254,7 @@ textarea {
         border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.1);
     }
-    
+
     .form-group {
         margin-bottom: 16px;
     }
@@ -237,12 +262,13 @@ textarea {
 
 /* MOBILE PERFORMANCE - Reduce Layout Shifts */
 @media (max-width: 768px) {
+
     /* Prevent layout shift from images */
     .product-card img {
         aspect-ratio: 16 / 9;
         object-fit: cover;
     }
-    
+
     /* Skeleton loading with fixed dimensions */
     .skeleton-image {
         height: 180px;
@@ -257,7 +283,7 @@ textarea {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
     }
-    
+
     /* Smooth scrolling for lists */
     .product-list,
     .order-list,
@@ -272,7 +298,7 @@ textarea {
     .loading {
         pointer-events: none;
     }
-    
+
     .loading::after {
         content: '';
         position: absolute;
@@ -286,29 +312,59 @@ textarea {
         border-radius: 50%;
         animation: spin 0.6s linear infinite;
     }
-    
+
     @keyframes spin {
-        to { transform: rotate(360deg) translateZ(0); }
+        to {
+            transform: rotate(360deg) translateZ(0);
+        }
     }
 }
 
 /* MOBILE UTILITY CLASSES */
 @media (max-width: 768px) {
-    .hide-mobile { display: none !important; }
-    .show-mobile { display: block !important; }
-    
-    .text-center-mobile { text-align: center !important; }
-    .text-left-mobile { text-align: left !important; }
-    
-    .full-width-mobile { width: 100% !important; }
-    
-    .p-mobile-sm { padding: 8px !important; }
-    .p-mobile-md { padding: 12px !important; }
-    .p-mobile-lg { padding: 16px !important; }
-    
-    .m-mobile-sm { margin: 8px !important; }
-    .m-mobile-md { margin: 12px !important; }
-    .m-mobile-lg { margin: 16px !important; }
+    .hide-mobile {
+        display: none !important;
+    }
+
+    .show-mobile {
+        display: block !important;
+    }
+
+    .text-center-mobile {
+        text-align: center !important;
+    }
+
+    .text-left-mobile {
+        text-align: left !important;
+    }
+
+    .full-width-mobile {
+        width: 100% !important;
+    }
+
+    .p-mobile-sm {
+        padding: 8px !important;
+    }
+
+    .p-mobile-md {
+        padding: 12px !important;
+    }
+
+    .p-mobile-lg {
+        padding: 16px !important;
+    }
+
+    .m-mobile-sm {
+        margin: 8px !important;
+    }
+
+    .m-mobile-md {
+        margin: 12px !important;
+    }
+
+    .m-mobile-lg {
+        margin: 16px !important;
+    }
 }
 
 /* MOBILE MENU SMOOTH */
@@ -321,11 +377,12 @@ textarea {
         transform: translateX(-100%) translateZ(0);
         will-change: transform;
     }
-    
+
     .sidebar.active {
         transform: translateX(0) translateZ(0);
     }
-    
+
+    /*
     .sidebar-overlay {
         position: fixed;
         top: 0;
@@ -338,24 +395,26 @@ textarea {
         transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         will-change: opacity;
     }
-    
+
     .sidebar-overlay.active {
         opacity: 1;
         pointer-events: all;
     }
+    */
 }
 
 /* MOBILE CONTENT SPACING */
 @media (max-width: 768px) {
+
     main,
     .content {
         padding-top: 80px;
     }
-    
+
     .page-header {
         padding: 16px 12px;
     }
-    
+
     .page-title {
         font-size: 1.5rem;
         margin-bottom: 8px;
@@ -364,6 +423,7 @@ textarea {
 
 /* MOBILE CARDS GRID */
 @media (max-width: 768px) {
+
     .products-grid,
     .cards-grid {
         display: grid;
@@ -374,6 +434,7 @@ textarea {
 }
 
 @media (min-width: 480px) and (max-width: 768px) {
+
     .products-grid,
     .cards-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -386,16 +447,16 @@ textarea {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    
+
     table {
         min-width: 600px;
     }
-    
+
     /* Hoặc chuyển sang card layout */
     .mobile-card-view {
         display: block;
     }
-    
+
     .mobile-card-view tr {
         display: block;
         margin-bottom: 12px;
@@ -404,14 +465,14 @@ textarea {
         border-radius: 8px;
         background: var(--bg-card);
     }
-    
+
     .mobile-card-view td {
         display: block;
         text-align: left;
         padding: 8px;
         border: none;
     }
-    
+
     .mobile-card-view td::before {
         content: attr(data-label);
         font-weight: 600;
@@ -431,6 +492,7 @@ textarea {
 
 /* MOBILE FOCUS VISIBLE */
 @media (max-width: 768px) {
+
     button:focus-visible,
     a:focus-visible,
     input:focus-visible {
@@ -444,11 +506,11 @@ textarea {
     .topbar {
         padding-top: env(safe-area-inset-top);
     }
-    
+
     .sidebar {
         padding-bottom: env(safe-area-inset-bottom);
     }
-    
+
     .modal-content {
         padding-bottom: calc(16px + env(safe-area-inset-bottom));
     }
@@ -457,11 +519,10 @@ textarea {
 /* MOBILE PERFORMANCE - Lazy Loading Images */
 @media (max-width: 768px) {
     img[loading="lazy"] {
-        background: linear-gradient(90deg, 
-            rgba(255, 255, 255, 0.05) 0%,
-            rgba(77, 208, 225, 0.08) 50%,
-            rgba(255, 255, 255, 0.05) 100%
-        );
+        background: linear-gradient(90deg,
+                rgba(255, 255, 255, 0.05) 0%,
+                rgba(77, 208, 225, 0.08) 50%,
+                rgba(255, 255, 255, 0.05) 100%);
         background-size: 200% 100%;
         animation: shimmer 1.5s ease-in-out infinite;
     }
@@ -473,7 +534,7 @@ textarea {
         position: fixed;
         contain: layout style paint;
     }
-    
+
     .scroll-item {
         contain: layout;
     }

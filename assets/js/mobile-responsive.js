@@ -3,63 +3,63 @@
    Tự động wrap tables để thêm horizontal scroll
    =========================== */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Chỉ chạy trên mobile
     if (window.innerWidth <= 768) {
         wrapTablesForMobile();
     }
-    
+
     // Re-check khi resize
     let resizeTimer;
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
+        resizeTimer = setTimeout(function () {
             if (window.innerWidth <= 768) {
                 wrapTablesForMobile();
             }
         }, 250);
     });
-    
+
     // ===== SIDEBAR FIX - Chỉ dùng button toggle, BỎ swipe =====
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('mainSidebar');
     const backdrop = document.getElementById('sidebarBackdrop');
     const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
-    
+
     if (sidebarToggle && sidebar) {
         // Click button để toggle
-        sidebarToggle.addEventListener('click', function(e) {
+        sidebarToggle.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
             toggleSidebar();
         });
-        
+
         // Click nút đóng để đóng sidebar
         if (sidebarCloseBtn) {
-            sidebarCloseBtn.addEventListener('click', function(e) {
+            sidebarCloseBtn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 closeSidebar();
             });
         }
-        
+
         // Click backdrop để đóng
         if (backdrop) {
-            backdrop.addEventListener('click', function(e) {
+            backdrop.addEventListener('click', function (e) {
                 e.preventDefault();
                 closeSidebar();
             });
         }
-        
+
         // Click link trong sidebar thì đóng sidebar
         const sidebarLinks = sidebar.querySelectorAll('a');
         sidebarLinks.forEach(link => {
-            link.addEventListener('click', function() {
+            link.addEventListener('click', function () {
                 closeSidebar();
             });
         });
     }
-    
+
     function toggleSidebar() {
         const isOpen = sidebar.classList.contains('open');
         if (isOpen) {
@@ -68,19 +68,52 @@ document.addEventListener('DOMContentLoaded', function() {
             openSidebar();
         }
     }
-    
+
     function openSidebar() {
         sidebar.classList.add('open');
         document.body.classList.add('sidebar-open');
+        // Explicitly show backdrop if it exists
+        if (backdrop) {
+            backdrop.style.display = 'block';
+            // Small delay to allow display:block to apply before opacity transition
+            requestAnimationFrame(() => {
+                backdrop.classList.add('visible');
+                backdrop.style.opacity = '1';
+            });
+        }
     }
-    
+
     function closeSidebar() {
         sidebar.classList.remove('open');
         document.body.classList.remove('sidebar-open');
+
+        // Force remove backdrop properly
+        if (backdrop) {
+            backdrop.classList.remove('visible');
+            // Force styles immediately with !important equivalent (though JS inline styles don't support !important directly in value, we clear it)
+            backdrop.style.opacity = '0';
+            backdrop.style.display = 'none';
+            backdrop.style.pointerEvents = 'none';
+
+            // Remove style attribute to clear inline styles immediately
+            backdrop.removeAttribute('style');
+
+            // Double check after small delay
+            setTimeout(() => {
+                backdrop.classList.remove('visible');
+                backdrop.removeAttribute('style');
+                // Ensure display none is enforced if class removal didn't work
+                backdrop.style.display = 'none';
+            }, 50);
+        }
+
+        // Safety check to ensure body is scrollable again
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
     }
-    
+
     // ESC key để đóng
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && sidebar.classList.contains('open')) {
             closeSidebar();
         }
@@ -90,18 +123,18 @@ document.addEventListener('DOMContentLoaded', function() {
 function wrapTablesForMobile() {
     // Tìm tất cả tables chưa được wrap
     const tables = document.querySelectorAll('table:not(.table-wrapper table)');
-    
-    tables.forEach(function(table) {
+
+    tables.forEach(function (table) {
         // Kiểm tra xem table đã được wrap chưa
         if (!table.parentElement.classList.contains('table-wrapper')) {
             // Tạo wrapper div
             const wrapper = document.createElement('div');
             wrapper.className = 'table-wrapper';
-            
+
             // Wrap table
             table.parentNode.insertBefore(wrapper, table);
             wrapper.appendChild(table);
-            
+
             console.log('Wrapped table for mobile scrolling');
         }
     });
@@ -122,15 +155,15 @@ document.documentElement.style.overflowX = 'hidden';
 
 if (window.innerWidth <= 768) {
     // Thêm touch feedback cho buttons
-    document.addEventListener('touchstart', function(e) {
+    document.addEventListener('touchstart', function (e) {
         if (e.target.matches('button, .btn, a.btn')) {
             e.target.classList.add('touching');
         }
     }, { passive: true });
-    
-    document.addEventListener('touchend', function(e) {
+
+    document.addEventListener('touchend', function (e) {
         if (e.target.matches('button, .btn, a.btn')) {
-            setTimeout(function() {
+            setTimeout(function () {
                 e.target.classList.remove('touching');
             }, 150);
         }
@@ -145,18 +178,18 @@ if (window.innerWidth <= 768) {
 function checkAndScaleWideContent() {
     if (window.innerWidth <= 768) {
         const viewportWidth = window.innerWidth;
-        
+
         // Kiểm tra các elements có thể vượt quá viewport
         const wideElements = document.querySelectorAll('img, iframe, video, .card, .modal-content');
-        
-        wideElements.forEach(function(el) {
+
+        wideElements.forEach(function (el) {
             const elWidth = el.offsetWidth;
-            
+
             if (elWidth > viewportWidth) {
                 const scale = (viewportWidth - 40) / elWidth; // 40px padding
                 el.style.maxWidth = '100%';
                 el.style.height = 'auto';
-                
+
                 console.log('Scaled wide element:', el);
             }
         });
@@ -167,7 +200,7 @@ function checkAndScaleWideContent() {
 window.addEventListener('load', checkAndScaleWideContent);
 
 // Chạy khi resize
-window.addEventListener('resize', function() {
+window.addEventListener('resize', function () {
     clearTimeout(this.resizeTimer);
     this.resizeTimer = setTimeout(checkAndScaleWideContent, 250);
 });
@@ -179,11 +212,11 @@ window.addEventListener('resize', function() {
 
 if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
     const inputs = document.querySelectorAll('input, select, textarea');
-    inputs.forEach(function(input) {
+    inputs.forEach(function (input) {
         // Đảm bảo font-size >= 16px để tránh zoom
         const computedSize = window.getComputedStyle(input).fontSize;
         const size = parseFloat(computedSize);
-        
+
         if (size < 16) {
             input.style.fontSize = '16px';
         }
@@ -214,8 +247,8 @@ if (window.location.search.includes('debug=mobile')) {
     function findOverflowElements() {
         const all = document.querySelectorAll('*');
         const overflowing = [];
-        
-        all.forEach(function(el) {
+
+        all.forEach(function (el) {
             if (el.scrollWidth > document.documentElement.clientWidth) {
                 overflowing.push({
                     element: el,
@@ -225,15 +258,15 @@ if (window.location.search.includes('debug=mobile')) {
                 });
             }
         });
-        
+
         if (overflowing.length > 0) {
             console.group('Elements causing horizontal scroll:');
-            overflowing.forEach(function(item) {
+            overflowing.forEach(function (item) {
                 console.log(`${item.tag}.${item.classes} - Width: ${item.width}px`, item.element);
             });
             console.groupEnd();
         }
     }
-    
+
     window.addEventListener('load', findOverflowElements);
 }
