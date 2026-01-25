@@ -139,6 +139,8 @@ if (isMobile) {
     if (sidebar) {
         const swipeDetector = new SwipeDetector(document.body);
         
+        // Swipe gestures removed as per user request to avoid accidental sidebar opening
+        /*
         swipeDetector.onSwipeRight = () => {
             if (window.scrollX < 10) { // Near left edge
                 sidebar.classList.add('active');
@@ -152,6 +154,7 @@ if (isMobile) {
                 sidebarOverlay.classList.remove('active');
             }
         };
+        */
     }
     
     // Sidebar toggle button
