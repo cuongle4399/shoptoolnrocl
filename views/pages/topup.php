@@ -1100,138 +1100,104 @@ $transferContent = $pendingTopup
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.75);
         z-index: 9999;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(3px);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        transition: all 0.3s ease;
+        opacity: 0;
     }
 
     .topup-success-modal.active {
         display: flex;
-        animation: fadeIn 0.3s ease-in-out;
+        opacity: 1;
     }
 
     .topup-success-content {
-        background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-        border-radius: 16px;
-        padding: 50px 40px;
+        background: #1e1e1e;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 40px;
         text-align: center;
-        box-shadow: 0 20px 60px rgba(16, 185, 129, 0.15),
-            0 0 1px rgba(0, 0, 0, 0.1);
-        animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        max-width: 420px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        transform: scale(0.9);
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        max-width: 400px;
+        width: 90%;
         position: relative;
-        overflow: hidden;
     }
 
-    .topup-success-content::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200px;
-        height: 200px;
-        background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
-        pointer-events: none;
+    .topup-success-modal.active .topup-success-content {
+        transform: scale(1);
     }
 
     .topup-success-icon {
-        width: 100px;
-        height: 100px;
-        margin: 0 auto 30px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 56px;
-        color: white;
-        animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
-        position: relative;
-        z-index: 1;
+        font-size: 40px;
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.1);
+        border: 2px solid rgba(16, 185, 129, 0.2);
+        animation: success-pulse 2s infinite;
+    }
+
+    @keyframes success-pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
     }
 
     .topup-success-content h2 {
         margin: 0 0 12px 0;
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 700;
-        color: #1f2937;
-        letter-spacing: -0.5px;
-        position: relative;
-        z-index: 1;
+        color: #ffffff;
     }
 
     .topup-success-content p {
-        margin: 0 0 35px 0;
-        font-size: 18px;
-        color: #059669;
-        font-weight: 600;
-        position: relative;
-        z-index: 1;
+        margin: 0 0 32px 0;
+        font-size: 16px;
+        color: #a0aec0;
+        line-height: 1.5;
     }
 
     .topup-success-content .btn {
-        padding: 14px 40px;
+        width: 100%;
+        padding: 14px;
         font-size: 16px;
         font-weight: 600;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 12px;
+        background: #10b981;
         color: white;
         border: none;
         cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-        position: relative;
-        z-index: 1;
+        transition: all 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
     }
 
     .topup-success-content .btn:hover {
+        background: #059669;
         transform: translateY(-2px);
-        box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
     }
 
     .topup-success-content .btn:active {
         transform: translateY(0);
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @keyframes slideUp {
-        from {
-            transform: translateY(40px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes bounceIn {
-        0% {
-            transform: scale(0) rotateZ(-45deg);
-            opacity: 0;
-        }
-
-        50% {
-            transform: scale(1.15) rotateZ(10deg);
-        }
-
-        100% {
-            transform: scale(1) rotateZ(0);
-            opacity: 1;
-        }
     }
 </style>
 

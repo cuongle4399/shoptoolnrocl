@@ -1,6 +1,8 @@
 <?php
 // create_product.php - Admin create product (JSON only responses)
-if (ob_get_level()) { @ob_clean(); }
+if (ob_get_level()) {
+    @ob_clean();
+}
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
@@ -72,14 +74,15 @@ try {
         'software_link' => $data['software_link'] ?? null,
         'category' => $data['category'] ?? null
     ];
-    
+
     // Remove null values to avoid sending them to the database
-    $productData = array_filter($productData, function($v) { return $v !== null; });
+    $productData = array_filter($productData, function ($v) {
+        return $v !== null; });
 
     error_log("Creating product with data: " . json_encode($productData));
 
     $createdProduct = $productClass->createProduct($productData);
-    
+
     if (!$createdProduct) {
         throw new Exception('Không thể tạo sản phẩm');
     }
@@ -87,16 +90,25 @@ try {
     // Insert durations
     if (!empty($data['durations']) && is_array($data['durations'])) {
         $durClass = new ProductDuration($db);
-        
+
         foreach ($data['durations'] as $d) {
             $toInsert = [
                 'product_id' => $createdProduct['id'],
-                'duration_days' => isset($d['duration_days']) ? (is_null($d['duration_days']) ? null : (int)$d['duration_days']) : null,
-                'duration_label' => $d['duration_label'] ?? $d['label'] ?? null,
-                'price' => (float)($d['price'] ?? 0),
+                'duration_days' => isset($d['duration_days']) ? (is_null($d['duration_days']) ? null : (int) $d['duration_days']) : null,
+                'duration_label' => $d['duration_label'] ?? $d['label'] ?? '',
+                'price' => (float) ($d['price'] ?? 0),
                 'status' => 'active'
             ];
-            
+
+            // Generate default label if empty
+            if (empty($toInsert['duration_label'])) {
+                if (is_null($toInsert['duration_days'])) {
+                    $toInsert['duration_label'] = 'Vĩnh viễn';
+                } else {
+                    $toInsert['duration_label'] = $toInsert['duration_days'] . ' ngày';
+                }
+            }
+
             try {
                 $durResult = $durClass->create($toInsert);
                 if (!$durResult) {
@@ -112,7 +124,7 @@ try {
 
     @ob_end_clean();
     exit(json_encode([
-        'success' => true, 
+        'success' => true,
         'message' => 'Sản phẩm đã được tạo',
         'product' => $createdProduct
     ]));
@@ -123,7 +135,7 @@ try {
     error_log('Product creation exception: ' . $e->getMessage());
     error_log('Trace: ' . $e->getTraceAsString());
     exit(json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => $e->getMessage()
     ]));
 }

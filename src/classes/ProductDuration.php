@@ -1,14 +1,17 @@
 <?php
-class ProductDuration {
+class ProductDuration
+{
     private $db;
     private $table = 'product_durations';
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->db = $db;
     }
 
-    public function getDurationsByProductId($product_id, $activeOnly = true) {
-        $endpoint = $this->table . "?product_id=eq." . (int)$product_id;
+    public function getDurationsByProductId($product_id, $activeOnly = true)
+    {
+        $endpoint = $this->table . "?product_id=eq." . (int) $product_id;
         if ($activeOnly) {
             $endpoint .= "&status=eq.active";
         }
@@ -20,8 +23,9 @@ class ProductDuration {
         return [];
     }
 
-    public function getById($id) {
-        $endpoint = $this->table . "?id=eq." . (int)$id . "&limit=1";
+    public function getById($id)
+    {
+        $endpoint = $this->table . "?id=eq." . (int) $id . "&limit=1";
         $result = $this->db->callApi($endpoint, 'GET');
         if ($result && $result->code == 200 && !empty($result->response)) {
             return $result->response[0];
@@ -29,7 +33,8 @@ class ProductDuration {
         return null;
     }
 
-    public function create($data) {
+    public function create($data)
+    {
         $result = $this->db->callApi($this->table, 'POST', $data);
         if ($result && ($result->code == 201 || $result->code == 200)) {
             // Return true on successful creation, even if response is empty
@@ -39,21 +44,33 @@ class ProductDuration {
         return false;
     }
 
-    public function update($id, $data) {
-        $endpoint = $this->table . "?id=eq." . (int)$id;
+    public function update($id, $data)
+    {
+        $endpoint = $this->table . "?id=eq." . (int) $id;
         $result = $this->db->callApi($endpoint, 'PATCH', $data);
         return ($result && ($result->code == 200 || $result->code == 204));
     }
 
-    public function deleteByProductId($product_id) {
-        $endpoint = $this->table . "?product_id=eq." . (int)$product_id;
+    public function deleteByProductId($product_id)
+    {
+        $endpoint = $this->table . "?product_id=eq." . (int) $product_id;
         $result = $this->db->callApi($endpoint, 'DELETE');
         return ($result && ($result->code == 200 || $result->code == 204));
     }
 
-    public function getProductPrices($product_id) {
+    public function getProductPrices($product_id)
+    {
         // Returns all durations for a product ordered by duration_days and price
         return $this->getDurationsByProductId($product_id, true);
+    }
+
+    public function softDeleteByProductId($product_id)
+    {
+        $endpoint = $this->table . "?product_id=eq." . (int) $product_id;
+        // Set all to inactive instead of deleting, to preserve order history (ON DELETE RESTRICT)
+        $data = ['status' => 'inactive'];
+        $result = $this->db->callApi($endpoint, 'PATCH', $data);
+        return ($result && ($result->code == 200 || $result->code == 204));
     }
 }
 ?>

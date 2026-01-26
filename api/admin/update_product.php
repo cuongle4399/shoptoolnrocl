@@ -1,6 +1,8 @@
 <?php
 // update_product.php - Admin update product (JSON only responses)
-if (ob_get_level()) { @ob_clean(); }
+if (ob_get_level()) {
+    @ob_clean();
+}
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
@@ -40,7 +42,7 @@ try {
         throw new Exception('Invalid JSON: ' . json_last_error_msg());
     }
 
-    $id = (int)($data['id'] ?? 0);
+    $id = (int) ($data['id'] ?? 0);
     if (!$id) {
         throw new Exception('Missing product id');
     }
@@ -58,7 +60,8 @@ try {
     ];
 
     // Remove null fields to avoid unnecessary updates
-    $productData = array_filter($productData, function($v) { return $v !== null; });
+    $productData = array_filter($productData, function ($v) {
+        return $v !== null; });
 
     error_log("Product data to update: " . json_encode($productData));
 
@@ -70,21 +73,37 @@ try {
         }
     }
 
-    // Handle durations - delete old and create new
+    // Handle durations - soft delete old and create new (to avoid FK constraints)
     if (isset($data['durations']) && is_array($data['durations'])) {
-        $durClass->deleteByProductId($id);
+        // Use soft delete instead of hard delete because existing orders restrict deletion
+        $durClass->softDeleteByProductId($id);
+
         foreach ($data['durations'] as $d) {
+            // Skip invalid entries
+            if (!isset($d['price']))
+                continue;
+
             $toInsert = [
                 'product_id' => $id,
-                'duration_days' => isset($d['duration_days']) ? (is_null($d['duration_days']) ? null : (int)$d['duration_days']) : null,
-                'duration_label' => $d['duration_label'] ?? $d['label'] ?? null,
-                'price' => isset($d['price']) ? (float)$d['price'] : 0,
+                'duration_days' => isset($d['duration_days']) ? (is_null($d['duration_days']) ? null : (int) $d['duration_days']) : null,
+                'duration_label' => $d['duration_label'] ?? $d['label'] ?? '', // Prevent null (NOT NULL constraint)
+                'price' => (float) $d['price'],
                 'status' => 'active'
             ];
+
+            // Generate default label if empty
+            if (empty($toInsert['duration_label'])) {
+                if (is_null($toInsert['duration_days'])) {
+                    $toInsert['duration_label'] = 'Vĩnh viễn';
+                } else {
+                    $toInsert['duration_label'] = $toInsert['duration_days'] . ' ngày';
+                }
+            }
+
             try {
                 $durResult = $durClass->create($toInsert);
                 if (!$durResult) {
-                    throw new Exception('Failed to create duration');
+                    throw new Exception('Failed to create duration: ' . json_encode($toInsert));
                 }
             } catch (Exception $e) {
                 error_log('Duration update error: ' . $e->getMessage());
