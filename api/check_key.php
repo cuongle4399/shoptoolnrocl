@@ -33,10 +33,10 @@ require_once __DIR__ . '/../config/database.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 
-$product_id = isset($input['product_id']) ? (int)$input['product_id'] : null;
+$product_id = isset($input['product_id']) ? (int) $input['product_id'] : null;
 $license_key = $input['license_key'] ?? null;
 $hwid = $input['hwid'] ?? null;
-$bind_hwid = isset($input['bind_hwid']) ? (bool)$input['bind_hwid'] : true;
+$bind_hwid = isset($input['bind_hwid']) ? (bool) $input['bind_hwid'] : true;
 
 // Validate input
 if (!$product_id || !$license_key || !$hwid) {
@@ -64,10 +64,10 @@ try {
     // NOTE: callApi() already adds "rest/v1/" prefix, so we only need "rpc/check_license"
     $endpoint = 'rpc/check_license';
     $payload = [
-        'p_product_id' => (int)$product_id,
-        'p_license_key' => (string)$license_key,
-        'p_hwid' => (string)$hwid,
-        'p_bind_hwid' => (bool)$bind_hwid
+        'p_product_id' => (int) $product_id,
+        'p_license_key' => (string) $license_key,
+        'p_hwid' => (string) $hwid,
+        'p_bind_hwid' => (bool) $bind_hwid
     ];
 
     $result = $db->callApi($endpoint, 'POST', $payload);
@@ -90,7 +90,7 @@ try {
         } elseif (is_object($result->response) && isset($result->response->message)) {
             $errorMsg = $result->response->message;
         }
-        
+
         http_response_code(400);
         echo json_encode([
             'success' => false,
@@ -103,19 +103,19 @@ try {
 
     // check_license returns array of records (even if just 1 row)
     $response = null;
-    
+
     if (is_array($result->response)) {
         if (isset($result->response[0])) {
             // Array of objects/arrays
-            $response = is_object($result->response[0]) 
-                ? (array)$result->response[0] 
+            $response = is_object($result->response[0])
+                ? (array) $result->response[0]
                 : $result->response[0];
         } elseif (isset($result->response['valid'])) {
             // Single object returned as array
             $response = $result->response;
         }
     } elseif (is_object($result->response)) {
-        $response = (array)$result->response;
+        $response = (array) $result->response;
     }
 
     if (empty($response)) {
@@ -130,9 +130,9 @@ try {
     }
 
     // Extract response fields
-    $valid = (bool)($response['valid'] ?? false);
+    $valid = (bool) ($response['valid'] ?? false);
     $message = $response['message'] ?? ($valid ? 'License valid' : 'License invalid');
-    
+
     // Map error_code based on message
     $error_code = 'SUCCESS';
     if (!$valid) {
@@ -154,9 +154,10 @@ try {
     // (Không cần query thêm - đã JOIN trong SQL function)
     $user_id = $response['user_id'] ?? null;
     $username = $response['username'] ?? null;
-    
+
     error_log("check_key.php - user_id: $user_id, username: $username");
 
+    // ✅ Database đã convert sang Asia/Ho_Chi_Minh, không cần convert lại
     http_response_code($valid ? 200 : 401);
     echo json_encode([
         'success' => $valid,
@@ -169,7 +170,7 @@ try {
             'license_key' => $response['license_key'] ?? $license_key,
             'hwid' => $response['hwid'] ?? null,
             'status' => $response['status'] ?? 'inactive',
-            'expires_at' => $response['expires_at'] ?? null,
+            'expires_at' => $response['expires_at'] ?? null, // ✅ Đã là giờ VN từ database
             'user_id' => $user_id,
             'username' => $username
         ]

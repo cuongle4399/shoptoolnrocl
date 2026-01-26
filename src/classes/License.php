@@ -92,7 +92,7 @@ class License
             'user_info' => $data['user_info'] ?? null,
             'product_id' => isset($data['product_id']) ? (int) $data['product_id'] : null,
             'status' => $data['status'] ?? 'active',
-            'created_at' => date('c'),
+            // ✅ XÓA 'created_at' - database tự động set UTC
             'expires_at' => !empty($data['expires_at']) ? $data['expires_at'] : null
         ];
 

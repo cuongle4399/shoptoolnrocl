@@ -2,6 +2,8 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+// Include helper functions for timezone conversion
+require_once __DIR__ . '/../../includes/functions.php';
 ?>
 <!DOCTYPE html>
 <html lang="vi" data-theme="light">

@@ -37,29 +37,29 @@ if (empty($data['product_id'])) {
 }
 
 // Duration ID is REQUIRED (must be > 0)
-if (empty($data['duration_id']) || !is_numeric($data['duration_id']) || (int)$data['duration_id'] <= 0) {
+if (empty($data['duration_id']) || !is_numeric($data['duration_id']) || (int) $data['duration_id'] <= 0) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Thiếu thời hạn sử dụng. Vui lòng chọn gói thời gian trên trang sản phẩm']);
     exit;
 }
 
-if (!isset($data['total_price']) || !is_numeric($data['total_price']) || (float)$data['total_price'] < 0) {
+if (!isset($data['total_price']) || !is_numeric($data['total_price']) || (float) $data['total_price'] < 0) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Tổng tiền không hợp lệ (không được âm)']);
     exit;
 }
 
 try {
-    $userId = (int)$_SESSION['user_id'];
-    $productId = (int)$data['product_id'];
-    $durationId = (int)$data['duration_id'];
-    $totalPrice = (float)$data['total_price'];
+    $userId = (int) $_SESSION['user_id'];
+    $productId = (int) $data['product_id'];
+    $durationId = (int) $data['duration_id'];
+    $totalPrice = (float) $data['total_price'];
     $paymentMethod = $data['payment_method'] ?? null;
-    
+
     // Prepare order data
     $providedKey = !empty($data['idempotency_key']) ? trim($data['idempotency_key']) : null;
     $idempotencyKey = $providedKey ?? generate_uuid_v4();
-    
+
     $orderData = [
         'user_id' => $userId,
         'product_id' => $productId,
@@ -67,9 +67,9 @@ try {
         'total_price' => $totalPrice,
         'idempotency_key' => $idempotencyKey
     ];
-    
+
     $isWalletPayment = !empty($paymentMethod) && $paymentMethod === 'wallet';
-    
+
     // For wallet payment, verify balance first
     if ($isWalletPayment) {
         $userBalance = $user->getUserById($userId);
@@ -78,30 +78,31 @@ try {
             echo json_encode(['success' => false, 'message' => 'Số dư không đủ']);
             exit;
         }
-        
+
         // Deduct balance (OPTIMIZED - single operation)
         $user->updateUserBalance($userId, -$totalPrice);
     }
-    
+
     // Create order
     $created = $order->createOrder($orderData);
     if (!$created) {
         throw new Exception('Tạo đơn hàng thất bại');
     }
-    
+
     // If wallet payment, generate license and complete order
     if ($isWalletPayment) {
         try {
             $license = new License($db);
             $keyStr = generateLicenseKey();
             $expires_at = null;
-            
+
             // Get duration to calculate expiry
             $durClass = new ProductDuration($db);
             $duration = $durClass->getById($durationId);
-            
+
             if ($duration && !empty($duration['duration_days'])) {
-                $expires_at = date('c', strtotime('+' . intval($duration['duration_days']) . ' days'));
+                // ✅ Dùng gmdate() để lưu UTC
+                $expires_at = gmdate('Y-m-d\\TH:i:s\\Z', strtotime('+' . intval($duration['duration_days']) . ' days'));
             }
 
             // Create license key
@@ -114,13 +115,13 @@ try {
             ];
 
             $createdKey = $license->createKey($createKeyData);
-            
+
             // Complete order with license
             $order->updateOrder($created['id'], [
                 'infokey_id' => $createdKey['id'],
-                'completed_at' => date('c')
+                'completed_at' => gmdate('Y-m-d\\TH:i:s\\Z') // ✅ UTC
             ]);
-            
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Thanh toán thành công',
@@ -144,14 +145,13 @@ try {
             'status' => 'pending'
         ]);
     }
-    
+
     // Clear caches
     User::clearCache();
     License::clearCache();
-    
+
 } catch (Exception $e) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>
-

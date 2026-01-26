@@ -63,7 +63,7 @@ $topupRequests = $topupClass->getUserTopupRequests($_SESSION['user_id']);
                                         </div>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo date('d/m/Y H:i', strtotime($req['created_at'])); ?></td>
+                                <td><?php echo convertToVNTime($req['created_at']); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

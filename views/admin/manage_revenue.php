@@ -89,7 +89,7 @@ function getOrderStatus($order) {
                             <td><?php echo htmlspecialchars($buyer['username'] ?? 'UID:'.$o['user_id']); ?></td>
                             <td><span class="money"><?php echo number_format($o['total_price'] ?? 0, 0, ',', '.'); ?> ₫</span></td>
                             <td><?php echo htmlspecialchars(getOrderStatus($o)); ?></td>
-                            <td><?php echo date('d/m/Y H:i', strtotime($o['created_at'] ?? '')); ?></td>
+                            <td><?php echo convertToVNTime($o['created_at'] ?? ''); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -126,7 +126,7 @@ function getOrderStatus($order) {
                             <td><?php echo htmlspecialchars($user['username'] ?? 'UID:'.$t['user_id']); ?></td>
                             <td><span class="money"><?php echo number_format($t['amount'] ?? 0, 0, ',', '.'); ?> ₫</span></td>
                             <td><?php echo htmlspecialchars($t['admin_note'] ?? '-'); ?></td>
-                            <td><?php echo date('d/m/Y H:i', strtotime($t['approved_at'] ?? $t['created_at'] ?? '')); ?></td>
+                            <td><?php echo convertToVNTime($t['approved_at'] ?? $t['created_at'] ?? ''); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>

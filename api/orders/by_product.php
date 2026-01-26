@@ -23,7 +23,7 @@ if (!$db) {
     exit;
 }
 
-$product_id = (int)$_GET['product_id'];
+$product_id = (int) $_GET['product_id'];
 $orderClass = new Order($db);
 $userClass = new User($db);
 $licenseClass = new License($db);
@@ -37,7 +37,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = ($_SESSION['role'] === 'admin') ? null : $_SESSION['user_id'];
 $orders = $orderClass->getOrdersByProductId($product_id, $user_id);
 
-$orders = is_array($orders) ? array_filter($orders, function($o) {
+$orders = is_array($orders) ? array_filter($orders, function ($o) {
     return is_array($o) && !empty($o['id']);
 }) : [];
 $orders = array_values($orders);
@@ -52,6 +52,29 @@ foreach ($orders as $o) {
     // Calculate status based on completed_at
     $orderStatus = !empty($o['completed_at']) ? 'completed' : 'pending';
 
+    // Convert timestamps to Vietnam timezone
+    $expires_at_vn = null;
+    if (!empty($key['expires_at'])) {
+        try {
+            $dt = new DateTime($key['expires_at'], new DateTimeZone('UTC'));
+            $dt->setTimezone(new DateTimeZone('Asia/Ho_Chi_Minh'));
+            $expires_at_vn = $dt->format('Y-m-d H:i:s');
+        } catch (Exception $e) {
+            $expires_at_vn = $key['expires_at'];
+        }
+    }
+
+    $created_at_vn = null;
+    if (!empty($o['created_at'])) {
+        try {
+            $dt = new DateTime($o['created_at'], new DateTimeZone('UTC'));
+            $dt->setTimezone(new DateTimeZone('Asia/Ho_Chi_Minh'));
+            $created_at_vn = $dt->format('Y-m-d H:i:s');
+        } catch (Exception $e) {
+            $created_at_vn = $o['created_at'];
+        }
+    }
+
     $result[] = [
         'id' => $o['id'],
         'user_id' => $o['user_id'],
@@ -60,8 +83,8 @@ foreach ($orders as $o) {
         'status' => $orderStatus,
         'completed_at' => $o['completed_at'] ?? null,
         'license_key' => $o['license_key'] ?? null,
-        'expires_at' => $key['expires_at'] ?? null,
-        'created_at' => $o['created_at'] ?? null
+        'expires_at' => $expires_at_vn, // ✅ Giờ Việt Nam
+        'created_at' => $created_at_vn  // ✅ Giờ Việt Nam
     ];
 }
 

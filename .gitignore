@@ -6,3 +6,4 @@ node_modules/
 logs/
 uploads/
 assets/uploads/
+*.sql

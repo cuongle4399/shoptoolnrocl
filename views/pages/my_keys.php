@@ -84,7 +84,7 @@ $myKeys = $license->getUserKeys($_SESSION['user_id']);
                                         $expiry = strtotime($key['expires_at']);
                                         $isExpired = $expiry < time();
                                         echo '<span class="' . ($isExpired ? 'text-danger' : '') . '">';
-                                        echo date('d/m/Y H:i', $expiry);
+                                        echo convertToVNTime($key['expires_at']);
                                         echo '</span>';
                                     }
                                     ?>

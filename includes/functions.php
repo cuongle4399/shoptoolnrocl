@@ -1,7 +1,34 @@
 <?php
 require_once __DIR__ . '/../config/constants.php';
 
-function response($status, $message, $data = null) {
+/**
+ * Convert UTC timestamp to Vietnam timezone (Asia/Ho_Chi_Minh)
+ * @param string $utcTimestamp - UTC timestamp from database (ISO 8601 format)
+ * @param string $format - PHP date format (default: 'd/m/Y H:i')
+ * @return string - Formatted datetime in Vietnam timezone
+ */
+function convertToVNTime($utcTimestamp, $format = 'd/m/Y H:i')
+{
+    if (empty($utcTimestamp)) {
+        return '';
+    }
+
+    try {
+        // Create DateTime object from UTC timestamp
+        $dt = new DateTime($utcTimestamp, new DateTimeZone('UTC'));
+        // Convert to Vietnam timezone
+        $dt->setTimezone(new DateTimeZone('Asia/Ho_Chi_Minh'));
+        // Return formatted string
+        return $dt->format($format);
+    } catch (Exception $e) {
+        // Fallback: return original if conversion fails
+        error_log("convertToVNTime error: " . $e->getMessage());
+        return date($format, strtotime($utcTimestamp));
+    }
+}
+
+function response($status, $message, $data = null)
+{
     header('Content-Type: application/json');
     $response = [
         'success' => ($status === 'success' ? true : false),
@@ -16,18 +43,22 @@ function response($status, $message, $data = null) {
 }
 
 // Plaintext passwords: store and compare raw text (NOT RECOMMENDED — use only if you understand the risk)
-function hashPassword($password) {
+function hashPassword($password)
+{
     // Return the raw password as-is (plaintext)
     return $password;
 }
 
-function verifyPassword($password, $stored) {
-    if ($stored === null) return false;
+function verifyPassword($password, $stored)
+{
+    if ($stored === null)
+        return false;
     // Direct equality check using hash_equals to reduce timing attacks
-    return hash_equals((string)$stored, (string)$password);
-}  
+    return hash_equals((string) $stored, (string) $password);
+}
 
-function generateLicenseKey($segments = 4, $segmentLen = 4, $prefix = 'KEY') {
+function generateLicenseKey($segments = 4, $segmentLen = 4, $prefix = 'KEY')
+{
     // Generates a license like KEY-AB12-C3D4-EF56
     $bytes = random_bytes(intval(ceil($segments * $segmentLen / 2)));
     $hex = strtoupper(bin2hex($bytes));
@@ -35,7 +66,8 @@ function generateLicenseKey($segments = 4, $segmentLen = 4, $prefix = 'KEY') {
     return $prefix . '-' . implode('-', $parts);
 }
 
-function generate_uuid_v4() {
+function generate_uuid_v4()
+{
     // Simple UUID v4 generator
     $data = random_bytes(16);
     $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0100
@@ -43,7 +75,8 @@ function generate_uuid_v4() {
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 }
 
-function generateJWT($user_id, $username, $role) {
+function generateJWT($user_id, $username, $role)
+{
     $header = json_encode(['type' => 'JWT', 'alg' => 'HS256']);
     $payload = json_encode([
         'user_id' => $user_id,
@@ -52,33 +85,39 @@ function generateJWT($user_id, $username, $role) {
         'iat' => time(),
         'exp' => time() + JWT_EXPIRY
     ]);
-    
+
     $base64UrlHeader = rtrim(strtr(base64_encode($header), '+/', '-_'), '=');
     $base64UrlPayload = rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
     $signature = hash_hmac('sha256', $base64UrlHeader . '.' . $base64UrlPayload, JWT_SECRET, true);
     $base64UrlSignature = rtrim(strtr(base64_encode($signature), '+/', '-_'), '=');
-    
+
     return $base64UrlHeader . '.' . $base64UrlPayload . '.' . $base64UrlSignature;
 }
 
-function verifyJWT($token) {
-    if (!$token) return false;
-    
+function verifyJWT($token)
+{
+    if (!$token)
+        return false;
+
     $parts = explode('.', $token);
-    if (count($parts) !== 3) return false;
-    
+    if (count($parts) !== 3)
+        return false;
+
     $signature = hash_hmac('sha256', $parts[0] . '.' . $parts[1], JWT_SECRET, true);
     $base64UrlSignature = rtrim(strtr(base64_encode($signature), '+/', '-_'), '=');
-    
-    if (!hash_equals($base64UrlSignature, $parts[2])) return false;
-    
+
+    if (!hash_equals($base64UrlSignature, $parts[2]))
+        return false;
+
     $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-    if (!$payload || $payload['exp'] < time()) return false;
-    
+    if (!$payload || $payload['exp'] < time())
+        return false;
+
     return $payload;
 }
 
-function getAuthToken() {
+function getAuthToken()
+{
     // First, check Authorization header
     $headers = [];
     if (function_exists('getallheaders')) {
@@ -86,8 +125,10 @@ function getAuthToken() {
     } elseif (function_exists('apache_request_headers')) {
         $headers = apache_request_headers();
     } else {
-        if (!empty($_SERVER['HTTP_AUTHORIZATION'])) $headers['Authorization'] = $_SERVER['HTTP_AUTHORIZATION'];
-        elseif (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        if (!empty($_SERVER['HTTP_AUTHORIZATION']))
+            $headers['Authorization'] = $_SERVER['HTTP_AUTHORIZATION'];
+        elseif (!empty($_SERVER['REDIRECT_HTTP_AUTHORIZATION']))
+            $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
     }
 
     foreach ($headers as $k => $v) {
@@ -96,30 +137,31 @@ function getAuthToken() {
             return $token;
         }
     }
-    
+
     // If no token in header, check if user is logged in via session
     // Generate JWT from session data
     if (!session_id()) {
         session_start();
     }
-    
+
     if (isset($_SESSION['user_id']) && isset($_SESSION['username']) && isset($_SESSION['role'])) {
         // Generate JWT token from session data
         return generateJWT($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
     }
-    
-    return null;
-} 
 
-function uploadFile($file) {
+    return null;
+}
+
+function uploadFile($file)
+{
     if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
         return ['status' => false, 'message' => 'Tải tệp thất bại'];
     }
-    
+
     if ($file['size'] > MAX_UPLOAD_SIZE) {
         return ['status' => false, 'message' => 'Tệp quá lớn'];
     }
-    
+
     // Validate MIME type using finfo
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = finfo_file($finfo, $file['tmp_name']);
@@ -149,16 +191,17 @@ function uploadFile($file) {
     return ['status' => false, 'message' => 'Không thể lưu tệp'];
 }
 
-function logAudit($pdo, $action, $username, $details, $status, $ip_address = null, $user_agent = null) {
+function logAudit($pdo, $action, $username, $details, $status, $ip_address = null, $user_agent = null)
+{
     try {
         $ip = $ip_address ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $ua = $user_agent ?? $_SERVER['HTTP_USER_AGENT'] ?? '';
-        
+
         $stmt = $pdo->prepare("
             INSERT INTO public.audit_logs (action, username, details, status, ip_address, user_agent, created_at)
             VALUES (?, ?, ?, ?, ?, ?, NOW())
         ");
-        
+
         return $stmt->execute([$action, $username, $details, $status, $ip, $ua]);
     } catch (Exception $e) {
         // Silent fail
@@ -166,20 +209,21 @@ function logAudit($pdo, $action, $username, $details, $status, $ip_address = nul
     }
 }
 
-function generateVietQRLink($amount, $orderId) {
+function generateVietQRLink($amount, $orderId)
+{
     $accountNo = VIETQR_ACCOUNT_NO;
     $bankCode = VIETQR_BANK_CODE;
     $accountName = VIETQR_ACCOUNT_NAME;
     $description = "Nap tien don hang " . $orderId;
-    
+
     $url = "https://api.vietqr.io/api/generate?" .
-           "accountNo=" . $accountNo .
-           "&bankCode=" . $bankCode .
-           "&accountName=" . urlencode($accountName) .
-           "&amount=" . $amount .
-           "&addInfo=" . urlencode($description) .
-           "&templateCode=compact";
-    
+        "accountNo=" . $accountNo .
+        "&bankCode=" . $bankCode .
+        "&accountName=" . urlencode($accountName) .
+        "&amount=" . $amount .
+        "&addInfo=" . urlencode($description) .
+        "&templateCode=compact";
+
     return $url;
 }
 
@@ -190,14 +234,18 @@ function generateVietQRLink($amount, $orderId) {
  * - https://youtu.be/VIDEO_ID
  * - https://www.youtube.com/embed/VIDEO_ID
  */
-function normalizeYoutubeEmbedUrl($url) {
-    $url = trim((string)$url);
-    if ($url === '') return '';
+function normalizeYoutubeEmbedUrl($url)
+{
+    $url = trim((string) $url);
+    if ($url === '')
+        return '';
 
     // Ensure scheme
     if (strpos($url, '://') === false) {
-        if (strpos($url, '//') === 0) $url = 'https:' . $url;
-        else $url = 'https://' . $url;
+        if (strpos($url, '//') === 0)
+            $url = 'https:' . $url;
+        else
+            $url = 'https://' . $url;
     }
 
     $parts = parse_url($url);
@@ -208,7 +256,8 @@ function normalizeYoutubeEmbedUrl($url) {
     // youtu.be short link
     if (stripos($host, 'youtu.be') !== false) {
         $id = ltrim($path, '/');
-        if ($id) return 'https://www.youtube.com/embed/' . $id;
+        if ($id)
+            return 'https://www.youtube.com/embed/' . $id;
     }
 
     // standard youtube.com
@@ -238,19 +287,23 @@ function normalizeYoutubeEmbedUrl($url) {
  * Convert a string to a URL-safe slug (ASCII, lowercase, hyphens).
  * Removes diacritics and non-alphanumeric characters.
  */
-function slugify($text, $maxLen = 60) {
-    $text = trim((string)$text);
-    if ($text === '') return '';
+function slugify($text, $maxLen = 60)
+{
+    $text = trim((string) $text);
+    if ($text === '')
+        return '';
 
     // Try to transliterate to ASCII
     $trans = @iconv('UTF-8', 'ASCII//TRANSLIT', $text);
-    if ($trans !== false) $text = $trans;
+    if ($trans !== false)
+        $text = $trans;
 
     // Replace non alnum with hyphens
     $text = preg_replace('/[^A-Za-z0-9]+/', '-', $text);
     $text = strtolower(trim($text, '-'));
 
-    if ($maxLen && strlen($text) > $maxLen) $text = substr($text, 0, $maxLen);
+    if ($maxLen && strlen($text) > $maxLen)
+        $text = substr($text, 0, $maxLen);
     // Final cleanup
     $text = preg_replace('/-+/', '-', $text);
     return $text;
@@ -260,9 +313,11 @@ function slugify($text, $maxLen = 60) {
  * Log API/server errors to a file and return a short log id.
  * Logs are appended as JSON lines to logs/api_errors.log
  */
-function api_log_error($message, $context = null) {
+function api_log_error($message, $context = null)
+{
     $logsDir = __DIR__ . '/../logs';
-    if (!is_dir($logsDir)) @mkdir($logsDir, 0755, true);
+    if (!is_dir($logsDir))
+        @mkdir($logsDir, 0755, true);
     $logFile = $logsDir . '/api_errors.log';
 
     try {
@@ -274,11 +329,11 @@ function api_log_error($message, $context = null) {
     $entry = [
         'id' => $id,
         'timestamp' => date('c'),
-        'message' => (string)$message,
+        'message' => (string) $message,
         'context' => $context
     ];
 
-    @file_put_contents($logFile, json_encode($entry, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) . PHP_EOL, FILE_APPEND | LOCK_EX);
+    @file_put_contents($logFile, json_encode($entry, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . PHP_EOL, FILE_APPEND | LOCK_EX);
     return $id;
 }
 
@@ -286,7 +341,8 @@ function api_log_error($message, $context = null) {
 // LICENSE MANAGEMENT WRAPPER FUNCTIONS
 // ============================================
 
-function getKeyByLicense($license_key) {
+function getKeyByLicense($license_key)
+{
     try {
         $db = new Database();
         $license = new License($db);
@@ -297,7 +353,8 @@ function getKeyByLicense($license_key) {
     }
 }
 
-function getAllKeys() {
+function getAllKeys()
+{
     try {
         $db = new Database();
         $license = new License($db);
@@ -308,13 +365,14 @@ function getAllKeys() {
     }
 }
 
-function getLicenseStatus($key) {
+function getLicenseStatus($key)
+{
     if (!$key || !isset($key['expires_at'])) {
         return ['text' => 'UNKNOWN', 'color' => '#999', 'remaining_days' => 0];
     }
 
     $status = $key['status'] ?? 'active';
-    
+
     if ($status === 'banned') {
         return ['text' => 'BANNED', 'color' => '#dc3545', 'remaining_days' => -1];
     }
@@ -332,7 +390,8 @@ function getLicenseStatus($key) {
     }
 }
 
-function handleCreateLicense($hwid, $user_info, $days) {
+function handleCreateLicense($hwid, $user_info, $days)
+{
     try {
         $db = new Database();
         $license = new License($db);
@@ -347,7 +406,8 @@ function handleCreateLicense($hwid, $user_info, $days) {
     }
 }
 
-function handleBanLicense($license_key) {
+function handleBanLicense($license_key)
+{
     try {
         $db = new Database();
         $license = new License($db);
@@ -358,7 +418,8 @@ function handleBanLicense($license_key) {
     }
 }
 
-function handleUnbanLicense($license_key) {
+function handleUnbanLicense($license_key)
+{
     try {
         $db = new Database();
         $license = new License($db);
@@ -369,7 +430,8 @@ function handleUnbanLicense($license_key) {
     }
 }
 
-function handleRenewLicense($license_key, $days) {
+function handleRenewLicense($license_key, $days)
+{
     try {
         $db = new Database();
         $license = new License($db);
@@ -380,7 +442,8 @@ function handleRenewLicense($license_key, $days) {
     }
 }
 
-function handleDeleteLicense($license_key) {
+function handleDeleteLicense($license_key)
+{
     try {
         $db = new Database();
         $license = new License($db);
@@ -391,11 +454,12 @@ function handleDeleteLicense($license_key) {
     }
 }
 
-function handleUpdateHwidAndKey($license_key, $new_hwid, $user_info) {
+function handleUpdateHwidAndKey($license_key, $new_hwid, $user_info)
+{
     try {
         $db = new Database();
         $license = new License($db);
-        
+
         // Get old key info
         $old_key = $license->getKeyByLicense($license_key);
         if (!$old_key) {
@@ -404,19 +468,19 @@ function handleUpdateHwidAndKey($license_key, $new_hwid, $user_info) {
 
         // Delete old key and create new one
         $license->deleteKey($license_key);
-        
+
         $new_key_data = [
             'hwid' => $new_hwid,
             'user_info' => $user_info,
             'days' => $old_key['remaining_days'] ?? 30
         ];
-        
+
         $result = $license->createKey($new_key_data);
-        
+
         if ($result) {
             return ['success' => true, 'message' => 'Đổi HWID thành công!', 'key' => $result['license_key'] ?? ''];
         }
-        
+
         return ['success' => false, 'message' => 'Lỗi tạo key mới'];
     } catch (Exception $e) {
         return ['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
