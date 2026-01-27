@@ -33,6 +33,7 @@ require_once __DIR__ . '/../../includes/functions.php';
     <link rel="stylesheet" href="/ShopToolNro/assets/css/mobile-performance.css">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/mobile-responsive.css">
     <link rel="stylesheet" href="/ShopToolNro/assets/css/table-scroll.css">
+    <link rel="stylesheet" href="/ShopToolNro/assets/css/auth.css">
 
     <!-- Preload critical scripts -->
     <link rel="preload" href="/ShopToolNro/assets/js/api.js" as="script">
@@ -89,7 +90,8 @@ require_once __DIR__ . '/../../includes/functions.php';
                 <div class="logo">ShopToolNroCL</div>
                 <div class="header-user-info">
                     <div class="user-avatar" aria-hidden="true">
-                        <img src="<?php echo htmlspecialchars($userAvatarUrl); ?>" alt="Avatar ngẫu nhiên">
+                        <img src="<?php echo htmlspecialchars($userAvatarUrl); ?>" alt="Avatar" width="32" height="32"
+                            loading="eager">
                     </div>
                     <?php if ($userInfo): ?>
                         <span class="user-name"><?php echo htmlspecialchars($userInfo['username']); ?></span>

@@ -9,13 +9,14 @@ require_once '../../src/classes/User.php';
 require_once '../../includes/functions.php';
 
 // Verify Turnstile token
-function verifyTurnstileToken($token) {
+function verifyTurnstileToken($token)
+{
     $secretKey = getenv('TURNSTILE_SECRET_KEY');
     if (!$secretKey || !$token) {
         error_log("Turnstile verification failed: missing key or token");
         return false;
     }
-    
+
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
     curl_setopt($ch, CURLOPT_POST, 1);
@@ -25,49 +26,49 @@ function verifyTurnstileToken($token) {
     ]));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    
+
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     if ($httpCode !== 200) {
         error_log("Turnstile API error: HTTP $httpCode");
         return false;
     }
-    
+
     $result = json_decode($response, true);
     $success = $result['success'] ?? false;
-    
+
     if (!$success) {
         error_log("Turnstile verification failed: " . json_encode($result));
     }
-    
+
     return $success;
 }
 
 try {
     $database = new Database();
     $db = $database->connect();
-    
+
     if (!$db) {
         error_log("Database connection returned null");
         http_response_code(500);
         response('error', 'Database connection failed');
     }
-    
+
     error_log("Database connected successfully");
-    
+
     // Get input
     $input = file_get_contents("php://input");
     error_log("Login attempt received");
-    
+
     $data = json_decode($input, true);
-    
+
     if (empty($data['username']) || empty($data['password'])) {
         http_response_code(400);
         response('error', 'Missing username or password');
     }
-    
+
     // Verify Turnstile token
     $turnstileToken = $data['cf-turnstile-response'] ?? null;
     if (!$turnstileToken || !verifyTurnstileToken($turnstileToken)) {
@@ -75,22 +76,22 @@ try {
         http_response_code(403);
         response('error', 'Xác minh Turnstile thất bại. Vui lòng thử lại.');
     }
-    
+
     error_log("Turnstile verified successfully");
     error_log("Attempting login for user: " . $data['username']);
-    
+
     $userClass = new User($db);
     $user = $userClass->login($data['username'], $data['password']);
-    
+
     error_log("Login result: " . (is_string($user) ? $user : ($user ? "User found" : "User not found")));
-    
+
     // Handle disabled accounts explicitly
     if ($user === 'disabled') {
         error_log("Login blocked: account disabled for user " . $data['username']);
         http_response_code(403);
         response('error', 'Tài khoản đã bị vô hiệu hóa. Liên hệ quản trị để biết thêm chi tiết.');
     }
-    
+
     if ($user) {
         error_log("Login successful for user id: " . ($user['id'] ?? 'unknown'));
 
@@ -110,7 +111,7 @@ try {
             'iat' => time(),
             'exp' => time() + (30 * 24 * 60 * 60) // 30 days
         ]);
-        
+
         $header_encoded = rtrim(strtr(base64_encode($header), '+/', '-_'), '=');
         $payload_encoded = rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
         $signature = hash_hmac('sha256', $header_encoded . '.' . $payload_encoded, $secret, true);
@@ -118,8 +119,8 @@ try {
         $token = $header_encoded . '.' . $payload_encoded . '.' . $signature_encoded;
 
         // Redirect based on role
-        $redirect = ($user['role'] === 'admin') ? 
-            '/ShopToolNro/views/admin/dashboard.php' : 
+        $redirect = ($user['role'] === 'admin') ?
+            '/ShopToolNro/views/admin/dashboard.php' :
             '/ShopToolNro/views/pages/index.php';
 
         response('success', 'Đăng nhập thành công', [
@@ -134,7 +135,7 @@ try {
         http_response_code(401);
         response('error', 'Tên đăng nhập hoặc mật khẩu không đúng');
     }
-    
+
 } catch (Exception $e) {
     error_log("Login handler exception: " . $e->getMessage());
     http_response_code(500);

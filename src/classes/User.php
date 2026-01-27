@@ -1,26 +1,29 @@
 <?php
 require_once __DIR__ . '/../../includes/functions.php';
 
-class User {
+class User
+{
     private $db;
     private $table = 'users';
     private static $cache = []; // In-memory cache for this request
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->db = $db;
     }
 
     /**
      * Get user by ID (with in-memory caching)
      */
-    public function getUserById($id) {
-        $id = (int)$id;
-        
+    public function getUserById($id)
+    {
+        $id = (int) $id;
+
         // Check cache first
         if (isset(self::$cache[$id])) {
             return self::$cache[$id];
         }
-        
+
         $endpoint = $this->table . "?id=eq." . $id . "&select=*&limit=1";
         $result = $this->db->callApi($endpoint, 'GET');
         if ($result && $result->code == 200 && !empty($result->response)) {
@@ -34,9 +37,11 @@ class User {
     /**
      * Get many users by id in a single REST call (helps avoid N+1)
      */
-    public function getUsersByIds(array $ids) {
+    public function getUsersByIds(array $ids)
+    {
         $ids = array_values(array_unique(array_map('intval', $ids)));
-        if (empty($ids)) return [];
+        if (empty($ids))
+            return [];
 
         // Serve from cache where possible
         $resultMap = [];
@@ -56,7 +61,7 @@ class User {
             if ($resp && $resp->code == 200 && !empty($resp->response)) {
                 foreach ($resp->response as $u) {
                     if (isset($u['id'])) {
-                        $uid = (int)$u['id'];
+                        $uid = (int) $u['id'];
                         self::$cache[$uid] = $u;
                         $resultMap[$uid] = $u;
                     }
@@ -70,14 +75,15 @@ class User {
     /**
      * Get user by username (with in-memory caching)
      */
-    public function getUserByUsername($username) {
+    public function getUserByUsername($username)
+    {
         $cache_key = "username_" . md5($username);
-        
+
         // Check cache first
         if (isset(self::$cache[$cache_key])) {
             return self::$cache[$cache_key];
         }
-        
+
         $encoded_username = urlencode($username);
         $endpoint = $this->table . "?username=eq." . $encoded_username . "&limit=1";
         $result = $this->db->callApi($endpoint, 'GET');
@@ -95,12 +101,13 @@ class User {
     /**
      * Create user
      */
-    public function createUser($data) {
+    public function createUser($data)
+    {
         // Store password as plaintext (per project decision)
         $userData = [
             'username' => $data['username'],
             'email' => $data['email'],
-            'password_' => $data['password'],
+            'password_' => hashPassword($data['password']),
             'role' => $data['role'] ?? 'customer',
             'status' => 'active'
         ];
@@ -110,32 +117,119 @@ class User {
     }
 
     /**
+     * Get user by Google ID
+     */
+    public function getUserByGoogleId($google_id)
+    {
+        $endpoint = $this->table . "?google_id=eq." . $google_id . "&select=*&limit=1";
+        $result = $this->db->callApi($endpoint, 'GET');
+        if ($result && $result->code == 200 && !empty($result->response)) {
+            return $result->response[0];
+        }
+        return null;
+    }
+
+    /**
+     * Create or Link Google User
+     */
+    public function createOrLinkGoogleUser($email, $google_id, $name, $avatar)
+    {
+        // 1. Check if user exists by Google ID
+        $user = $this->getUserByGoogleId($google_id);
+        if ($user) {
+            return $user; // Already linked, return user
+        }
+
+        // 2. Check if user exists by Email
+        $user = $this->getUserByEmail($email);
+        if ($user) {
+            // Link existing account to Google
+            $endpoint = $this->table . "?id=eq." . $user['id'];
+            $updateData = [
+                'google_id' => $google_id,
+                'login_type' => 'google' // Or keep 'password' and just add google connection
+            ];
+            if (!empty($avatar)) {
+                $updateData['avatar_url'] = $avatar;
+            }
+            $this->db->callApi($endpoint, 'PATCH', $updateData);
+
+            // Return updated user
+            $user['google_id'] = $google_id;
+            return $user;
+        }
+
+        // 3. Create new user
+        // Generate random username if name not unique (simple implementation)
+        $username = $this->generateUniqueUsername($name);
+
+        $userData = [
+            'username' => $username,
+            'email' => $email,
+            'password_' => hashPassword(bin2hex(random_bytes(16))), // Random password (hashed)
+            'google_id' => $google_id,
+            'login_type' => 'google',
+            'avatar_url' => $avatar,
+            'role' => 'customer',
+            'status' => 'active',
+            'balance' => 0
+        ];
+
+        $result = $this->db->callApi($this->table, 'POST', $userData);
+
+        if ($result && ($result->code == 201 || $result->code == 200)) {
+            // Fetch created user
+            return $this->getUserByEmail($email);
+        }
+
+        return false;
+    }
+
+    private function generateUniqueUsername($baseName)
+    {
+        // Simplified username generation
+        $baseName = preg_replace('/[^a-zA-Z0-9]/', '', $baseName);
+        if (empty($baseName))
+            $baseName = 'user';
+
+        $username = $baseName;
+        $counter = 1;
+
+        while ($this->getUserByUsername($username)) {
+            $username = $baseName . $counter;
+            $counter++;
+        }
+        return $username;
+    }
+
+    /**
      * Update user balance (OPTIMIZED - no need to fetch user first if we just add the amount)
      * Note: For production, use database transaction via Supabase function
      */
-    public function updateUserBalance($id, $amount) {
-        $id = (int)$id;
-        
+    public function updateUserBalance($id, $amount)
+    {
+        $id = (int) $id;
+
         // Direct API call - Supabase will handle the increment
         $endpoint = $this->table . "?id=eq." . $id;
-        
+
         // For Supabase REST API, we need to fetch, calculate, and update
         // But we can optimize by only fetching if the balance matters
         $user = $this->getUserById($id);
         if (!$user) {
             return false;
         }
-        
+
         $new_balance = ($user['balance'] ?? 0) + $amount;
-        
+
         $result = $this->db->callApi($endpoint, 'PATCH', ['balance' => $new_balance]);
-        
+
         if ($result && ($result->code == 200 || $result->code == 204)) {
             // Invalidate cache
             unset(self::$cache[$id]);
             return true;
         }
-        
+
         return false;
     }
 
@@ -143,7 +237,8 @@ class User {
      * Add pending balance (for topup requests)
      * REMOVED - Not used in schema, use topup_requests table instead
      */
-    public function addPendingBalance($id, $amount) {
+    public function addPendingBalance($id, $amount)
+    {
         return false; // Not implemented
     }
 
@@ -151,22 +246,27 @@ class User {
      * Approve pending balance
      * REMOVED - Not used in schema
      */
-    public function approvePendingBalance($id, $amount) {
+    public function approvePendingBalance($id, $amount)
+    {
         return false; // Not implemented
     }
 
     /**
      * Login user
      */
-    public function login($username, $password) {
+    public function login($username, $password)
+    {
         $user = $this->getUserByUsername($username);
-        if (!$user) return false;
+        if (!$user)
+            return false;
 
         // Prevent disabled/inactive users from logging in
-        if (isset($user['status']) && $user['status'] !== 'active') return 'disabled';
+        if (isset($user['status']) && $user['status'] !== 'active')
+            return 'disabled';
 
         $storedPassword = $user['password_'] ?? null;
-        if (!$storedPassword) return false;
+        if (!$storedPassword)
+            return false;
 
         // Verify password (supports hashed and legacy plaintext)
         if (!verifyPassword($password, $storedPassword)) {
@@ -179,28 +279,30 @@ class User {
     /**
      * Get all users (admin)
      */
-    public function getAllUsers($limit = 0, $offset = 0) {
+    public function getAllUsers($limit = 0, $offset = 0)
+    {
         $endpoint = $this->table . "?order=created_at.desc";
         if ($limit > 0) {
-            $endpoint .= "&limit=" . (int)$limit . "&offset=" . (int)$offset;
+            $endpoint .= "&limit=" . (int) $limit . "&offset=" . (int) $offset;
         }
         $result = $this->db->callApi($endpoint, 'GET');
-        
+
         if ($result && $result->code == 200 && is_array($result->response)) {
             return $result->response;
         }
-        
+
         return [];
     }
 
     /**
      * Change user role (admin)
      */
-    public function changeUserRole($id, $role) {
-        $id = (int)$id;
+    public function changeUserRole($id, $role)
+    {
+        $id = (int) $id;
         $endpoint = $this->table . "?id=eq." . $id;
         $result = $this->db->callApi($endpoint, 'PATCH', ['role' => $role]);
-        
+
         if ($result && ($result->code == 200 || $result->code == 204)) {
             unset(self::$cache[$id]);
             return true;
@@ -211,16 +313,18 @@ class User {
     /**
      * Toggle user status (admin)
      */
-    public function toggleUserStatus($id) {
-        $id = (int)$id;
+    public function toggleUserStatus($id)
+    {
+        $id = (int) $id;
         $user = $this->getUserById($id);
-        if (!$user) return false;
-        
+        if (!$user)
+            return false;
+
         $new_status = ($user['status'] === 'active') ? 'inactive' : 'active';
-        
+
         $endpoint = $this->table . "?id=eq." . $id;
         $result = $this->db->callApi($endpoint, 'PATCH', ['status' => $new_status]);
-        
+
         if ($result && ($result->code == 200 || $result->code == 204)) {
             unset(self::$cache[$id]);
             return true;
@@ -235,8 +339,9 @@ class User {
      * @param string $newPassword New password
      * @return bool True if successful
      */
-    public function changePassword($id, $oldPassword, $newPassword) {
-        $id = (int)$id;
+    public function changePassword($id, $oldPassword, $newPassword)
+    {
+        $id = (int) $id;
         $user = $this->getUserById($id);
         if (!$user) {
             return false;
@@ -252,7 +357,7 @@ class User {
 
         // Update password - plaintext per project design
         $endpoint = $this->table . "?id=eq." . $id;
-        $result = $this->db->callApi($endpoint, 'PATCH', ['password_' => $newPassword]);
+        $result = $this->db->callApi($endpoint, 'PATCH', ['password_' => hashPassword($newPassword)]);
 
         if ($result && ($result->code == 200 || $result->code == 204)) {
             unset(self::$cache[$id]);
@@ -263,10 +368,127 @@ class User {
     }
 
     /**
+     * Initiate password reset
+     */
+    public function initiatePasswordReset($email)
+    {
+        $user = $this->getUserByEmail($email);
+        if (!$user) {
+            // Return true to prevent email enumeration
+            return true;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $expires = date('Y-m-d H:i:s', strtotime('+1 hour')); // 1 hour expiry
+
+        $endpoint = $this->table . "?id=eq." . $user['id'];
+        $result = $this->db->callApi($endpoint, 'PATCH', [
+            'reset_token' => $token,
+            'reset_token_expires_at' => $expires
+        ]);
+
+        if ($result && ($result->code == 200 || $result->code == 204)) {
+            $mailer = new Mailer();
+            $resetLink = "http://" . $_SERVER['HTTP_HOST'] . "/ShopToolNro/views/auth/reset_password.php?token=" . $token;
+            $body = "<h2>Password Reset Request</h2>
+                     <p>You requested to reset your password. Click the link below to reset it:</p>
+                     <p><a href='$resetLink'>$resetLink</a></p>
+                     <p>This link expires in 1 hour.</p>";
+
+            return $mailer->send($email, "Password Reset Request", $body);
+        }
+
+        return false;
+    }
+
+    /**
+     * Verify reset token
+     */
+    public function verifyResetToken($token)
+    {
+        if (empty($token))
+            return false;
+
+        // Select user with this token
+        $endpoint = $this->table . "?reset_token=eq." . $token . "&select=*&limit=1";
+        $result = $this->db->callApi($endpoint, 'GET');
+
+        if ($result && $result->code == 200 && !empty($result->response)) {
+            $user = $result->response[0];
+
+            // Check expiry
+            if (strtotime($user['reset_token_expires_at']) > time()) {
+                return $user;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Reset password using token
+     */
+    public function resetPasswordUsingToken($token, $newPassword)
+    {
+        $user = $this->verifyResetToken($token);
+        if (!$user)
+            return false;
+
+        $endpoint = $this->table . "?id=eq." . $user['id'];
+        $result = $this->db->callApi($endpoint, 'PATCH', [
+            'password_' => hashPassword($newPassword),
+            'reset_token' => null, // Clear token
+            'reset_token_expires_at' => null
+        ]);
+
+        if ($result && ($result->code == 200 || $result->code == 204)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Update Email
+     */
+    public function updateEmail($id, $newEmail)
+    {
+        $id = (int) $id;
+
+        // Check if email already used
+        if ($this->getUserByEmail($newEmail)) {
+            return "Email already in use";
+        }
+
+        $endpoint = $this->table . "?id=eq." . $id;
+        $result = $this->db->callApi($endpoint, 'PATCH', ['email' => $newEmail]);
+
+        if ($result && ($result->code == 200 || $result->code == 204)) {
+            unset(self::$cache[$id]);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Get user by email (helper)
+     */
+    public function getUserByEmail($email)
+    {
+        $endpoint = $this->table . "?email=eq." . urlencode($email) . "&select=*&limit=1";
+        $result = $this->db->callApi($endpoint, 'GET');
+        if ($result && $result->code == 200 && !empty($result->response)) {
+            return $result->response[0];
+        }
+        return null;
+    }
+
+    /**
      * Clear cache (call this at end of request or when needed)
      */
-    public static function clearCache() {
+    public static function clearCache()
+    {
         self::$cache = [];
     }
 }
+
 ?>

@@ -6,17 +6,17 @@ let token = localStorage.getItem('token');
 // Initialize loading overlay on DOM ready
 function initLoadingOverlay() {
     if (document.getElementById('loadingOverlay')) return; // Already exists
-    
+
     const overlay = document.createElement('div');
     overlay.id = 'loadingOverlay';
     overlay.className = 'loading-overlay';
-    
+
     overlay.innerHTML = `
         <div class="spinner">
             <div class="dot"></div>
         </div>
     `;
-    
+
     document.body.appendChild(overlay);
 }
 
@@ -49,9 +49,10 @@ function hideLoading() {
 }
 
 class API {
-    static async call(endpoint, method = 'GET', data = null) {
+    static async call(endpoint, method = 'GET', data = null, options = {}) {
+        const { timeout = 15000, retries = 1 } = options;
         const url = API_BASE + endpoint;
-        const options = {
+        const fetchOptions = {
             method: method,
             headers: {
                 'Content-Type': 'application/json'
@@ -59,45 +60,78 @@ class API {
         };
 
         if (token) {
-            options.headers['Authorization'] = 'Bearer ' + token;
+            fetchOptions.headers['Authorization'] = 'Bearer ' + token;
         }
 
         if (data && method !== 'GET') {
-            options.body = JSON.stringify(data);
+            fetchOptions.body = JSON.stringify(data);
         }
 
-        try {
-            showLoading();
-            const response = await fetch(url, options);
-            const contentType = response.headers.get('content-type');
-            
-            if (!contentType || !contentType.includes('application/json')) {
-                console.error('Invalid content-type:', contentType, response.statusText);
-                hideLoading();
-                return { 
-                    success: false,
-                    status: 'error', 
-                    message: 'Server returned invalid response: ' + response.statusText 
-                };
+        const tryFetch = async (attempt) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            fetchOptions.signal = controller.signal;
+
+            try {
+                if (attempt === 0) showLoading();
+
+                const response = await fetch(url, fetchOptions);
+                clearTimeout(id);
+
+                // Handle server errors (5xx) with retry
+                if (response.status >= 500 && attempt < retries) {
+                    console.warn(`Server error ${response.status}, retrying... (${attempt + 1}/${retries})`);
+                    await new Promise(r => setTimeout(r, 1000)); // Wait 1s before retry
+                    return tryFetch(attempt + 1);
+                }
+
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // Check if it's a known non-JSON error page (e.g. 404/502 HTML)
+                    const text = await response.text();
+                    console.error('Invalid content-type:', contentType, text.substring(0, 100));
+                    return {
+                        success: false,
+                        status: 'error',
+                        message: `Server Error (${response.status}): Invalid response format.`
+                    };
+                }
+
+                const result = await response.json();
+
+                // Consistency check
+                if (!result.hasOwnProperty('success')) {
+                    result.success = (result.status === 'success');
+                }
+                if (!result.hasOwnProperty('status')) {
+                    result.status = result.success ? 'success' : 'error';
+                }
+
+                return result;
+            } catch (error) {
+                clearTimeout(id);
+                if (error.name === 'AbortError') {
+                    return { success: false, status: 'error', message: 'Request timeout. Please check your internet connection.' };
+                }
+
+                // Network errors - retry
+                if (attempt < retries) {
+                    console.warn(`Network error, retrying... (${attempt + 1}/${retries})`, error);
+                    await new Promise(r => setTimeout(r, 1000));
+                    return tryFetch(attempt + 1);
+                }
+
+                console.error('API call error:', error);
+                return { success: false, status: 'error', message: 'Network error: ' + error.message };
+            } finally {
+                if (attempt === retries || (attempt === 0 && retries === 0)) hideLoading();
             }
-            
-            const result = await response.json();
-            hideLoading();
-            
-            // Ensure consistent format: always has 'success' and 'status' fields
-            if (!result.hasOwnProperty('success')) {
-                result.success = (result.status === 'success');
-            }
-            if (!result.hasOwnProperty('status')) {
-                result.status = result.success ? 'success' : 'error';
-            }
-            
-            return result;
-        } catch (error) {
-            console.error('API call error:', error);
-            hideLoading();
-            return { success: false, status: 'error', message: 'Network error: ' + error.message };
-        }
+        };
+
+        const result = await tryFetch(0);
+        // Ensure loading is hidden in all paths (success/fail/retry-exhausted)
+        hideLoading();
+        return result;
     }
 
     // Products
@@ -148,8 +182,8 @@ class API {
     // Orders
     // quantity param removed in new schema; payment_method can be 'balance' or others if added later
     static createOrder(product_id, payment_method, duration_id = null, idempotency_key = null) {
-        const key = idempotency_key || (function generateUUID(){
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const key = idempotency_key || (function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
@@ -198,7 +232,7 @@ function showAlert(message, type = 'success') {
         showNotification(message, type);
         return;
     }
-    
+
     // Fallback showNotification với CSS toast mới
     let container = document.querySelector('.toast-container');
     if (!container) {
@@ -206,17 +240,17 @@ function showAlert(message, type = 'success') {
         container.className = 'toast-container';
         document.body.appendChild(container);
     }
-    
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `
         <div class="toast-body">${message}</div>
         <button class="toast-close" onclick="this.parentElement.remove()">×</button>
     `;
-    
+
     container.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('show'));
-    
+
     const duration = type === 'error' ? 5000 : 3200;
     setTimeout(() => {
         toast.classList.remove('show');

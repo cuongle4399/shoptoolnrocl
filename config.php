@@ -16,13 +16,15 @@ ini_set('log_errors', 1);
 error_reporting(E_ALL);
 
 // ===== LOAD ENV FILE =====
+// ===== LOAD ENV FILE =====
+require_once __DIR__ . '/includes/env_loader.php';
 loadEnv(__DIR__ . '/.env');
 
 // ===== START SESSION (AFTER ini_set) =====
 session_start();
 
 // ===== CONFIG CONSTANTS - HARDCODED FOR INFINITYFREE =====
-define('SUPABASE_URL', rtrim((string)getenv('SUPABASE_URL'), '/'));
+define('SUPABASE_URL', rtrim((string) getenv('SUPABASE_URL'), '/'));
 define('SUPABASE_ANON_KEY', getenv('SUPABASE_ANON_KEY'));
 define('ADMIN_USER', getenv('ADMIN_USER'));
 define('ADMIN_PASSWORD', getenv('ADMIN_PASSWORD'));
@@ -30,39 +32,33 @@ define('AES_ENCRYPTION_KEY', getenv('AES_ENCRYPTION_KEY'));
 define('TABLE_NAME', 'infokey');
 
 // ===== REQUIRE ESSENTIAL CLASSES & FUNCTIONS =====
+require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/src/classes/License.php';
+require_once __DIR__ . '/src/classes/Mailer.php';
 require_once __DIR__ . '/includes/functions.php';
 
 // ===== VALIDATE CONFIG =====
-if (!SUPABASE_URL) die('Error: SUPABASE_URL not configured');
-if (!SUPABASE_ANON_KEY) die('Error: SUPABASE_ANON_KEY not configured');
-if (!ADMIN_PASSWORD) die('Error: ADMIN_PASSWORD not configured');
-if (strlen(AES_ENCRYPTION_KEY) !== 32) die('Error: AES_ENCRYPTION_KEY must be 32 characters');
+if (!SUPABASE_URL)
+    die('Error: SUPABASE_URL not configured');
+if (!SUPABASE_ANON_KEY)
+    die('Error: SUPABASE_ANON_KEY not configured');
+if (!ADMIN_PASSWORD)
+    die('Error: ADMIN_PASSWORD not configured');
+if (strlen(AES_ENCRYPTION_KEY) !== 32)
+    die('Error: AES_ENCRYPTION_KEY must be 32 characters');
 
-if (!function_exists('loadEnv')) {
-    function loadEnv($path) {
-        if (!file_exists($path)) return;
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            if (strpos(trim($line), '#') === 0) continue;
-            list($key, $value) = array_map('trim', explode('=', $line, 2));
-            $value = trim($value, '"');
-            putenv("$key=$value");
-            $_ENV[$key] = $value;
-            $_SERVER[$key] = $value;
-        }
-    }
-}
+
 
 // ===== RATE LIMITING =====
-function checkRateLimit($action, $identifier, $maxAttempts = 5, $timeWindow = 3600) {
+function checkRateLimit($action, $identifier, $maxAttempts = 5, $timeWindow = 3600)
+{
     if (!isset($_SESSION['rate_limits'])) {
         $_SESSION['rate_limits'] = [];
     }
     $key = hash('sha256', $action . $identifier);
     $now = time();
-    
+
     if (isset($_SESSION['rate_limits'][$key])) {
         $_SESSION['rate_limits'][$key] = array_filter(
             $_SESSION['rate_limits'][$key],
@@ -71,7 +67,7 @@ function checkRateLimit($action, $identifier, $maxAttempts = 5, $timeWindow = 36
     } else {
         $_SESSION['rate_limits'][$key] = [];
     }
-    
+
     if (count($_SESSION['rate_limits'][$key]) >= $maxAttempts) {
         return false;
     }
@@ -80,7 +76,8 @@ function checkRateLimit($action, $identifier, $maxAttempts = 5, $timeWindow = 36
 }
 
 // ===== AUDIT LOGGING =====
-function logAudit($action, $user, $details, $status = 'success') {
+function logAudit($action, $user, $details, $status = 'success')
+{
     $logDir = dirname(__DIR__) . '/logs';
     if (!is_dir($logDir)) {
         @mkdir($logDir, 0755, true);
@@ -100,7 +97,8 @@ function logAudit($action, $user, $details, $status = 'success') {
 }
 
 // ===== CSRF TOKEN =====
-function generateCSRFToken() {
+function generateCSRFToken()
+{
     if (!isset($_SESSION['csrf_token']) || time() - ($_SESSION['csrf_time'] ?? 0) > 3600) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         $_SESSION['csrf_time'] = time();
@@ -108,7 +106,8 @@ function generateCSRFToken() {
     return $_SESSION['csrf_token'];
 }
 
-function verifyCSRFToken($token) {
+function verifyCSRFToken($token)
+{
     if (!isset($_SESSION['csrf_token']) || !isset($token)) {
         return false;
     }
@@ -116,17 +115,20 @@ function verifyCSRFToken($token) {
 }
 
 // ===== INPUT SANITIZE =====
-function sanitizeInput($input) {
+function sanitizeInput($input)
+{
     return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
 }
 
 // ===== VALIDATE HWID =====
-function validateHWID($hwid) {
+function validateHWID($hwid)
+{
     return preg_match('/^[A-Za-z0-9\-_]{8,64}$/', $hwid);
 }
 
 // ===== SUPABASE API CALL =====
-function callSupabaseApi($endpoint, $method, $data = []) {
+function callSupabaseApi($endpoint, $method, $data = [])
+{
     if (substr($endpoint, -1) === '?') {
         $endpoint = rtrim($endpoint, '?');
     }
@@ -177,14 +179,16 @@ function callSupabaseApi($endpoint, $method, $data = []) {
 }
 
 // ===== ENCRYPT AES-256-CBC =====
-function encryptAES($data, $key) {
+function encryptAES($data, $key)
+{
     $iv = openssl_random_pseudo_bytes(16);
     $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
     return base64_encode($iv . $encrypted);
 }
 
 // ===== DECRYPT AES-256-CBC =====
-function decryptAES($encryptedData, $key) {
+function decryptAES($encryptedData, $key)
+{
     $data = base64_decode($encryptedData, true);
     if ($data === false || strlen($data) < 16) {
         throw new Exception('Invalid encrypted data');
@@ -192,7 +196,7 @@ function decryptAES($encryptedData, $key) {
     $iv = substr($data, 0, 16);
     $encrypted = substr($data, 16);
     $decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
-    
+
     if ($decrypted === false) {
         throw new Exception('Decryption failed');
     }
@@ -200,19 +204,20 @@ function decryptAES($encryptedData, $key) {
 }
 
 // ===== VERIFY LICENSE KEY =====
-function verifyLicenseKey($encryptedKey) {
+function verifyLicenseKey($encryptedKey)
+{
     try {
         $decrypted = decryptAES($encryptedKey, AES_ENCRYPTION_KEY);
         $data = json_decode($decrypted, true);
-        
+
         if (!$data || !isset($data['checksum'], $data['expires_at'])) {
             return false;
         }
-        
+
         $checksum = $data['checksum'];
         unset($data['checksum']);
         $expected = hash_hmac('sha256', json_encode($data), AES_ENCRYPTION_KEY);
-        
+
         if (!hash_equals($checksum, $expected)) {
             return false;
         }
@@ -228,13 +233,19 @@ function verifyLicenseKey($encryptedKey) {
 }
 
 // ===== SAFE LOGOUT =====
-function safeLogout() {
+function safeLogout()
+{
     $_SESSION = [];
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params["path"], $params["domain"],
-            $params["secure"], $params["httponly"]
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params["path"],
+            $params["domain"],
+            $params["secure"],
+            $params["httponly"]
         );
     }
     session_destroy();
@@ -250,16 +261,19 @@ if (!isset($_SESSION['initiated'])) {
 }
 
 // ===== SESSION VALIDATION =====
-if (isset($_SESSION['created_at']) && 
-    (time() - $_SESSION['created_at'] > 86400 || 
-     (isset($_SESSION['ip_address']) && $_SESSION['ip_address'] !== $_SERVER['REMOTE_ADDR']))) {
+if (
+    isset($_SESSION['created_at']) &&
+    (time() - $_SESSION['created_at'] > 86400 ||
+        (isset($_SESSION['ip_address']) && $_SESSION['ip_address'] !== $_SERVER['REMOTE_ADDR']))
+) {
     safeLogout();
     header('Location: index.php');
     exit;
 }
 
 // ===== USER HELPERS =====
-function getUserByEmail($email) {
+function getUserByEmail($email)
+{
     $email = sanitizeInput($email);
     $res = callSupabaseApi("users?select=*&email=eq." . rawurlencode($email), 'GET');
     if (isset($res['code']) && $res['code'] >= 200 && $res['code'] < 300) {
@@ -269,22 +283,34 @@ function getUserByEmail($email) {
 }
 
 if (!function_exists('hashPassword')) {
-    function hashPassword($password) {
+    function hashPassword($password)
+    {
         // Return raw password (plaintext)
-        return $password;
+        return password_hash($password, PASSWORD_BCRYPT);
     }
 }
 
 if (!function_exists('verifyPassword')) {
-    function verifyPassword($password, $userRow) {
-        if (!$userRow) return false;
+    function verifyPassword($password, $userRow)
+    {
+        if (!$userRow)
+            return false;
         $stored = $userRow['password_'] ?? ($userRow['password'] ?? ($userRow['password_hash'] ?? null));
-        if ($stored === null) return false;
-        return hash_equals((string)$stored, (string)$password);
+        if ($stored === null)
+            return false;
+
+        // Modern password check (Bcrypt)
+        if (password_get_info($stored)['algoName'] !== 'unknown') {
+            return password_verify($password, $stored);
+        }
+
+        // Legacy plaintext check
+        return hash_equals((string) $stored, (string) $password);
     }
 }
 
-function registerUser($username, $email, $password) {
+function registerUser($username, $email, $password)
+{
     $username = sanitizeInput($username);
     $email = sanitizeInput($email);
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -312,7 +338,7 @@ function registerUser($username, $email, $password) {
     try {
         $res = callSupabaseApi('users', 'POST', $payload);
     } catch (Exception $e) {
-        logAudit('register', $email, 'exception: '.$e->getMessage(), 'error');
+        logAudit('register', $email, 'exception: ' . $e->getMessage(), 'error');
         return ['success' => false, 'error' => 'Registration failed (API error)'];
     }
 
@@ -331,7 +357,7 @@ function registerUser($username, $email, $password) {
         try {
             $res2 = callSupabaseApi('users', 'POST', $payload2);
         } catch (Exception $e) {
-            logAudit('register', $email, 'exception fallback: '.$e->getMessage(), 'error');
+            logAudit('register', $email, 'exception fallback: ' . $e->getMessage(), 'error');
             return ['success' => false, 'error' => 'Registration failed (fallback API error)'];
         }
 
@@ -341,11 +367,11 @@ function registerUser($username, $email, $password) {
         }
 
         $err2 = is_array($res2['response']) ? json_encode($res2['response']) : ($res2['raw'] ?? '');
-        logAudit('register', $email, 'fallback failed: '.$err2, 'error');
-        return ['success' => false, 'error' => 'Registration failed: '.$err2];
+        logAudit('register', $email, 'fallback failed: ' . $err2, 'error');
+        return ['success' => false, 'error' => 'Registration failed: ' . $err2];
     }
 
-    logAudit('register', $email, 'create failed: '.$errMsg, 'error');
-    return ['success' => false, 'error' => 'Registration failed: '.$errMsg];
+    logAudit('register', $email, 'create failed: ' . $errMsg, 'error');
+    return ['success' => false, 'error' => 'Registration failed: ' . $errMsg];
 }
 ?>

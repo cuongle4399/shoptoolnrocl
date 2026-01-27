@@ -1,45 +1,23 @@
 <?php
 
-if (!function_exists('loadEnv')) {
-    function loadEnv($path) {
-        if (!file_exists($path)) {
-            error_log(".env file NOT found at: " . $path);
-            return;
-        }
-        
-        error_log(".env file found");
-        
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        
-        foreach ($lines as $line) {
-            if (empty(trim($line))) continue;
-            if (strpos(trim($line), '#') === 0) continue;
-            if (strpos($line, '=') === false) continue;
-            
-            list($key, $value) = array_map('trim', explode('=', $line, 2));
-            $value = trim($value, '"\'');
-            
-            if (!empty($key)) {
-                putenv("$key=$value");
-                $_ENV[$key] = $value;
-            }
-        }
-    }
-}
 
+
+require_once __DIR__ . '/../includes/env_loader.php';
 loadEnv(__DIR__ . '/../.env');
 
-class Database {
+class Database
+{
     private $supabase_url;
     private $supabase_key;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->supabase_url = getenv('SUPABASE_URL');
         // Prefer a service role / server-side key when available for admin ops
         $serviceKey = getenv('SUPABASE_SERVICE_KEY');
         $anonKey = getenv('SUPABASE_ANON_KEY');
         $this->supabase_key = $serviceKey ?: $anonKey;
-        
+
         // Controlled logging - enable by setting APP_DEBUG=1 in environment
         $debug = getenv('APP_DEBUG');
         if ($debug) {
@@ -55,7 +33,8 @@ class Database {
     }
 
 
-    public function connect() {
+    public function connect()
+    {
         return $this;
     }
 
@@ -64,28 +43,29 @@ class Database {
      * - Optimized curl settings for faster connection
      * - Removed debug error logging for production speed
      */
-    public function callApi($endpoint, $method = 'GET', $data = []) {
+    public function callApi($endpoint, $method = 'GET', $data = [])
+    {
         if (!$this->supabase_url || !$this->supabase_key) {
-            return (object)['code' => 0, 'response' => null];
+            return (object) ['code' => 0, 'response' => null];
         }
-        
+
         // Clean endpoint
         if (substr($endpoint, -1) === '?') {
             $endpoint = rtrim($endpoint, '?');
         }
-        
+
         $url = $this->supabase_url . "/rest/v1/" . $endpoint;
-        
+
         $ch = curl_init($url);
-        
+
         // OPTIMIZED curl settings for speed (safe on hosts without FASTOPEN)
         $curlOptions = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_TIMEOUT => 10,              // Reduced from 15
             CURLOPT_CONNECTTIMEOUT => 5,        // Added: faster connection timeout
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => false,    // DEVELOPMENT ONLY: Disable SSL verification
+            CURLOPT_SSL_VERIFYHOST => 0,        // DEVELOPMENT ONLY: Disable SSL verification
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1  // HTTP/1.1 is faster than 2.0 for REST
         ];
 
@@ -105,11 +85,11 @@ class Database {
             "apikey: " . $this->supabase_key,
             "Authorization: Bearer " . $this->supabase_key
         ];
-        
+
         if ($method === 'POST' || $method === 'PATCH') {
             $headers[] = "Prefer: return=representation";
         }
-        
+
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         $response = curl_exec($ch);
@@ -119,34 +99,37 @@ class Database {
 
         // Minimal error handling - no logging in production
         if ($curl_error) {
-            return (object)['code' => 0, 'response' => null];
-        }
-        
-        if ($http_code == 204 || empty($response)) {
-            return (object)['code' => $http_code, 'response' => null];
-        }
-        
-        $decoded = json_decode($response, true);
-        
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return (object)['code' => $http_code, 'response' => null];
+            return (object) ['code' => 0, 'response' => null];
         }
 
-        return (object)[
+        if ($http_code == 204 || empty($response)) {
+            return (object) ['code' => $http_code, 'response' => null];
+        }
+
+        $decoded = json_decode($response, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return (object) ['code' => $http_code, 'response' => null];
+        }
+
+        return (object) [
             'code' => $http_code,
             'response' => $decoded
         ];
     }
 
-    public function beginTransaction() {
+    public function beginTransaction()
+    {
         return true;
     }
 
-    public function commit() {
+    public function commit()
+    {
         return true;
     }
 
-    public function rollBack() {
+    public function rollBack()
+    {
         return true;
     }
 }
@@ -171,7 +154,8 @@ if (!isset($GLOBALS['pdo'])) {
                 PDO::ATTR_EMULATE_PREPARES => false,
             ];
             $GLOBALS['pdo'] = new PDO($dsn, $dbUser, $dbPass, $options);
-            if (getenv('APP_DEBUG')) error_log('PDO connection established');
+            if (getenv('APP_DEBUG'))
+                error_log('PDO connection established');
         } catch (Exception $e) {
             error_log('PDO connection failed: ' . $e->getMessage());
             $GLOBALS['pdo'] = null;

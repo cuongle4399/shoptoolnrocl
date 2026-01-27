@@ -45,15 +45,20 @@ function response($status, $message, $data = null)
 // Plaintext passwords: store and compare raw text (NOT RECOMMENDED — use only if you understand the risk)
 function hashPassword($password)
 {
-    // Return the raw password as-is (plaintext)
-    return $password;
+    return password_hash($password, PASSWORD_BCRYPT);
 }
 
 function verifyPassword($password, $stored)
 {
     if ($stored === null)
         return false;
-    // Direct equality check using hash_equals to reduce timing attacks
+
+    // Modern password check (Bcrypt)
+    if (password_get_info($stored)['algoName'] !== 'unknown') {
+        return password_verify($password, $stored);
+    }
+
+    // Legacy plaintext check
     return hash_equals((string) $stored, (string) $password);
 }
 
@@ -191,23 +196,7 @@ function uploadFile($file)
     return ['status' => false, 'message' => 'Không thể lưu tệp'];
 }
 
-function logAudit($pdo, $action, $username, $details, $status, $ip_address = null, $user_agent = null)
-{
-    try {
-        $ip = $ip_address ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $ua = $user_agent ?? $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-        $stmt = $pdo->prepare("
-            INSERT INTO public.audit_logs (action, username, details, status, ip_address, user_agent, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, NOW())
-        ");
-
-        return $stmt->execute([$action, $username, $details, $status, $ip, $ua]);
-    } catch (Exception $e) {
-        // Silent fail
-        return false;
-    }
-}
 
 function generateVietQRLink($amount, $orderId)
 {
@@ -338,15 +327,23 @@ function api_log_error($message, $context = null)
 }
 
 // ============================================
-// LICENSE MANAGEMENT WRAPPER FUNCTIONS
+// LICENSE MANAGEMENT WRAPPER FUNCTIONS (OPTIMIZED)
 // ============================================
+
+function getLicenseInstance()
+{
+    static $license = null;
+    if ($license === null) {
+        $db = new Database();
+        $license = new License($db);
+    }
+    return $license;
+}
 
 function getKeyByLicense($license_key)
 {
     try {
-        $db = new Database();
-        $license = new License($db);
-        return $license->getKeyByLicense($license_key);
+        return getLicenseInstance()->getKeyByLicense($license_key);
     } catch (Exception $e) {
         error_log("Error in getKeyByLicense: " . $e->getMessage());
         return null;
@@ -356,9 +353,7 @@ function getKeyByLicense($license_key)
 function getAllKeys()
 {
     try {
-        $db = new Database();
-        $license = new License($db);
-        return $license->getAllKeys();
+        return getLicenseInstance()->getAllKeys();
     } catch (Exception $e) {
         error_log("Error in getAllKeys: " . $e->getMessage());
         return [];
@@ -393,9 +388,7 @@ function getLicenseStatus($key)
 function handleCreateLicense($hwid, $user_info, $days)
 {
     try {
-        $db = new Database();
-        $license = new License($db);
-        $result = $license->createKey([
+        $result = getLicenseInstance()->createKey([
             'hwid' => $hwid,
             'user_info' => $user_info,
             'days' => $days
@@ -409,9 +402,7 @@ function handleCreateLicense($hwid, $user_info, $days)
 function handleBanLicense($license_key)
 {
     try {
-        $db = new Database();
-        $license = new License($db);
-        $result = $license->banKey($license_key);
+        $result = getLicenseInstance()->banKey($license_key);
         return $result ? ['success' => true, 'message' => 'Đã BAN License Key!'] : ['success' => false, 'message' => 'Lỗi BAN key'];
     } catch (Exception $e) {
         return ['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
@@ -421,9 +412,7 @@ function handleBanLicense($license_key)
 function handleUnbanLicense($license_key)
 {
     try {
-        $db = new Database();
-        $license = new License($db);
-        $result = $license->unbanKey($license_key);
+        $result = getLicenseInstance()->unbanKey($license_key);
         return $result ? ['success' => true, 'message' => 'Đã mở BAN License Key!'] : ['success' => false, 'message' => 'Lỗi mở BAN key'];
     } catch (Exception $e) {
         return ['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
@@ -433,9 +422,7 @@ function handleUnbanLicense($license_key)
 function handleRenewLicense($license_key, $days)
 {
     try {
-        $db = new Database();
-        $license = new License($db);
-        $result = $license->renewKey($license_key, $days);
+        $result = getLicenseInstance()->renewKey($license_key, $days);
         return $result ? ['success' => true, 'message' => 'Đã gia hạn License Key ' . $days . ' ngày!'] : ['success' => false, 'message' => 'Lỗi gia hạn key'];
     } catch (Exception $e) {
         return ['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
@@ -445,9 +432,7 @@ function handleRenewLicense($license_key, $days)
 function handleDeleteLicense($license_key)
 {
     try {
-        $db = new Database();
-        $license = new License($db);
-        $result = $license->deleteKey($license_key);
+        $result = getLicenseInstance()->deleteKey($license_key);
         return $result ? ['success' => true, 'message' => 'Đã xóa License Key!'] : ['success' => false, 'message' => 'Lỗi xóa key'];
     } catch (Exception $e) {
         return ['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
@@ -457,8 +442,7 @@ function handleDeleteLicense($license_key)
 function handleUpdateHwidAndKey($license_key, $new_hwid, $user_info)
 {
     try {
-        $db = new Database();
-        $license = new License($db);
+        $license = getLicenseInstance();
 
         // Get old key info
         $old_key = $license->getKeyByLicense($license_key);
