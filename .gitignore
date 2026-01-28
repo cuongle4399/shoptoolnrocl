@@ -1,9 +1,38 @@
+# Environment files (SENSITIVE - DO NOT COMMIT)
 .env
 .env.*
+!.env.example
+
+# Dependencies
 vendor/
 node_modules/
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Logs (may contain sensitive data)
 logs/
+*.log
+
+# Uploads (user-generated content)
 uploads/
 assets/uploads/
-*.sql
+
+# SQL backups (but allow database.sql)
+*_backup.sql
+backup_*.sql
+dump_*.sql
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~

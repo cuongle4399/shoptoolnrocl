@@ -9,16 +9,18 @@ $userBalance = '0 ₫';
 if (isset($_SESSION['user_id'])) {
     try {
         require_once __DIR__ . '/../../config/database.php';
-        if (isset($pdo) && $pdo) {
-            $stmt = $pdo->prepare("SELECT balance, avatar_url FROM public.users WHERE id = ?");
-            $stmt->execute([$_SESSION['user_id']]);
-            $res = $stmt->fetch();
-            if ($res) {
-                $userBalance = number_format($res['balance'], 0, ',', '.') . ' ₫';
-                // Always sync avatar from DB if it exists
-                if (!empty($res['avatar_url'])) {
-                    $_SESSION['user_avatar'] = $res['avatar_url'];
-                }
+        require_once __DIR__ . '/../../src/classes/User.php';
+
+        $database = new Database();
+        $db = $database->connect();
+        $userClass = new User($db);
+
+        $user = $userClass->getUserById($_SESSION['user_id']);
+        if ($user) {
+            $userBalance = number_format($user['balance'] ?? 0, 0, ',', '.') . ' ₫';
+            // Always sync avatar from DB if it exists
+            if (!empty($user['avatar_url'])) {
+                $_SESSION['user_avatar'] = $user['avatar_url'];
             }
         }
     } catch (Exception $e) {
@@ -131,6 +133,7 @@ if (isset($_SESSION['user_id'])) {
                         <a href="/ShopToolNro/views/admin/manage_users.php">Quản lý người dùng</a>
                         <a href="/ShopToolNro/views/admin/manage_shop_notification.php">Quản lý thông báo</a>
                         <a href="/ShopToolNro/views/admin/manage_topup.php">Quản lý nạp tiền</a>
+                        <a href="/ShopToolNro/views/admin/manage_sepay.php">Giao dịch SePay</a>
                         <a href="/ShopToolNro/views/admin/manage_revenue.php">Quản lý doanh thu</a>
                         <a href="/ShopToolNro/views/admin/manage_promos.php">Quản lý khuyến mãi</a>
                     <?php endif; ?>

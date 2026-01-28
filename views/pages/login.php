@@ -135,15 +135,39 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
     // Initialize GIS
     window.handleGoogleLoad = function () {
         console.log("Initializing Google Identity Services...");
+        console.log("User Agent:", navigator.userAgent);
+        console.log("Screen Width:", window.innerWidth);
+        
         if (typeof google !== 'undefined') {
-            google.accounts.id.initialize({
-                client_id: "<?php echo getenv('GOOGLE_CLIENT_ID'); ?>",
-                callback: handleCredentialResponse
-            });
-            google.accounts.id.renderButton(
-                document.getElementById("googleSignInBtnV2"),
-                { theme: "filled_black", size: "large", width: 340 }
-            );
+            try {
+                google.accounts.id.initialize({
+                    client_id: "<?php echo getenv('GOOGLE_CLIENT_ID'); ?>",
+                    callback: handleCredentialResponse,
+                    auto_select: false,
+                    cancel_on_tap_outside: true
+                });
+                
+                // Responsive button width
+                const containerWidth = document.getElementById("googleSignInBtnV2").offsetWidth;
+                const buttonWidth = Math.min(340, containerWidth - 20); // Max 340px or container width
+                
+                console.log("Rendering Google button with width:", buttonWidth);
+                
+                google.accounts.id.renderButton(
+                    document.getElementById("googleSignInBtnV2"),
+                    { 
+                        theme: "filled_black", 
+                        size: "large", 
+                        width: buttonWidth,
+                        text: "signin_with",
+                        shape: "rectangular"
+                    }
+                );
+                
+                console.log("Google Sign-In button rendered successfully");
+            } catch (error) {
+                console.error("Error initializing Google Sign-In:", error);
+            }
         } else {
             console.error("Google script not loaded yet");
             setTimeout(handleGoogleLoad, 1000);
@@ -162,13 +186,20 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
             showNotification('Đang kiểm tra với Server...', 'success');
         }
 
+        // Add timeout controller for mobile compatibility
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
         try {
             // Force V2 API with timestamp
             const result = await fetch('/ShopToolNro/api/auth/google_login.php?v=2&t=' + Date.now(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential: response.credential })
+                body: JSON.stringify({ credential: response.credential }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId); // Clear timeout if request succeeds
 
             const rawText = await result.text();
             console.log("Server Raw Response:", rawText);
@@ -194,8 +225,20 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
                 if (gBtn) gBtn.style.opacity = 1;
             }
         } catch (err) {
+            clearTimeout(timeoutId); // Clear timeout on error
             console.error("Login Process Error:", err);
-            alert("LỖI ĐĂNG NHẬP:\n" + err.message);
+
+            let errorMsg = err.message;
+            if (err.name === 'AbortError') {
+                errorMsg = 'Kết nối quá chậm hoặc timeout. Vui lòng thử lại.';
+            }
+
+            if (typeof showNotification !== 'undefined') {
+                showNotification(errorMsg, 'error');
+            } else {
+                alert("LỖI ĐĂNG NHẬP:\n" + errorMsg);
+            }
+
             if (gBtn) gBtn.style.opacity = 1;
         }
     }

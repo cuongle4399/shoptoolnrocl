@@ -1,7 +1,7 @@
 <?php
 // ====================================================================
 // API: Approve Topup Request
-// Using Supabase trigger: on_topup_approved() auto-adds balance
+// Explicitly adds balance to user account
 // ====================================================================
 
 header('Content-Type: application/json');
@@ -15,13 +15,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 require_once '../../config/database.php';
 require_once '../../src/classes/TopupRequest.php';
+require_once '../../src/classes/User.php';
 
 $database = new Database();
 $db = $database->connect();
 $topupClass = new TopupRequest($db);
+$userClass = new User($db);
 
 $input = json_decode(file_get_contents('php://input'), true);
-$topup_id = isset($input['topup_id']) ? (int)$input['topup_id'] : 0;
+$topup_id = isset($input['topup_id']) ? (int) $input['topup_id'] : 0;
 
 try {
     if (!$topup_id) {
@@ -32,18 +34,24 @@ try {
     if (!$topup) {
         throw new Exception('Không tìm thấy yêu cầu nạp');
     }
-    
+
     // Check current status - prevent double approval
     if ($topup['status'] !== 'pending') {
         throw new Exception('Yêu cầu không ở trạng thái chờ (hiện tại: ' . $topup['status'] . ')');
     }
 
+    // IMPORTANT: Add balance to user BEFORE updating status
+    $balanceUpdated = $userClass->updateUserBalance($topup['user_id'], $topup['amount']);
+    if (!$balanceUpdated) {
+        throw new Exception('Không thể cộng tiền vào tài khoản người dùng');
+    }
+
     // Update topup status to 'approved'
-    // The Supabase trigger on_topup_approved() will automatically:
-    // 1. Add balance to user (balance = balance + amount)
-    // 2. Set approved_at to current time
-    if (!$topupClass->updateTopupStatus($topup_id, 'approved', $_SESSION['user_id'], null)) {
-        throw new Exception('Duyệt yêu cầu nạp thất bại');
+    $statusUpdated = $topupClass->updateTopupStatus($topup_id, 'approved', $_SESSION['user_id'], null);
+    if (!$statusUpdated) {
+        // If status update fails, we should ideally rollback the balance
+        // But for now, just throw error (balance was already added)
+        throw new Exception('Duyệt yêu cầu nạp thất bại (tiền đã được cộng)');
     }
 
     http_response_code(200);
@@ -54,7 +62,7 @@ try {
         'amount' => $topup['amount'],
         'user_id' => $topup['user_id']
     ]);
-    
+
 } catch (Exception $e) {
     http_response_code(400);
     echo json_encode([

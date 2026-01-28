@@ -80,8 +80,8 @@ try {
         if (class_exists('GuzzleHttp\Client')) {
             $httpClient = new GuzzleHttp\Client([
                 'verify' => false,
-                'timeout' => 10.0,
-                'connect_timeout' => 5.0
+                'timeout' => 30.0,        // Increased for mobile compatibility
+                'connect_timeout' => 15.0  // Increased for mobile compatibility
             ]);
             $client->setHttpClient($httpClient);
         }
