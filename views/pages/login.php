@@ -72,19 +72,11 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
         <button type="submit" class="btn btn-primary btn-fullwidth mb-15">Đăng nhập</button>
 
         <!-- Google Login -->
-        <div id="g_id_onload"
-             data-client_id="<?php echo getenv('GOOGLE_CLIENT_ID'); ?>"
-             data-callback="handleCredentialResponse"
-             data-auto_prompt="false">
+        <div id="g_id_onload" data-client_id="<?php echo getenv('GOOGLE_CLIENT_ID'); ?>"
+            data-callback="handleCredentialResponse" data-auto_prompt="false">
         </div>
-        <div class="g_id_signin"
-             data-type="standard"
-             data-size="large"
-             data-theme="filled_black"
-             data-text="sign_in_with"
-             data-shape="rectangular"
-             data-logo_alignment="left"
-             data-width="340">
+        <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_black"
+            data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left" data-width="340">
         </div>
 
         <p class="mt-15 text-center">Chưa có tài khoản? <a href="/ShopToolNro/views/pages/register.php">Đăng ký</a></p>
@@ -93,33 +85,47 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-    function handleCredentialResponse(response) {
+    async function handleCredentialResponse(response) {
         console.log("Encoded JWT ID token: " + response.credential);
-        
+
         // Show loading (optional ui feedback)
         const gBtn = document.querySelector('.g_id_signin');
-        if(gBtn) gBtn.style.opacity = 0.5;
+        if (gBtn) gBtn.style.opacity = 0.5;
 
-        fetch('/ShopToolNro/api/auth/google_login.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({credential: response.credential})
-        })
-        .then(res => res.json())
-        .then(data => {
+        try {
+            const res = await fetch('/ShopToolNro/api/auth/google_login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential })
+            });
+
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('Invalid JSON response:', text);
+                throw new Error('Server returned invalid response: ' + text.substring(0, 100));
+            }
+
             if (data.success) {
                 if (typeof showNotification !== 'undefined') showNotification('Đăng nhập Google thành công', 'success');
                 setTimeout(() => window.location = '/ShopToolNro/', 1000);
             } else {
-                if (typeof showNotification !== 'undefined') showNotification(data.message, 'error');
-                if(gBtn) gBtn.style.opacity = 1;
+                let errorMsg = data.message || 'Lỗi không xác định từ server';
+                if (data.debug_info) {
+                    errorMsg += ` (${data.debug_info.file}:${data.debug_info.line})`;
+                }
+                if (typeof showNotification !== 'undefined') showNotification(errorMsg, 'error');
+                if (gBtn) gBtn.style.opacity = 1;
             }
-        })
-        .catch(err => {
-            console.error(err);
-            if (typeof showNotification !== 'undefined') showNotification('Lỗi kết nối Google Login', 'error');
-            if(gBtn) gBtn.style.opacity = 1;
-        });
+        } catch (err) {
+            console.error('Google Login Error:', err);
+            if (typeof showNotification !== 'undefined') {
+                showNotification('Lỗi kết nối Google: ' + err.message, 'error');
+            }
+            if (gBtn) gBtn.style.opacity = 1;
+        }
     }
 </script>
 

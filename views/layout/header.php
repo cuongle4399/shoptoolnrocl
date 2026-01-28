@@ -47,42 +47,12 @@ require_once __DIR__ . '/../../includes/functions.php';
 </head>
 
 <body class="vibrant">
-    <?php if (isset($_SESSION['user_id'])): ?>
-        <?php
-        // Fetch latest user info (balance, etc.) for display in header
-        require_once __DIR__ . '/../../config/database.php';
-        require_once __DIR__ . '/../../src/classes/User.php';
-        $database = new Database();
-        $db = $database->connect();
-        $userInfo = null;
-        if ($db && isset($_SESSION['user_id'])) {
-            $userClass = new User($db);
-            $userInfo = $userClass->getUserById($_SESSION['user_id']);
-        }
-
-        // Pick a random avatar once per login and keep it in the session
+    <?php if (isset($_SESSION['user_id'])):
+        // Lấy avatar từ session hoặc gán mặc định (logic random đã có sẵn trong session check)
         if (!isset($_SESSION['user_avatar'])) {
-            $imageDir = __DIR__ . '/../../img';
-            $imageFiles = [];
-            foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
-                $imageFiles = array_merge($imageFiles, glob($imageDir . '/*.' . $ext));
-            }
-
-            // Avoid using the logo as an avatar
-            $imageFiles = array_filter($imageFiles, function ($filePath) {
-                $name = strtolower(basename($filePath));
-                return strpos($name, 'logo') === false;
-            });
-
-            if (!empty($imageFiles)) {
-                $chosen = $imageFiles[array_rand($imageFiles)];
-                $_SESSION['user_avatar'] = '/ShopToolNro/img/' . basename($chosen);
-            } else {
-                $_SESSION['user_avatar'] = '/ShopToolNro/img/Logo.ico';
-            }
+            $_SESSION['user_avatar'] = '/ShopToolNro/img/Logo.ico';
         }
-
-        $userAvatarUrl = $_SESSION['user_avatar'] ?? '/ShopToolNro/img/Logo.ico';
+        $userAvatarUrl = $_SESSION['user_avatar'];
         ?>
         <header class="topbar">
             <div class="topbar-content">
@@ -93,14 +63,28 @@ require_once __DIR__ . '/../../includes/functions.php';
                         <img src="<?php echo htmlspecialchars($userAvatarUrl); ?>" alt="Avatar" width="32" height="32"
                             loading="eager">
                     </div>
-                    <?php if ($userInfo): ?>
-                        <span class="user-name"><?php echo htmlspecialchars($userInfo['username']); ?></span>
-                        <span class="user-balance">Số dư:
-                            <strong><?php echo number_format($userInfo['balance'] ?? 0, 0, ',', '.'); ?> ₫</strong></span>
-                        <a href="/ShopToolNro/views/pages/topup.php" class="btn-topup">Nạp tiền</a>
-                        <a href="/ShopToolNro/api/auth/logout.php" class="btn-logout">Đăng xuất</a>
-                    <?php endif; ?>
+                    <span class="user-name"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Tài khoản'); ?></span>
+                    <span class="user-balance">Số dư:
+                        <strong id="headerBalance">---</strong></span>
+                    <a href="/ShopToolNro/views/pages/topup.php" class="btn-topup">Nạp tiền</a>
+                    <a href="/ShopToolNro/api/auth/logout.php" class="btn-logout">Đăng xuất</a>
                 </div>
+
+                <script>
+                    // Fetch balance via CSR to improve perceived performance
+                    document.addEventListener('DOMContentLoaded', async () => {
+                        try {
+                            const res = await fetch('/ShopToolNro/api/account/profile.php');
+                            const data = await res.json();
+                            if (data.status === 'success' && data.data && data.data.user) {
+                                document.getElementById('headerBalance').textContent =
+                                    new Intl.NumberFormat('vi-VN').format(data.data.user.balance) + ' ₫';
+                            }
+                        } catch (err) {
+                            console.error('Error fetching balance:', err);
+                        }
+                    });
+                </script>
             </div>
         </header>
 

@@ -31,28 +31,17 @@ if ($notification) {
 
 // Build avatar pool for public order feed (exclude logo files)
 $avatarFiles = glob(__DIR__ . '/../../img/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
-$avatarFiles = array_values(array_filter($avatarFiles, function($path) {
+$avatarFiles = array_values(array_filter($avatarFiles, function ($path) {
     $name = strtolower(basename($path));
     return strpos($name, 'logo') === false;
 }));
-$avatarUrls = array_map(function($path) { return '/ShopToolNro/img/' . basename($path); }, $avatarFiles);
+$avatarUrls = array_map(function ($path) {
+    return '/ShopToolNro/img/' . basename($path);
+}, $avatarFiles);
 
 $perPage = 12;
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$offset = ($page - 1) * $perPage;
-
-// OPTIMIZED: 1 API call thay vì N+1 calls
-$result = $productClass->getAllProductsWithDurations($perPage + 1, $offset);
-$products = $result['products'];
-$hasNext = count($products) > $perPage;
-if ($hasNext) array_pop($products);
-
-if ($page > 1 && empty($products)) {
-    header('Location: ?page=' . ($page - 1));
-    exit;
-}
-
-function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_query($qs); }
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+// Dữ liệu sẽ được fetch qua client-side (CSR) để tối ưu hiệu năng cảm nhận (perceived performance)
 ?>
 
 <div class="main-content fade-in">
@@ -89,11 +78,11 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
     <?php endif; ?>
 
     <h2>Danh sách sản phẩm</h2>
-    
+
     <div class="search-bar">
         <input type="text" id="searchProduct" class="search-input" placeholder="Tìm kiếm sản phẩm...">
     </div>
-    
+
     <!-- Skeleton Loading -->
     <div class="products-grid skeleton-container" id="skeletonLoader">
         <div class="product-card skeleton-card">
@@ -139,606 +128,675 @@ function pageLink($p) { $qs = $_GET; $qs['page'] = $p; return '?' . http_build_q
             <div class="skeleton skeleton-price"></div>
         </div>
     </div>
-    
-    <div class="product-listing products-grid" id="productsContainer" style="display: none;">
-        <?php if (empty($products)): ?>
-            <div class="empty-state empty-state-lg">Không có sản phẩm</div>
-        <?php else: foreach ($products as $item): ?>
-            <div class="product-card fade-in stagger" data-name="<?php echo strtolower($item['name']); ?>">
-                <?php 
-                    $imageUrl = $item['image_url'];
-                    if (empty($imageUrl)) {
-                        // Fallback: use demo_image_url or placeholder
-                        if (!empty($item['demo_image_url'])) {
-                            $demoUrls = json_decode($item['demo_image_url'], true);
-                            $imageUrl = is_array($demoUrls) && !empty($demoUrls[0]) ? $demoUrls[0] : 'https://via.placeholder.com/400x250?text=' . urlencode($item['name']);
-                        } else {
-                            $imageUrl = 'https://via.placeholder.com/400x250?text=' . urlencode($item['name']);
-                        }
-                    }
-                ?>
-                <img src="<?php echo htmlspecialchars($imageUrl); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" class="product-image" loading="lazy">
-                <div class="product-info">
-                    <h3 class="product-name"><?php echo htmlspecialchars($item['name']); ?></h3>
-                    <p class="product-description"><?php echo htmlspecialchars(substr($item['description'] ?? '', 0, 80)); ?>...</p>
-                    
-                    <!-- Display all product durations with prices (ALREADY LOADED) -->
-                    <?php 
-                        // Durations đã có sẵn trong $item['durations'] - không cần query thêm!
-                        $durations = $item['durations'] ?? [];
-                        if (!empty($durations)): 
-                    ?>
-                        <div class="product-prices">
-                            <?php foreach ($durations as $duration): ?>
-                                <div class="price-item">
-                                    <span class="duration-label">
-                                        <?php echo htmlspecialchars($duration['duration_label']); ?>
-                                    </span>
-                                    <span class="duration-price">
-                                        <?php echo number_format($duration['price'], 0, ',', '.'); ?> ₫
-                                    </span>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="product-price">Giá cạnh tranh</div>
-                    <?php endif; ?>
-                    
-                    <a href="/ShopToolNro/views/pages/product-detail.php?id=<?php echo $item['id']; ?>" class="btn btn-primary btn-block mt-10">Xem chi tiết</a>
-                </div>
+
+    <div class="product-listing products-grid" id="productsContainer">
+        <!-- Products will be loaded here via JS -->
+    </div>
+
+    <!-- Pagination Container -->
+    <div id="productsPagination" class="flex-center mt-14" style="display: none;">
+        <!-- Pagination buttons will be loaded here via JS -->
+    </div>
+
+    <!-- Modal: Orders for product -->
+    <div id="productOrdersModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">Đơn hàng</h3>
+                <span class="modal-close"
+                    onclick="document.getElementById('productOrdersModal').classList.remove('active')">&times;</span>
             </div>
-        <?php endforeach; endif; ?>
-    </div>
-
-<?php
-    $hasPrev = $page > 1;
-    $showPagination = $hasPrev || $hasNext;
-?>
-
-<?php if ($showPagination): ?>
-    <div class="flex-center mt-14">
-        <?php if ($hasPrev): ?>
-            <a class="btn" href="<?php echo pageLink($page - 1);?>">&laquo; Trước</a>
-        <?php endif; ?>
-        <div class="page-indicator">Trang <?php echo $page; ?></div>
-        <?php if ($hasNext): ?>
-            <a class="btn" href="<?php echo pageLink($page + 1);?>">Tiếp &raquo;</a>
-        <?php endif; ?>
-    </div>
-<?php endif; ?>
-
-<!-- Modal: Orders for product -->
-<div id="productOrdersModal" class="modal">
-    <div class="modal-content modal-lg">
-        <div class="modal-header">
-            <h3 class="modal-title">Đơn hàng</h3>
-            <span class="modal-close" onclick="document.getElementById('productOrdersModal').classList.remove('active')">&times;</span>
-        </div>
-        <div class="modal-body">
-            <p class="text-center">Chọn một sản phẩm để xem đơn hàng</p>
+            <div class="modal-body">
+                <p class="text-center">Chọn một sản phẩm để xem đơn hàng</p>
+            </div>
         </div>
     </div>
-</div>
 
-<style>
-.product-prices {
-    margin: 10px 0;
-    padding: 8px;
-    background: #f5f5f5;
-    border-radius: 4px;
-}
+    <style>
+        .product-prices {
+            margin: 10px 0;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
 
-.price-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4px 0;
-    font-size: 13px;
-}
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 13px;
+        }
 
-.duration-label {
-    font-weight: 500;
-    color: #333;
-}
+        .duration-label {
+            font-weight: 500;
+            color: #333;
+        }
 
-.duration-price {
-    color: #e74c3c;
-    font-weight: bold;
-}
-</style>
+        .duration-price {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
 
-<script>
-// Avatar pool for public orders (precomputed in PHP)
-const publicOrderAvatarPool = <?php echo json_encode($avatarUrls); ?>;
+    <script>
+        // Product CSR logic
+        let currentProductPage = <?php echo $page; ?>;
 
-function pickAvatarFromPool(seed) {
-    if (!publicOrderAvatarPool || !publicOrderAvatarPool.length) return null;
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-        hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-    }
-    const idx = Math.abs(hash) % publicOrderAvatarPool.length;
-    return publicOrderAvatarPool[idx];
-}
+        async function loadProducts(page = 1) {
+            const skeleton = document.getElementById('skeletonLoader');
+            const container = document.getElementById('productsContainer');
+            const pagination = document.getElementById('productsPagination');
 
-// Hide skeleton and show products quickly with stagger animation
-window.addEventListener('DOMContentLoaded', () => {
-    // Mobile: tắt skeleton, hiện luôn để nhanh hơn
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const skeletonDelay = isMobile ? 100 : 300; // Mobile chỉ 100ms
-    
-    setTimeout(() => {
-        const skeleton = document.getElementById('skeletonLoader');
-        const container = document.getElementById('productsContainer');
-        if (!skeleton || !container) return;
+            // Show skeleton, hide container
+            if (skeleton) {
+                skeleton.style.display = 'grid';
+                skeleton.style.opacity = '1';
+            }
+            if (container) container.style.display = 'none';
+            if (pagination) pagination.style.display = 'none';
 
-        // Fade out skeleton nhanh
-        skeleton.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        skeleton.style.opacity = '0';
-        skeleton.style.transform = 'scale(0.97)';
+            try {
+                const res = await fetch(`/ShopToolNro/api/products/list.php?page=${page}`);
+                const data = await res.json();
 
-        setTimeout(() => {
-            skeleton.style.display = 'none';
+                if (data.status === 'success' && data.data) {
+                    renderProducts(data.data.products);
+                    renderPagination(data.data.pagination);
+                    currentProductPage = page;
+
+                    // Push state to URL without reload if page changed
+                    const url = new URL(window.location);
+                    if (parseInt(url.searchParams.get('page')) !== page) {
+                        url.searchParams.set('page', page);
+                        window.history.pushState({}, '', url);
+                    }
+                } else {
+                    container.innerHTML = `<div class="empty-state empty-state-lg">${data.message || 'Không có sản phẩm'}</div>`;
+                    container.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error loading products:', err);
+                container.innerHTML = '<div class="empty-state empty-state-lg">Lỗi tải dữ liệu</div>';
+                container.style.display = 'block';
+            } finally {
+                if (skeleton) {
+                    // Smooth transition from skeleton to products
+                    skeleton.style.opacity = '0';
+                    setTimeout(() => {
+                        skeleton.style.display = 'none';
+                    }, 300);
+                }
+            }
+        }
+
+        function renderProducts(products) {
+            const container = document.getElementById('productsContainer');
+            container.innerHTML = '';
+
+            if (!products || products.length === 0) {
+                container.innerHTML = '<div class="empty-state empty-state-lg">Không có sản phẩm</div>';
+                container.style.display = 'block';
+                return;
+            }
+
+            products.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'product-card fade-in stagger show';
+                card.style.animationDelay = `${index * 0.05}s`;
+                card.dataset.name = (item.name || '').toLowerCase();
+
+                let imageUrl = item.image_url;
+                if (!imageUrl) {
+                    if (item.demo_image_url) {
+                        try {
+                            const demoUrls = JSON.parse(item.demo_image_url);
+                            imageUrl = Array.isArray(demoUrls) && demoUrls[0] ? demoUrls[0] : `https://via.placeholder.com/400x250?text=${encodeURIComponent(item.name)}`;
+                        } catch (e) {
+                            imageUrl = `https://via.placeholder.com/400x250?text=${encodeURIComponent(item.name)}`;
+                        }
+                    } else {
+                        imageUrl = `https://via.placeholder.com/400x250?text=${encodeURIComponent(item.name)}`;
+                    }
+                }
+
+                let durationsHtml = '';
+                if (item.durations && item.durations.length > 0) {
+                    durationsHtml = '<div class="product-prices">';
+                    item.durations.forEach(d => {
+                        durationsHtml += `
+                            <div class="price-item">
+                                <span class="duration-label">${d.duration_label}</span>
+                                <span class="duration-price">${new Intl.NumberFormat('vi-VN').format(d.price)} ₫</span>
+                            </div>
+                        `;
+                    });
+                    durationsHtml += '</div>';
+                } else {
+                    durationsHtml = '<div class="product-price">Giá cạnh tranh</div>';
+                }
+
+                card.innerHTML = `
+                    <img src="${imageUrl}" alt="${item.name}" class="product-image" loading="lazy">
+                    <div class="product-info">
+                        <h3 class="product-name">${item.name}</h3>
+                        <p class="product-description">${item.description ? (item.description.length > 80 ? item.description.substring(0, 80) + '...' : item.description) : ''}</p>
+                        ${durationsHtml}
+                        <div class="flex-between gap-10 mt-10">
+                            <a href="/ShopToolNro/views/pages/product-detail.php?id=${item.id}" class="btn btn-primary flex-1">Xem chi tiết</a>
+                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                                <button class="btn btn-outline view-orders-btn" data-product-id="${item.id}" title="Xem đơn hàng">📦</button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
             container.style.display = 'grid';
-
-            // Stagger animation (delay đã cấu hình trong CSS)
-            container.querySelectorAll('.product-card').forEach(card => card.classList.add('show'));
-        }, 240);
-    }, 200);
-});
-
-document.getElementById('searchProduct').addEventListener('keyup', (e) => {
-    const keyword = e.target.value.toLowerCase();
-    document.querySelectorAll('.product-card').forEach(card => {
-        const name = card.dataset.name;
-        card.style.display = name.includes(keyword) ? 'block' : 'none';
-    });
-});
-
-// View orders from product card
-async function showOrdersForProduct(productId) {
-    const modal = document.getElementById('productOrdersModal');
-    const body = modal.querySelector('.modal-body');
-    body.innerHTML = '<p class="text-center">Đang tải...</p>';
-    modal.classList.add('active');
-
-    try {
-        const res = await fetch('/ShopToolNro/api/orders/by_product.php?product_id=' + productId);
-        const data = await res.json();
-        if (!data.success) {
-            body.innerHTML = '<p class="text-center">' + (data.message || 'Không có đơn hàng.') + '</p>';
-            return;
         }
 
-        const orders = data.orders || [];
-        if (orders.length === 0) {
-            body.innerHTML = '<p class="text-center">Không có đơn hàng.</p>';
-            return;
+        function renderPagination(paginationData) {
+            const pagination = document.getElementById('productsPagination');
+            if (!paginationData || paginationData.pages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            let html = '';
+            if (paginationData.page > 1) {
+                html += `<button class="btn" onclick="loadProducts(${paginationData.page - 1})">&laquo; Trước</button>`;
+            }
+
+            html += `<div class="page-indicator">Trang ${paginationData.page} / ${paginationData.pages}</div>`;
+
+            if (paginationData.page < paginationData.pages) {
+                html += `<button class="btn" onclick="loadProducts(${paginationData.page + 1})">Tiếp &raquo;</button>`;
+            }
+
+            pagination.innerHTML = html;
+            pagination.style.display = 'flex';
         }
 
-        let html = '<table class="full-table"><thead><tr class="table-row"><th>ID</th><th>Người mua</th><th>Giá</th><th>License</th><th>Hết hạn</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody>'; 
-        orders.forEach(o => {
-            html += '<tr class="table-row--thin">';
-            html += '<td>' + o.id + '</td>';
-            html += '<td>' + (o.customer_name || '-') + '</td>';
-            html += '<td>' + new Intl.NumberFormat('vi-VN').format(o.total_price || 0) + ' ₫</td>';
-            html += '<td>' + (o.license_key ? '<code>' + o.license_key + '</code>' : '-') + '</td>';
-            let expiresText = '-';
-            if (o.license_key && !o.expires_at) expiresText = 'Vĩnh viễn';
-            else if (o.expires_at) expiresText = new Date(o.expires_at).toLocaleString();
-            html += '<td>' + expiresText + '</td>';
-            html += '<td>' + (o.status || '-') + '</td>';
-            html += '<td>' + (o.created_at ? new Date(o.created_at).toLocaleString() : '-') + '</td>';
-            html += '</tr>';
+        // Avatar pool logic for public orders
+        const publicOrderAvatarPool = <?php echo json_encode($avatarUrls); ?>;
+
+        function pickAvatarFromPool(seed) {
+            if (!publicOrderAvatarPool || !publicOrderAvatarPool.length) return null;
+            let hash = 0;
+            for (let i = 0; i < seed.length; i++) {
+                hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+            }
+            const idx = Math.abs(hash) % publicOrderAvatarPool.length;
+            return publicOrderAvatarPool[idx];
+        }
+
+        // Initial load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadProducts(currentProductPage);
         });
-        html += '</tbody></table>';
 
-        body.innerHTML = html;
-    } catch (err) {
-        body.innerHTML = '<p class="text-center">Lỗi: ' + (err.message || '') + '</p>';
-    }
-}
+        // Search functionality for CSR
+        document.getElementById('searchProduct').addEventListener('input', (e) => {
+            const keyword = e.target.value.toLowerCase();
+            document.querySelectorAll('.product-card').forEach(card => {
+                const name = card.dataset.name || '';
+                card.style.display = name.includes(keyword) ? 'block' : 'none';
+            });
+        });
 
-// Attach listeners
-document.addEventListener('click', (e) => {
-    if (e.target && e.target.classList.contains('view-orders-btn')) {
-        const pid = e.target.getAttribute('data-product-id');
-        showOrdersForProduct(pid);
-    }
-});
-</script>
+        // View orders from product card
+        async function showOrdersForProduct(productId) {
+            const modal = document.getElementById('productOrdersModal');
+            if (!modal) return;
+            const body = modal.querySelector('.modal-body');
+            body.innerHTML = '<p class="text-center">Đang tải...</p>';
+            modal.classList.add('active');
 
-<!-- Homepage Notification Modal -->
-<div id="homepageNotificationModal" class="homepage-notification-modal">
-    <div class="notification-modal-content">
-        <button class="notification-close-btn" onclick="closeHomepageNotification()">×</button>
-        <div class="notification-icon" id="notificationIcon">📢</div>
-        <h2 id="notificationTitle">Thông báo quan trọng</h2>
-        <p id="notificationMessage">Chào mừng bạn đến với <strong>ShopToolNro</strong>! 🎉</p>
-        <div class="notification-actions">
-            <button class="btn btn-primary" onclick="closeHomepageNotification()">Đã hiểu</button>
+            try {
+                const res = await fetch('/ShopToolNro/api/orders/by_product.php?product_id=' + productId);
+                const data = await res.json();
+                if (!data.success) {
+                    body.innerHTML = '<p class="text-center">' + (data.message || 'Không có đơn hàng.') + '</p>';
+                    return;
+                }
+
+                const orders = data.orders || [];
+                if (orders.length === 0) {
+                    body.innerHTML = '<p class="text-center">Không có đơn hàng.</p>';
+                    return;
+                }
+
+                let html = '<div class="table-responsive"><table class="full-table"><thead><tr class="table-row"><th>ID</th><th>Người mua</th><th>Giá</th><th>License</th><th>Hết hạn</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody>';
+                orders.forEach(o => {
+                    html += '<tr class="table-row--thin">';
+                    html += '<td>' + o.id + '</td>';
+                    html += '<td>' + (o.customer_name || '-') + '</td>';
+                    html += '<td>' + new Intl.NumberFormat('vi-VN').format(o.total_price || 0) + ' ₫</td>';
+                    html += '<td>' + (o.license_key ? '<code>' + o.license_key + '</code>' : '-') + '</td>';
+                    let expiresText = '-';
+                    if (o.license_key && !o.expires_at) expiresText = 'Vĩnh viễn';
+                    else if (o.expires_at) expiresText = new Date(o.expires_at).toLocaleString();
+                    html += '<td>' + expiresText + '</td>';
+                    html += '<td>' + (o.status || '-') + '</td>';
+                    html += '<td>' + (o.created_at ? new Date(o.created_at).toLocaleString() : '-') + '</td>';
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div>';
+
+                body.innerHTML = html;
+            } catch (err) {
+                body.innerHTML = '<p class="text-center">Lỗi: ' + (err.message || '') + '</p>';
+            }
+        }
+
+        // Attach listeners
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.view-orders-btn');
+            if (btn) {
+                const pid = btn.getAttribute('data-product-id');
+                showOrdersForProduct(pid);
+            }
+        });
+    </script>
+
+    <!-- Homepage Notification Modal -->
+    <div id="homepageNotificationModal" class="homepage-notification-modal">
+        <div class="notification-modal-content">
+            <button class="notification-close-btn" onclick="closeHomepageNotification()">×</button>
+            <div class="notification-icon" id="notificationIcon">📢</div>
+            <h2 id="notificationTitle">Thông báo quan trọng</h2>
+            <p id="notificationMessage">Chào mừng bạn đến với <strong>ShopToolNro</strong>! 🎉</p>
+            <div class="notification-actions">
+                <button class="btn btn-primary" onclick="closeHomepageNotification()">Đã hiểu</button>
+            </div>
         </div>
     </div>
-</div>
 
-<style>
-.homepage-notification-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 8888;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Tắt backdrop-filter trên mobile - rất nặng */
-@media (min-width: 769px) {
-    .homepage-notification-modal {
-        backdrop-filter: blur(2px);
-    }
-}
-
-.homepage-notification-modal.active {
-    display: flex;
-    animation: fadeIn 0.2s ease-out;
-}
-
-/* Mobile: animation nhanh hơn */
-@media (max-width: 768px) {
-    .homepage-notification-modal.active {
-        animation: fadeIn 0.15s ease-out;
-    }
-}
-
-.notification-modal-content {
-    background: white;
-    border-radius: 16px;
-    padding: 40px 30px;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    animation: slideUp 0.3s ease-out;
-    max-width: 450px;
-    position: relative;
-    overflow: hidden;
-    will-change: transform;
-    transform: translateZ(0);
-}
-
-/* Mobile: giảm padding và animation */
-@media (max-width: 768px) {
-    .notification-modal-content {
-        padding: 25px 20px;
-        max-width: 90%;
-        animation: slideUp 0.2s ease-out;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    }
-}
-
-/* Tắt hiệu ứng nặng trên mobile */
-@media (min-width: 769px) {
-    .notification-modal-content::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 250px;
-        height: 250px;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-        pointer-events: none;
-    }
-}
-
-.notification-close-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: #f3f4f6;
-    color: #6b7280;
-    font-size: 24px;
-    cursor: pointer;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    z-index: 1;
-}
-
-.notification-close-btn:hover {
-    background: #e5e7eb;
-    color: #1f2937;
-    transform: rotate(90deg);
-}
-
-.notification-icon {
-    font-size: 50px;
-    margin-bottom: 15px;
-    position: relative;
-    z-index: 1;
-}
-
-/* Desktop: có animation */
-@media (min-width: 769px) {
-    .notification-icon {
-        font-size: 60px;
-        animation: bounce 0.6s ease-in-out;
-    }
-}
-
-/* Mobile: không animation, nhẹ hơn */
-@media (max-width: 768px) {
-    .notification-icon {
-        font-size: 45px;
-        margin-bottom: 12px;
-    }
-}
-
-.notification-modal-content h2 {
-    margin: 0 0 15px 0;
-    font-size: 28px;
-    font-weight: 700;
-    color: #1f2937;
-    position: relative;
-    z-index: 1;
-}
-
-.notification-modal-content p {
-    margin: 0 0 12px 0;
-    font-size: 16px;
-    color: #4b5563;
-    line-height: 1.6;
-    position: relative;
-    z-index: 1;
-}
-
-.notification-modal-content p strong {
-    color: #3b82f6;
-    font-weight: 600;
-}
-
-.notification-actions {
-    margin-top: 30px;
-    position: relative;
-    z-index: 1;
-}
-
-.notification-actions .btn {
-    padding: 12px 35px;
-    font-size: 16px;
-    font-weight: 600;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-}
-
-.notification-actions .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
-}
-
-.notification-actions .btn:active {
-    transform: translateY(0);
-}
-
-@keyframes bounce {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.1);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(20px) translateZ(0);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) translateZ(0);
-        opacity: 1;
-    }
-}
-
-/* Mobile: animation ngắn hơn */
-@media (max-width: 768px) {
-    @keyframes slideUp {
-        from {
-            transform: translateY(10px) translateZ(0);
-            opacity: 0;
+    <style>
+        .homepage-notification-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 8888;
+            align-items: center;
+            justify-content: center;
         }
-        to {
-            transform: translateY(0) translateZ(0);
-            opacity: 1;
+
+        /* Tắt backdrop-filter trên mobile - rất nặng */
+        @media (min-width: 769px) {
+            .homepage-notification-modal {
+                backdrop-filter: blur(2px);
+            }
         }
-    }
-}
-</style>
 
-<script>
-// Notification data from PHP
-const notificationData = <?php echo $notification ? json_encode($notification) : 'null'; ?>;
-const currentUserId = <?php echo isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 'null'; ?>;
-
-function getDismissKey() {
-    const idPart = notificationData && notificationData.id ? `_${notificationData.id}` : '_latest';
-    const userPart = currentUserId ? `_user_${currentUserId}` : '_guest';
-    return `homepageNotificationDismissed${idPart}${userPart}`;
-}
-
-function initializeHomepageNotification() {
-    // Check if there's a notification from admin
-    if (!notificationData) {
-        return; // No notification, don't show modal
-    }
-
-    if (!notificationData.message) {
-        return; // Nothing to display
-    }
-    
-    // Check if notification has been dismissed in the last 30 minutes
-    const dismissKey = getDismissKey();
-    const dismissedTime = localStorage.getItem(dismissKey);
-    const now = Date.now();
-    const thirtyMinutes = 30 * 60 * 1000;
-    
-    if (dismissedTime && (now - parseInt(dismissedTime)) < thirtyMinutes) {
-        // Notification was dismissed within the last 30 minutes, don't show it
-        return;
-    }
-    
-    // Update modal content with notification data
-    updateNotificationContent();
-    
-    // Delay modal trên mobile để tránh lag khi load trang
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const delay = isMobile ? 800 : 300; // Mobile: 800ms delay
-    
-    // Show the notification sau một chút delay
-    setTimeout(() => {
-        const modal = document.getElementById('homepageNotificationModal');
-        if (modal) {
-            modal.classList.add('active');
+        .homepage-notification-modal.active {
+            display: flex;
+            animation: fadeIn 0.2s ease-out;
         }
-    }, delay);
-}
 
-function updateNotificationContent() {
-    if (!notificationData) return;
-    
-    // Set title
-    const titleEl = document.getElementById('notificationTitle');
-    if (titleEl && notificationData.title) {
-        titleEl.textContent = notificationData.title;
-    }
-    
-    // Set message
-    const messageEl = document.getElementById('notificationMessage');
-    if (messageEl && notificationData.message) {
-        messageEl.innerHTML = notificationData.message;
-    }
-    
-    // Set icon if available
-    const iconEl = document.getElementById('notificationIcon');
-    if (iconEl && notificationData.icon) {
-        iconEl.textContent = notificationData.icon;
-    }
-}
+        /* Mobile: animation nhanh hơn */
+        @media (max-width: 768px) {
+            .homepage-notification-modal.active {
+                animation: fadeIn 0.15s ease-out;
+            }
+        }
 
-function closeHomepageNotification() {
-    const modal = document.getElementById('homepageNotificationModal');
-    if (modal) {
-        modal.classList.remove('active');
-        // Store dismissal time in localStorage
-        localStorage.setItem(getDismissKey(), Date.now().toString());
-    }
-}
+        .notification-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: slideUp 0.3s ease-out;
+            max-width: 450px;
+            position: relative;
+            overflow: hidden;
+            will-change: transform;
+            transform: translateZ(0);
+        }
 
-// Initialize notification when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    initializeHomepageNotification();
-});
+        /* Mobile: giảm padding và animation */
+        @media (max-width: 768px) {
+            .notification-modal-content {
+                padding: 25px 20px;
+                max-width: 90%;
+                animation: slideUp 0.2s ease-out;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+        }
 
-// Also initialize if DOM is already loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeHomepageNotification);
-} else {
-    initializeHomepageNotification();
-}
+        /* Tắt hiệu ứng nặng trên mobile */
+        @media (min-width: 769px) {
+            .notification-modal-content::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -50%;
+                width: 250px;
+                height: 250px;
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+                pointer-events: none;
+            }
+        }
 
-// ===== PUBLIC ORDERS - Load and display public order history =====
-let allOrders = [];
-let currentPage = 1;
+        .notification-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f3f4f6;
+            color: #6b7280;
+            font-size: 24px;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
 
-// Get items per page based on screen size
-function getItemsPerPage() {
-    return window.innerWidth >= 769 ? 3 : 2;
-}
+        .notification-close-btn:hover {
+            background: #e5e7eb;
+            color: #1f2937;
+            transform: rotate(90deg);
+        }
 
-async function loadPublicOrders() {
-    const container = document.getElementById('publicOrdersList');
-    if (!container) {
-        console.log('Public orders container not found');
-        return;
-    }
-    
-    console.log('Loading public orders...');
-    
-    try {
-        const response = await fetch('/ShopToolNro/api/orders/public_history.php');
-        const data = await response.json();
-        
-        console.log('Public orders data:', data);
-        
-        if (data.success && data.orders && data.orders.length > 0) {
-            console.log('Found', data.orders.length, 'orders');
-            
-            allOrders = data.orders;
-            currentPage = 1;
-            renderPublicOrders();
-            
-            console.log('Successfully rendered public orders with pagination');
+        .notification-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Desktop: có animation */
+        @media (min-width: 769px) {
+            .notification-icon {
+                font-size: 60px;
+                animation: bounce 0.6s ease-in-out;
+            }
+        }
+
+        /* Mobile: không animation, nhẹ hơn */
+        @media (max-width: 768px) {
+            .notification-icon {
+                font-size: 45px;
+                margin-bottom: 12px;
+            }
+        }
+
+        .notification-modal-content h2 {
+            margin: 0 0 15px 0;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2937;
+            position: relative;
+            z-index: 1;
+        }
+
+        .notification-modal-content p {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #4b5563;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+
+        .notification-modal-content p strong {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .notification-actions {
+            margin-top: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .notification-actions .btn {
+            padding: 12px 35px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .notification-actions .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .notification-actions .btn:active {
+            transform: translateY(0);
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px) translateZ(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0) translateZ(0);
+                opacity: 1;
+            }
+        }
+
+        /* Mobile: animation ngắn hơn */
+        @media (max-width: 768px) {
+            @keyframes slideUp {
+                from {
+                    transform: translateY(10px) translateZ(0);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0) translateZ(0);
+                    opacity: 1;
+                }
+            }
+        }
+    </style>
+
+    <script>
+        // Notification data from PHP
+        const notificationData = <?php echo $notification ? json_encode($notification) : 'null'; ?>;
+        const currentUserId = <?php echo isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 'null'; ?>;
+
+        function getDismissKey() {
+            const idPart = notificationData && notificationData.id ? `_${notificationData.id}` : '_latest';
+            const userPart = currentUserId ? `_user_${currentUserId}` : '_guest';
+            return `homepageNotificationDismissed${idPart}${userPart}`;
+        }
+
+        function initializeHomepageNotification() {
+            // Check if there's a notification from admin
+            if (!notificationData) {
+                return; // No notification, don't show modal
+            }
+
+            if (!notificationData.message) {
+                return; // Nothing to display
+            }
+
+            // Check if notification has been dismissed in the last 30 minutes
+            const dismissKey = getDismissKey();
+            const dismissedTime = localStorage.getItem(dismissKey);
+            const now = Date.now();
+            const fiveMinutes = 5 * 60 * 1000;
+
+            if (dismissedTime && (now - parseInt(dismissedTime)) < fiveMinutes) {
+                // Notification was dismissed within the last 5 minutes, don't show it
+                return;
+            }
+
+            // Update modal content with notification data
+            updateNotificationContent();
+
+            // Delay modal trên mobile để tránh lag khi load trang
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const delay = isMobile ? 800 : 300; // Mobile: 800ms delay
+
+            // Show the notification sau một chút delay
+            setTimeout(() => {
+                const modal = document.getElementById('homepageNotificationModal');
+                if (modal) {
+                    modal.classList.add('active');
+                }
+            }, delay);
+        }
+
+        function updateNotificationContent() {
+            if (!notificationData) return;
+
+            // Set title
+            const titleEl = document.getElementById('notificationTitle');
+            if (titleEl && notificationData.title) {
+                titleEl.textContent = notificationData.title;
+            }
+
+            // Set message
+            const messageEl = document.getElementById('notificationMessage');
+            if (messageEl && notificationData.message) {
+                messageEl.innerHTML = notificationData.message;
+            }
+
+            // Set icon if available
+            const iconEl = document.getElementById('notificationIcon');
+            if (iconEl && notificationData.icon) {
+                iconEl.textContent = notificationData.icon;
+            }
+        }
+
+        function closeHomepageNotification() {
+            const modal = document.getElementById('homepageNotificationModal');
+            if (modal) {
+                modal.classList.remove('active');
+                // Store dismissal time in localStorage
+                localStorage.setItem(getDismissKey(), Date.now().toString());
+            }
+        }
+
+        // Initialize notification when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeHomepageNotification();
+        });
+
+        // Also initialize if DOM is already loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeHomepageNotification);
         } else {
-            console.log('No orders found or data not valid');
-            // No orders, hide section or show message
-            container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Chưa có đơn hàng nào</p>';
+            initializeHomepageNotification();
         }
-    } catch (error) {
-        console.error('Error loading public orders:', error);
-        container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Không thể tải lịch sử</p>';
-    }
-}
 
-function renderPublicOrders() {
-    const container = document.getElementById('publicOrdersList');
-    const pagination = document.getElementById('publicOrdersPagination');
-    const prevBtn = document.getElementById('prevPageBtn');
-    const nextBtn = document.getElementById('nextPageBtn');
-    const pageInfo = document.getElementById('paginationInfo');
-    
-    if (!container) return;
-    
-    const itemsPerPage = getItemsPerPage();
-    
-    // Calculate pagination
-    const totalPages = Math.ceil(allOrders.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageOrders = allOrders.slice(startIndex, endIndex);
-    
-    // Clear container
-    container.innerHTML = '';
-    
-    // Render current page items
-    pageOrders.forEach((order, index) => {
-        const orderItem = document.createElement('div');
-        orderItem.className = 'public-order-item';
-        orderItem.style.animationDelay = `${index * 0.1}s`;
-        
-        const firstLetter = order.username.charAt(0).toUpperCase();
-        const avatarUrl = pickAvatarFromPool(order.username + order.product_name + order.created_at);
-        
-        orderItem.innerHTML = `
+        // ===== PUBLIC ORDERS - Load and display public order history =====
+        let allOrders = [];
+        let currentPage = 1;
+
+        // Get items per page based on screen size
+        function getItemsPerPage() {
+            return window.innerWidth >= 769 ? 3 : 2;
+        }
+
+        async function loadPublicOrders() {
+            const container = document.getElementById('publicOrdersList');
+            if (!container) {
+                console.log('Public orders container not found');
+                return;
+            }
+
+            console.log('Loading public orders...');
+
+            try {
+                const response = await fetch('/ShopToolNro/api/orders/public_history.php');
+                const data = await response.json();
+
+                console.log('Public orders data:', data);
+
+                if (data.success && data.orders && data.orders.length > 0) {
+                    console.log('Found', data.orders.length, 'orders');
+
+                    allOrders = data.orders;
+                    currentPage = 1;
+                    renderPublicOrders();
+
+                    console.log('Successfully rendered public orders with pagination');
+                } else {
+                    console.log('No orders found or data not valid');
+                    // No orders, hide section or show message
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Chưa có đơn hàng nào</p>';
+                }
+            } catch (error) {
+                console.error('Error loading public orders:', error);
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Không thể tải lịch sử</p>';
+            }
+        }
+
+        function renderPublicOrders() {
+            const container = document.getElementById('publicOrdersList');
+            const pagination = document.getElementById('publicOrdersPagination');
+            const prevBtn = document.getElementById('prevPageBtn');
+            const nextBtn = document.getElementById('nextPageBtn');
+            const pageInfo = document.getElementById('paginationInfo');
+
+            if (!container) return;
+
+            const itemsPerPage = getItemsPerPage();
+
+            // Calculate pagination
+            const totalPages = Math.ceil(allOrders.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageOrders = allOrders.slice(startIndex, endIndex);
+
+            // Clear container
+            container.innerHTML = '';
+
+            // Render current page items
+            pageOrders.forEach((order, index) => {
+                const orderItem = document.createElement('div');
+                orderItem.className = 'public-order-item';
+                orderItem.style.animationDelay = `${index * 0.1}s`;
+
+                const firstLetter = order.username.charAt(0).toUpperCase();
+                const avatarUrl = pickAvatarFromPool(order.username + order.product_name + order.created_at);
+
+                orderItem.innerHTML = `
             <div class="public-order-avatar ${avatarUrl ? 'has-img' : ''}">
                 ${avatarUrl ? `<img src="${avatarUrl}" alt="avatar">` : firstLetter}
             </div>
@@ -751,66 +809,66 @@ function renderPublicOrders() {
                 </div>
             </div>
         `;
-        
-        container.appendChild(orderItem);
-    });
-    
-    // Update pagination controls
-    if (pagination && totalPages > 1) {
-        pagination.style.display = 'flex';
-        pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
-        prevBtn.disabled = currentPage === 1;
-        nextBtn.disabled = currentPage === totalPages;
-    } else if (pagination) {
-        pagination.style.display = 'none';
-    }
-}
 
-function changePage(direction) {
-    const itemsPerPage = getItemsPerPage();
-    const totalPages = Math.ceil(allOrders.length / itemsPerPage);
-    
-    if (direction === 'prev' && currentPage > 1) {
-        currentPage--;
-        renderPublicOrders();
-    } else if (direction === 'next' && currentPage < totalPages) {
-        currentPage++;
-        renderPublicOrders();
-    }
-}
+                container.appendChild(orderItem);
+            });
 
-// Load public orders when page loads
-// Load public orders when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, checking for public orders list...');
-    const publicOrdersList = document.getElementById('publicOrdersList');
-    if (publicOrdersList) {
-        console.log('Public orders list found, loading...');
-        loadPublicOrders();
-        
-        // Setup pagination event listeners
-        const prevBtn = document.getElementById('prevPageBtn');
-        const nextBtn = document.getElementById('nextPageBtn');
-        
-        if (prevBtn) prevBtn.addEventListener('click', () => changePage('prev'));
-        if (nextBtn) nextBtn.addEventListener('click', () => changePage('next'));
-        
-        // Re-render on window resize to adjust items per page
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                if (allOrders.length > 0) {
-                    currentPage = 1; // Reset to first page on resize
-                    renderPublicOrders();
-                }
-            }, 250);
+            // Update pagination controls
+            if (pagination && totalPages > 1) {
+                pagination.style.display = 'flex';
+                pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === totalPages;
+            } else if (pagination) {
+                pagination.style.display = 'none';
+            }
+        }
+
+        function changePage(direction) {
+            const itemsPerPage = getItemsPerPage();
+            const totalPages = Math.ceil(allOrders.length / itemsPerPage);
+
+            if (direction === 'prev' && currentPage > 1) {
+                currentPage--;
+                renderPublicOrders();
+            } else if (direction === 'next' && currentPage < totalPages) {
+                currentPage++;
+                renderPublicOrders();
+            }
+        }
+
+        // Load public orders when page loads
+        // Load public orders when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, checking for public orders list...');
+            const publicOrdersList = document.getElementById('publicOrdersList');
+            if (publicOrdersList) {
+                console.log('Public orders list found, loading...');
+                loadPublicOrders();
+
+                // Setup pagination event listeners
+                const prevBtn = document.getElementById('prevPageBtn');
+                const nextBtn = document.getElementById('nextPageBtn');
+
+                if (prevBtn) prevBtn.addEventListener('click', () => changePage('prev'));
+                if (nextBtn) nextBtn.addEventListener('click', () => changePage('next'));
+
+                // Re-render on window resize to adjust items per page
+                let resizeTimeout;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        if (allOrders.length > 0) {
+                            currentPage = 1; // Reset to first page on resize
+                            renderPublicOrders();
+                        }
+                    }, 250);
+                });
+            } else {
+                console.log('Public orders list not found (user might be logged in)');
+            }
         });
-    } else {
-        console.log('Public orders list not found (user might be logged in)');
-    }
-});
 
-</script>
+    </script>
 
-<?php include '../layout/footer.php'; ?>
+    <?php include '../layout/footer.php'; ?>

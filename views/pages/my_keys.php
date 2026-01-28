@@ -14,7 +14,21 @@ $database = new Database();
 $db = $database->connect();
 $license = new License($db);
 
-$myKeys = $license->getUserKeys($_SESSION['user_id']);
+$perPage = 5;
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+$offset = ($page - 1) * $perPage;
+
+$myKeys = $license->getUserKeys($_SESSION['user_id'], $perPage + 1, $offset);
+$hasNext = count($myKeys) > $perPage;
+if ($hasNext)
+    array_pop($myKeys);
+
+function pageLink($p)
+{
+    $qs = $_GET;
+    $qs['page'] = $p;
+    return '?' . http_build_query($qs);
+}
 ?>
 
 <div class="main-content fade-in">
@@ -103,6 +117,23 @@ $myKeys = $license->getUserKeys($_SESSION['user_id']);
                 </tbody>
             </table>
         </div>
+
+        <?php
+        $hasPrev = $page > 1;
+        $showPagination = $hasPrev || $hasNext;
+        ?>
+
+        <?php if ($showPagination): ?>
+            <div class="flex-center mt-14" style="padding-bottom: 20px;">
+                <?php if ($hasPrev): ?>
+                    <a class="btn btn-sm" href="<?php echo pageLink($page - 1); ?>">&laquo; Trước</a>
+                <?php endif; ?>
+                <div class="page-indicator" style="margin: 0 15px;">Trang <?php echo $page; ?></div>
+                <?php if ($hasNext): ?>
+                    <a class="btn btn-sm" href="<?php echo pageLink($page + 1); ?>">Tiếp &raquo;</a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

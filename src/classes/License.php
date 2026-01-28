@@ -54,10 +54,13 @@ class License
     /**
      * Get keys by user ID
      */
-    public function getUserKeys($user_id)
+    public function getUserKeys($user_id, $limit = 0, $offset = 0)
     {
         // Fetch keys and associated product name using PostgREST embedding
         $endpoint = $this->table . "?user_id=eq." . (int) $user_id . "&select=*,products(name)&order=created_at.desc";
+        if ($limit > 0) {
+            $endpoint .= "&limit=" . (int) $limit . "&offset=" . (int) $offset;
+        }
         $result = $this->db->callApi($endpoint, 'GET');
         if ($result && $result->code == 200 && is_array($result->response)) {
             return $result->response;

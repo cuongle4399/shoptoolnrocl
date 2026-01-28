@@ -11,7 +11,7 @@ $orderClass = new Order($db);
 $userClass = new User($db);
 $productClass = new Product($db);
 
-$perPage = 20;
+$perPage = 5;
 $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $offset = ($page - 1) * $perPage;
 
@@ -230,9 +230,11 @@ function compactStr($s, $front = 8, $back = 4)
                                             data-target="license-<?php echo $order['id']; ?>">Details</button>
                                     </div>
                                     <div class="full-value hide mt-4" id="license-<?php echo $order['id']; ?>">
-                                        <?php echo htmlspecialchars($license_display); ?></div>
+                                        <?php echo htmlspecialchars($license_display); ?>
+                                    </div>
                                 <?php else:
-                                    echo '-'; endif; ?>
+                                    echo '-';
+                                endif; ?>
                             </td>
                             <?php if ($isAdmin): ?>
                                 <td>
@@ -246,9 +248,11 @@ function compactStr($s, $front = 8, $back = 4)
                                                 data-target="hwid-<?php echo $order['id']; ?>">Details</button>
                                         </div>
                                         <div class="full-value hide mt-4" id="hwid-<?php echo $order['id']; ?>">
-                                            <?php echo htmlspecialchars($key['hwid']); ?></div>
+                                            <?php echo htmlspecialchars($key['hwid']); ?>
+                                        </div>
                                     <?php else:
-                                        echo '-'; endif; ?>
+                                        echo '-';
+                                    endif; ?>
                                 </td>
                             <?php endif; ?>
                             <td><?php if ($key) {
@@ -275,7 +279,7 @@ function compactStr($s, $front = 8, $back = 4)
                                                     HWID</button>
                                             <?php endif; ?>
                                         <?php endif; ?>
-                                    <?php
+                                        <?php
                                     } else {
                                         // Người dùng bình thường: hiển thị link tải
                                         $showLicenseDownload = !empty($key) && !empty($key['hwid']);

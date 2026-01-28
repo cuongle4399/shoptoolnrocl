@@ -90,31 +90,44 @@ class Database
             $headers[] = "Prefer: return=representation";
         }
 
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        if ($method === 'GET') {
+            $headers[] = "Prefer: count=exact";
+        }
 
-        $response = curl_exec($ch);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+
+        $responseBody = curl_exec($ch);
+        $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $header_text = substr($responseBody, 0, $header_size);
+        $body = substr($responseBody, $header_size);
+
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curl_error = curl_error($ch);
         curl_close($ch);
 
-        // Minimal error handling - no logging in production
+        $total_count = null;
+        if (preg_match('/Content-Range: .+\/(\d+)/i', $header_text, $matches)) {
+            $total_count = (int) $matches[1];
+        }
+
         if ($curl_error) {
-            return (object) ['code' => 0, 'response' => null];
+            return (object) ['code' => 0, 'response' => null, 'total' => null];
         }
 
-        if ($http_code == 204 || empty($response)) {
-            return (object) ['code' => $http_code, 'response' => null];
+        if ($http_code == 204 || empty($body)) {
+            return (object) ['code' => $http_code, 'response' => null, 'total' => $total_count];
         }
 
-        $decoded = json_decode($response, true);
-
+        $decoded = json_decode($body, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return (object) ['code' => $http_code, 'response' => null];
+            return (object) ['code' => $http_code, 'response' => null, 'total' => $total_count];
         }
 
         return (object) [
             'code' => $http_code,
-            'response' => $decoded
+            'response' => $decoded,
+            'total' => $total_count
         ];
     }
 

@@ -18,7 +18,7 @@ $licenseClass = new License($db);
 $productClass = new Product($db);
 $userClass = new User($db);
 
-$perPage = 7;
+$perPage = 5;
 $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $offset = ($page - 1) * $perPage;
 $keys = $licenseClass->getAllKeys($perPage + 1, $offset);

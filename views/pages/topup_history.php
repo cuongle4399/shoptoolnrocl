@@ -170,7 +170,7 @@ $topupRequests = $topupClass->getUserTopupRequests($_SESSION['user_id']);
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Pagination
-        const rowsPerPage = 10;
+        const rowsPerPage = 5;
         let currentPage = 1;
 
         function setupPagination() {

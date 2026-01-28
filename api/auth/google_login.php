@@ -36,7 +36,7 @@ try {
 
     // Verify Google Client Library
     if (!class_exists('Google\Client')) {
-        throw new Exception('Google Client Library class not found. Run composer install.', 500);
+        throw new Exception('Lỗi Server: Google Client Library (SDK) chưa được cài đặt. Vui lòng chạy "composer install" trên máy chủ.', 500);
     }
 
     // Get input
@@ -87,7 +87,7 @@ try {
     // Database Operations
     $db = (new Database())->connect();
     if (!$db) {
-        throw new Exception('Database connection failed', 500);
+        throw new Exception('Lỗi hệ thống: Không thể kết nối cơ sở dữ liệu để đăng nhập Google.', 500);
     }
 
     $userClass = new User($db);
@@ -128,14 +128,23 @@ try {
     }
 
 } catch (Exception $e) {
-    if ($e->getCode() >= 100 && $e->getCode() <= 599) {
-        http_response_code($e->getCode());
-    } else {
-        http_response_code(500);
+    $code = $e->getCode();
+    if ($code < 100 || $code > 599) {
+        $code = 500;
     }
+    http_response_code($code);
+
+    // Log detailed error for admin
+    error_log("Google Login Exception [Code $code]: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+
     $response = [
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => $e->getMessage(),
+        'debug_info' => [
+            'code' => $code,
+            'file' => basename($e->getFile()),
+            'line' => $e->getLine()
+        ]
     ];
 }
 
