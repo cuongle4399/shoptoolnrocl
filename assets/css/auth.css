@@ -1,7 +1,6 @@
-/* ===== PREMIUM AUTH AESTHETICS ===== */
 .auth-container {
     max-width: 420px;
-    margin: 80px auto;
+    margin: 20px auto 80px auto;
     padding: 40px;
     background: rgba(30, 30, 30, 0.6);
     backdrop-filter: blur(12px);
@@ -14,9 +13,6 @@
     overflow: hidden;
 }
 
-/* Glowing top border accent */
-/* CSS removed as requested */
-
 .auth-container h1 {
     font-size: 2rem;
     font-weight: 800;
@@ -24,6 +20,7 @@
     margin-bottom: 30px;
     background: linear-gradient(135deg, #fff 0%, #a0a0a0 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -0.5px;
     position: relative;
@@ -65,21 +62,18 @@
 .form-group input[type="email"] {
     padding: 14px 16px;
     height: 50px;
-    /* Force height enforcement */
 }
 
-/* Wrapper Layout - The Magic Flexbox */
+/* Wrapper Layout */
 .password-input-wrapper {
     display: flex;
     align-items: center;
     padding: 0;
-    /* Wrapper has no padding, inner elements do */
     height: 50px;
-    /* Match standard input height */
     overflow: hidden;
 }
 
-/* Wrapper Focus State mimicking Input Focus */
+/* Wrapper Focus State */
 .password-input-wrapper:focus-within,
 .form-group input[type="text"]:focus,
 .form-group input[type="email"]:focus {
@@ -90,14 +84,11 @@
     outline: none;
 }
 
-/* The Password Input Itself (Inside Wrapper) */
+/* Password Input */
 .password-input-wrapper input {
     flex: 1;
-    /* Take all available space */
     min-width: 0;
-    /* Allow shrinking below content size if needed (critical for flex) */
     width: auto !important;
-    /* Override explicit 100% widths */
     height: 100%;
     border: none !important;
     background: transparent !important;
@@ -105,15 +96,13 @@
     outline: none !important;
     color: #fff !important;
     padding: 0 0 0 16px !important;
-    /* Left padding only */
     margin: 0;
     font-size: 1rem;
 }
 
-/* The Toggle Button (Inside Wrapper) */
+/* Toggle Button */
 .password-toggle-btn {
     flex: 0 0 50px;
-    /* Fixed square area */
     height: 100%;
     display: flex;
     align-items: center;
@@ -173,7 +162,7 @@
     box-shadow: 0 15px 30px rgba(0, 188, 212, 0.3);
 }
 
-/* Google Button Container */
+/* Google Button */
 #g_id_onload,
 .g_id_signin {
     margin-top: 20px;
@@ -190,11 +179,11 @@
 }
 
 /* Responsive */
-@media (max-width: 500px) {
+@media (max-width: 540px) {
     .auth-container {
-        margin: 20px 10px;
+        margin: 0 auto 40px auto;
         padding: 30px 20px;
-        width: auto;
+        width: 92%;
     }
 
     .g_id_signin {

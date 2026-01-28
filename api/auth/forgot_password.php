@@ -3,6 +3,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once '../../config/constants.php';
 require_once '../../config/database.php';
+require_once '../../vendor/autoload.php';
 require_once '../../src/classes/User.php';
 require_once '../../src/classes/Mailer.php';
 
@@ -51,9 +52,10 @@ $userClass = new User($db);
 
 $result = $userClass->initiatePasswordReset($email);
 
-if ($result) {
+if ($result === true) {
     echo json_encode(['success' => true, 'message' => 'Nếu email tồn tại, một liên kết đặt lại mật khẩu đã được gửi.']);
 } else {
-    echo json_encode(['success' => false, 'message' => 'Có lỗi xảy ra khi gửi email.']);
+    $errorMsg = is_string($result) ? $result : 'Có lỗi không xác định xảy ra khi gửi email.';
+    echo json_encode(['success' => false, 'message' => 'Lỗi: ' . $errorMsg]);
 }
 ?>

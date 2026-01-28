@@ -389,16 +389,32 @@ class User
 
         if ($result && ($result->code == 200 || $result->code == 204)) {
             $mailer = new Mailer();
-            $resetLink = "http://" . $_SERVER['HTTP_HOST'] . "/ShopToolNro/views/auth/reset_password.php?token=" . $token;
-            $body = "<h2>Password Reset Request</h2>
-                     <p>You requested to reset your password. Click the link below to reset it:</p>
-                     <p><a href='$resetLink'>$resetLink</a></p>
-                     <p>This link expires in 1 hour.</p>";
+            $resetLink = "http://" . $_SERVER['HTTP_HOST'] . "/ShopToolNro/views/pages/reset_password.php?token=" . $token;
+            $siteName = getenv('SMTP_FROM_NAME') ?: 'ShopToolNro';
 
-            return $mailer->send($email, "Password Reset Request", $body);
+            $body = "
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #f9f9f9;'>
+                <div style='text-align: center; margin-bottom: 20px;'>
+                    <h1 style='color: #00bcd4; margin: 0;'>$siteName</h1>
+                </div>
+                <div style='background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);'>
+                    <h2 style='color: #333; margin-top: 0;'>Yêu cầu đặt lại mật khẩu</h2>
+                    <p style='color: #666; line-height: 1.6;'>Chào bạn,</p>
+                    <p style='color: #666; line-height: 1.6;'>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn tại <strong>$siteName</strong>. Nếu bạn không thực hiện yêu cầu này, hãy bỏ qua email này.</p>
+                    <div style='text-align: center; margin: 30px 0;'>
+                        <a href='$resetLink' style='background-color: #00bcd4; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3); transition: all 0.3s ease;'>Đặt lại mật khẩu</a>
+                    </div>
+                    <p style='color: #999; font-size: 13px; line-height: 1.6;'>Liên kết này sẽ hết hạn sau <strong>1 giờ</strong>. Vì lý do bảo mật, vui lòng không chia sẻ liên kết này với bất kỳ ai.</p>
+                </div>
+                <div style='text-align: center; margin-top: 20px; color: #999; font-size: 12px;'>
+                    <p>&copy; " . date('Y') . " $siteName. All rights reserved.</p>
+                </div>
+            </div>";
+
+            return $mailer->send($email, "[$siteName] Yêu cầu đặt lại mật khẩu", $body);
         }
 
-        return false;
+        return "Database error: Unable to generate reset token.";
     }
 
     /**

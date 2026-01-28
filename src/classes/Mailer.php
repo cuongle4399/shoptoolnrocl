@@ -3,6 +3,8 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\SMTP;
 
+require_once __DIR__ . '/../../vendor/autoload.php';
+
 class Mailer
 {
     public function send($to, $subject, $body)
@@ -33,7 +35,7 @@ class Mailer
             return true;
         } catch (Exception $e) {
             error_log("Mailer Error: {$mail->ErrorInfo}");
-            return false;
+            return "Mailer Error: " . $mail->ErrorInfo;
         }
     }
 }

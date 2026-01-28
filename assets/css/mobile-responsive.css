@@ -100,7 +100,8 @@ img {
     /* TOPBAR */
     .topbar {
         padding: 10px 16px !important;
-        flex-wrap: wrap;
+        flex-wrap: nowrap !important;
+        overflow: hidden;
     }
 
     .topbar .top-left,

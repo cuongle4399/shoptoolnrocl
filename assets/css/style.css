@@ -2106,9 +2106,30 @@ nav a:hover::after {
     min-height: calc(100vh - 160px);
 }
 
+/* Adjust for fixed header on mobile across all pages */
+@media (max-width: 540px) {
+
+    /* Logged in with fixed topbar */
+    .topbar~main .main-content,
+    .topbar~.main-content {
+        margin-top: 15px !important;
+    }
+
+    /* Guest with static header */
+    header~main .main-content,
+    header~.main-content {
+        margin-top: 5px !important;
+    }
+
+    .main-content {
+        padding: 0 15px;
+    }
+}
+
 /* Auth pages (login, register) - smaller width */
 .main-content.auth-container {
     max-width: 480px;
+    margin-top: 16px;
 }
 
 .auth-container h1::after {

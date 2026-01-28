@@ -99,25 +99,25 @@
     .topbar {
         height: 60px !important;
     }
-    
+
     .topbar-content {
         padding: 0 16px !important;
         gap: 12px;
     }
-    
+
     .header-user-info {
         gap: 10px !important;
     }
-    
+
     .user-name {
         font-size: 13px;
     }
-    
+
     .user-balance {
         font-size: 12px;
         padding: 5px 10px;
     }
-    
+
     .btn-topup,
     .btn-logout {
         padding: 6px 12px !important;
@@ -142,9 +142,10 @@
     .topbar-content {
         padding: 0 12px !important;
         gap: 6px;
-        flex-wrap: wrap; /* Chỉ wrap khi không đủ chỗ */
+        flex-wrap: wrap;
+        /* Chỉ wrap khi không đủ chỗ */
     }
-    
+
     .sidebar-toggle {
         width: 36px;
         height: 36px;
@@ -152,28 +153,30 @@
         flex-shrink: 0;
         -webkit-tap-highlight-color: rgba(0, 188, 212, 0.1);
     }
-    
+
     .logo {
         font-size: 14px !important;
         flex-shrink: 0;
     }
-    
+
     /* Header user info - hiển thị trên 1 hàng, chỉ wrap khi cần */
     .header-user-info {
         flex: 1;
         gap: 6px !important;
         justify-content: flex-end;
-        flex-wrap: wrap; /* Chỉ wrap khi không đủ chỗ */
+        flex-wrap: wrap;
+        /* Chỉ wrap khi không đủ chỗ */
         border-top: none;
         padding-top: 0 !important;
         margin-top: 0;
         min-width: 0;
     }
-    
+
     .user-avatar {
-        display: none; /* Ẩn avatar trên mobile để tiết kiệm chỗ */
+        display: none;
+        /* Ẩn avatar trên mobile để tiết kiệm chỗ */
     }
-    
+
     .user-name {
         font-size: 11px !important;
         min-width: 0;
@@ -181,7 +184,7 @@
         text-overflow: ellipsis;
         flex-shrink: 1;
     }
-    
+
     .user-balance {
         font-size: 10px !important;
         padding: 4px 8px !important;
@@ -189,11 +192,11 @@
         will-change: transform;
         flex-shrink: 0;
     }
-    
+
     .user-balance strong {
         font-size: 11px;
     }
-    
+
     .btn-topup {
         padding: 6px 10px !important;
         font-size: 10px !important;
@@ -203,11 +206,11 @@
         -webkit-tap-highlight-color: rgba(0, 188, 212, 0.1);
         transition: transform 0.15s ease;
     }
-    
+
     .btn-topup:active {
         transform: scale(0.96) translateZ(0);
     }
-    
+
     .btn-logout {
         padding: 6px 10px !important;
         font-size: 10px !important;
@@ -217,18 +220,21 @@
         -webkit-tap-highlight-color: rgba(255, 82, 82, 0.1);
         transition: transform 0.15s ease;
     }
-    
+
     .btn-logout:active {
         transform: scale(0.96) translateZ(0);
     }
 
-    /* Content padding adjustment */
-    .content {
+    /* Fixed Header Spacing - ONLY when topbar is present */
+    .topbar+.content,
+    .topbar+main,
+    .topbar+*+main {
         padding-top: 70px !important;
     }
-    
-    main {
-        padding-top: 70px !important;
+
+    /* Guest Header (Static) Spacing */
+    header+main {
+        padding-top: 10px !important;
     }
 }
 
@@ -238,43 +244,44 @@
         min-height: 52px !important;
         padding: 6px 0 !important;
     }
-    
+
     .topbar-content {
         padding: 0 8px !important;
         gap: 4px;
     }
-    
+
     .sidebar-toggle {
         width: 32px;
         height: 32px;
         font-size: 18px;
     }
-    
+
     .logo {
         font-size: 13px !important;
     }
-    
+
     .user-name {
         font-size: 10px !important;
-        max-width: 60px; /* Giới hạn độ rộng tên để tiết kiệm chỗ */
+        max-width: 60px;
+        /* Giới hạn độ rộng tên để tiết kiệm chỗ */
     }
-    
+
     .user-balance {
         font-size: 9px !important;
         padding: 3px 6px !important;
     }
-    
+
     .user-balance strong {
         font-size: 10px;
     }
-    
+
     .btn-topup,
     .btn-logout {
         padding: 5px 8px !important;
         font-size: 9px !important;
         min-height: 28px;
     }
-    
+
     .content,
     main {
         padding-top: 65px !important;

@@ -48,6 +48,12 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text.substring(0, 100)}`);
+                }
+
                 const result = await response.json();
 
                 if (result.success) {
@@ -58,7 +64,8 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
                     if (window.turnstile) turnstile.reset();
                 }
             } catch (err) {
-                notify('Lỗi kết nối', 'error');
+                console.error('Forgot PW error:', err);
+                notify('Lỗi: ' + (err.message || 'Lỗi kết nối máy chủ'), 'error');
             } finally {
                 if (window.setButtonLoading) window.setButtonLoading(btn, false);
                 else btn.disabled = false;
