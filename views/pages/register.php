@@ -33,15 +33,14 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
 
     // Helper to set button loading state - GLOBAL FUNCTION
     window.setButtonLoading = function (button, isLoading) {
-        console.log('setButtonLoading called', button, isLoading);
         if (!button) return;
         if (isLoading) {
-            button.classList.add('loading');
+            button.classList.add('btn-loading');
             button.disabled = true;
             button.dataset.originalText = button.textContent;
-            // KHÔNG xóa text, chỉ thêm class loading
+            button.textContent = 'Đang xử lý...';
         } else {
-            button.classList.remove('loading');
+            button.classList.remove('btn-loading');
             button.disabled = false;
             if (button.dataset.originalText) {
                 button.textContent = button.dataset.originalText;
@@ -158,8 +157,8 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
             }
 
             // Basic strength check
-            if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
-                showNotification('Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ và số', 'error');
+            if (password.length < 6) {
+                showNotification('Mật khẩu phải có ít nhất 6 ký tự', 'error');
                 setButtonLoading(btn, false);
                 return;
             }

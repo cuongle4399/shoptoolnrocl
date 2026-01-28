@@ -50,11 +50,11 @@ try {
     $stmt = $pdo->prepare("SELECT id, password_, username FROM public.users WHERE id = ?");
     $stmt->execute([$target_user_id]);
     $user = $stmt->fetch();
-    
+
     if (!$user) {
         response('error', 'User not found');
     }
-    
+
     // For self change, verify old password
     if ($is_self_change) {
         if (!verifyPassword($old_password, $user['password_'])) {
@@ -65,19 +65,19 @@ try {
         // Only self or admin can change password
         response('error', 'Forbidden');
     }
-    
-    $new_hash = hashPassword($new_password);
+
+    $new_hash = $new_password;
     $updateStmt = $pdo->prepare("UPDATE public.users SET password_ = ? WHERE id = ?");
     $updateStmt->execute([$new_hash, $target_user_id]);
-    
-    $details = $is_self_change 
-        ? 'Password changed by user' 
+
+    $details = $is_self_change
+        ? 'Password changed by user'
         : "Password changed by admin {$auth['username']} for user {$user['username']}";
-    
+
     logAudit($pdo, 'PASSWORD_CHANGED', $auth['username'], $details, 'success');
-    
+
     response('success', 'Password changed successfully');
-    
+
 } catch (Exception $e) {
     logAudit($pdo, 'PASSWORD_CHANGE_ERROR', $auth['username'] ?? '', $e->getMessage(), 'error');
     response('error', 'Failed to change password: ' . $e->getMessage());

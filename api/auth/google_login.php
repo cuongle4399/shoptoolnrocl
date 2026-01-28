@@ -122,7 +122,23 @@ try {
     }
 
     $userClass = new User($db);
-    $user = $userClass->createOrLinkGoogleUser($email, $googleId, $name, $picture);
+    $userResult = $userClass->createOrLinkGoogleUser($email, $googleId, $name, $picture);
+
+    if ($userResult['status'] === 'setup_required') {
+        // Clear any previous output (warnings, etc.)
+        if (ob_get_length())
+            ob_clean();
+
+        echo json_encode([
+            'success' => true,
+            'action' => 'setup_required',
+            'google_info' => $userResult['google_info'],
+            'message' => 'Vui lòng đặt mật khẩu cho tài khoản mới của bạn'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $user = $userResult['user'];
 
     if ($user) {
         if (isset($user['status']) && $user['status'] !== 'active') {
@@ -153,7 +169,7 @@ try {
             ]
         ];
     } else {
-        throw new Exception('Không thể tạo hoặc liên kết tài khoản Google.', 500);
+        throw new Exception('Không thể xác thực thông tin tài khoản Google.', 401);
     }
 
 } catch (Throwable $e) {

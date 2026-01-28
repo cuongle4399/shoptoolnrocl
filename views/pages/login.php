@@ -80,6 +80,54 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
     </form>
 </div>
 
+<!-- Password Setup Modal for New Google Users -->
+<div id="googleSetupModal" class="modal-overlay"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+    <div class="modal-content"
+        style="background: linear-gradient(180deg, rgba(37,37,37,0.98), rgba(26,26,26,1)); padding: 40px; border-radius: 20px; width: 95%; max-width: 450px; border: 2px solid var(--border-color); box-shadow: 0 15px 50px rgba(0,0,0,0.6);">
+        <h2 class="text-center mb-20" style="color: var(--accent); margin-bottom: 20px;">🎉 Chào mừng bạn!</h2>
+        <p class="text-center mb-25" style="color: #ccc; font-size: 15px; line-height: 1.5; margin-bottom: 30px;">
+            Chào <strong id="setupName" style="color: var(--accent-light);"></strong>!<br>
+            Đây là lần đầu bạn đăng nhập bằng Google. Vui lòng thiết lập mật khẩu để hoàn tất tạo tài khoản.
+        </p>
+
+        <form id="googleSetupForm" class="no-global-loading">
+            <input type="hidden" id="setupEmail" name="email">
+            <input type="hidden" id="setupGoogleId" name="google_id">
+            <input type="hidden" id="setupAvatar" name="avatar">
+            <input type="hidden" id="setupBaseName" name="name">
+
+            <div class="form-group">
+                <label style="color: var(--text-primary);">Mật khẩu mới</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="setupPassword" name="password" required placeholder="Tối thiểu 6 ký tự"
+                        style="background: #1a1a1a; border-color: var(--border-color); color: white;">
+                    <button type="button" class="password-toggle-btn"
+                        onclick="togglePassword('setupPassword'); return false;">👁️‍🗨️</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="color: var(--text-primary);">Xác nhận mật khẩu</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="setupConfirmPassword" name="confirm_password" required
+                        placeholder="Nhập lại mật khẩu"
+                        style="background: #1a1a1a; border-color: var(--border-color); color: white;">
+                    <button type="button" class="password-toggle-btn"
+                        onclick="togglePassword('setupConfirmPassword'); return false;">👁️‍🗨️</button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 25px;">
+                <button type="button" class="btn btn-secondary flex-1" onclick="closeSetupModal()"
+                    style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #333; color: white; cursor: pointer;">Hủy</button>
+                <button type="submit" id="setupSubmitBtn" class="btn btn-primary flex-1"
+                    style="flex: 1; padding: 12px; border-radius: 8px; background: var(--accent-gradient); border: none; color: white; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);">Hoàn
+                    tất</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
     console.log("LOGIN_PAGE_VERSION: 2.1_FIX_CACHE");
@@ -135,8 +183,12 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
             }
 
             if (data.success) {
-                showNotification('Đăng nhập thành công!', 'success');
-                setTimeout(() => window.location.href = '/ShopToolNro/', 500);
+                if (data.action === 'setup_required') {
+                    openSetupModal(data.google_info);
+                } else {
+                    showNotification('Đăng nhập thành công!', 'success');
+                    setTimeout(() => window.location.href = '/ShopToolNro/', 500);
+                }
             } else {
                 showNotification(data.message || 'Lỗi server', 'error');
                 if (gBtn) gBtn.style.opacity = 1;
@@ -147,9 +199,82 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
             if (gBtn) gBtn.style.opacity = 1;
         }
     }
+
+    function openSetupModal(info) {
+        document.getElementById('setupName').textContent = info.name;
+        document.getElementById('setupEmail').value = info.email;
+        document.getElementById('setupGoogleId').value = info.google_id;
+        document.getElementById('setupAvatar').value = info.avatar;
+        document.getElementById('setupBaseName').value = info.name;
+
+        const modal = document.getElementById('googleSetupModal');
+        modal.style.display = 'flex';
+        modal.classList.add('fade-in');
+    }
+
+    function closeSetupModal() {
+        document.getElementById('googleSetupModal').style.display = 'none';
+        const gBtn = document.getElementById('googleSignInBtnV2');
+        if (gBtn) gBtn.style.opacity = 1;
+    }
+
+    document.getElementById('googleSetupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('setupSubmitBtn');
+        setButtonLoading(btn, true);
+
+        const formData = {
+            email: document.getElementById('setupEmail').value,
+            google_id: document.getElementById('setupGoogleId').value,
+            avatar: document.getElementById('setupAvatar').value,
+            name: document.getElementById('setupBaseName').value,
+            password: document.getElementById('setupPassword').value,
+            confirm_password: document.getElementById('setupConfirmPassword').value
+        };
+
+        try {
+            const res = await fetch('/ShopToolNro/api/auth/google_setup_password.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await res.json();
+            setButtonLoading(btn, false);
+
+            if (data.success) {
+                showNotification('Thiết lập tài khoản thành công!', 'success');
+                setTimeout(() => window.location.href = '/ShopToolNro/', 500);
+            } else {
+                showNotification(data.message || 'Có lỗi xảy ra', 'error');
+            }
+        } catch (err) {
+            setButtonLoading(btn, false);
+            showNotification('Lỗi kết nối server', 'error');
+        }
+    });
 </script>
 
 <script>
+    // Fallback setButtonLoading if main.js hasn't loaded
+    if (typeof setButtonLoading === 'undefined') {
+        window.setButtonLoading = function (button, isLoading) {
+            if (!button) return;
+            if (isLoading) {
+                button.classList.add('btn-loading');
+                button.disabled = true;
+                button.dataset.originalText = button.textContent;
+                button.textContent = 'Đang xử lý...';
+            } else {
+                button.classList.remove('btn-loading');
+                button.disabled = false;
+                if (button.dataset.originalText) {
+                    button.textContent = button.dataset.originalText;
+                }
+            }
+        };
+    }
+
     // Fallback showNotification nếu main.js chưa load
     if (typeof showNotification === 'undefined') {
         window.showNotification = function (message, type = 'success', duration = 3200) {

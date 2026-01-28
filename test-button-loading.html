@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Button Loading</title>
+    <link rel="stylesheet" href="/ShopToolNro/css/index.css">
+    <link rel="stylesheet" href="/ShopToolNro/assets/css/style.css">
+    <style>
+        body {
+            padding: 50px;
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .test-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #00bcd4 0%, #4dd0e1 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>Test Button Loading Animation</h1>
+
+        <button id="testBtn1">Bấm để test loading</button>
+        <button id="testBtn2">Test button 2</button>
+
+        <div style="margin-top: 30px;">
+            <p>Status: <span id="status">Chưa bấm</span></p>
+        </div>
+    </div>
+
+    <script>
+        // Copy hàm setButtonLoading
+        function setButtonLoading(button, isLoading) {
+            console.log('setButtonLoading called:', button, isLoading);
+            if (!button) return;
+            if (isLoading) {
+                button.classList.add('btn-loading');
+                button.disabled = true;
+                if (!button.querySelector('.btn-spinner')) {
+                    const spinner = document.createElement('span');
+                    spinner.className = 'btn-spinner';
+                    // Empty span - CSS creates the circle
+                    button.insertBefore(spinner, button.firstChild);
+                    console.log('Spinner added!');
+                }
+            } else {
+                button.classList.remove('btn-loading');
+                button.disabled = false;
+                const spinner = button.querySelector('.btn-spinner');
+                if (spinner) {
+                    spinner.remove();
+                    console.log('Spinner removed!');
+                }
+            }
+        }
+
+        document.getElementById('testBtn1').addEventListener('click', function () {
+            const btn = this;
+            document.getElementById('status').textContent = 'Đang loading...';
+            setButtonLoading(btn, true);
+
+            setTimeout(() => {
+                setButtonLoading(btn, false);
+                document.getElementById('status').textContent = 'Xong!';
+            }, 3000);
+        });
+
+        document.getElementById('testBtn2').addEventListener('click', function () {
+            const btn = this;
+            setButtonLoading(btn, true);
+
+            setTimeout(() => {
+                setButtonLoading(btn, false);
+            }, 2000);
+        });
+    </script>
+</body>
+
+</html>

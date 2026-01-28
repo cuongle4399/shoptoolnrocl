@@ -423,47 +423,8 @@ main.content {
 
 /* ===== Button Loading State ===== */
 .btn-loading {
-    position: relative;
-    pointer-events: none;
-    color: transparent !important;
-    transition: all 0.3s ease;
-}
-
-.btn-loading::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: inherit;
     opacity: 0.8;
-    border-radius: inherit;
-}
-
-.btn-loading::after {
-    content: '';
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    top: 50%;
-    left: 50%;
-    margin-left: -9px;
-    margin-top: -9px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: btn-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-@keyframes btn-spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+    cursor: not-allowed;
 }
 
 /* ===== Page Transition ===== */
@@ -3843,7 +3804,6 @@ footer a:hover {
 
 /* Fix btn-loading alignment */
 .btn-loading {
-    color: transparent !important;
     pointer-events: none;
 }
 

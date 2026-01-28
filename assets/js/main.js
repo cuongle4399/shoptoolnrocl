@@ -45,11 +45,11 @@ function formatNumber(value) {
     // Xóa tất cả ký tự không phải số và dấu trừ
     const numStr = value.toString().replace(/[^\d-]/g, '');
     if (numStr === '' || numStr === '-') return numStr;
-    
+
     // Tách phần âm (nếu có)
     const isNegative = numStr.startsWith('-');
     const absNum = numStr.replace('-', '');
-    
+
     // Thêm dấu chấm phân cách
     const formatted = absNum.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     return (isNegative ? '-' : '') + formatted;
@@ -61,35 +61,35 @@ function parseFormattedNumber(value) {
 }
 
 // Áp dụng định dạng số cho tất cả input có class format-currency
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Format cho các input hiện tại
     document.querySelectorAll('.format-currency').forEach(input => {
         // Format khi nhập
-        input.addEventListener('input', function(e) {
+        input.addEventListener('input', function (e) {
             const cursorPos = e.target.selectionStart;
             const oldLength = e.target.value.length;
             const oldValue = e.target.value;
-            
+
             // Lưu giá trị gốc (không format)
             const rawValue = parseFormattedNumber(e.target.value);
-            
+
             // Format lại
             e.target.value = formatNumber(rawValue);
-            
+
             // Điều chỉnh vị trí con trỏ
             const newLength = e.target.value.length;
             const lengthDiff = newLength - oldLength;
             e.target.setSelectionRange(cursorPos + lengthDiff, cursorPos + lengthDiff);
         });
-        
+
         // Format khi rời khỏi input
-        input.addEventListener('blur', function(e) {
+        input.addEventListener('blur', function (e) {
             if (e.target.value) {
                 const rawValue = parseFormattedNumber(e.target.value);
                 e.target.value = formatNumber(rawValue);
             }
         });
-        
+
         // Format giá trị ban đầu nếu có
         if (input.value) {
             input.value = formatNumber(input.value);
@@ -122,7 +122,7 @@ function showNotification(message, type = 'success', duration = 3200) {
     const remove = () => {
         toast.classList.remove('visible');
         toast.classList.add('closing');
-        setTimeout(() => { try { toast.remove(); } catch(e){} }, prefersReduced ? 0 : 260);
+        setTimeout(() => { try { toast.remove(); } catch (e) { } }, prefersReduced ? 0 : 260);
     };
 
     toast.querySelector('.toast-close').addEventListener('click', remove);
@@ -131,7 +131,7 @@ function showNotification(message, type = 'success', duration = 3200) {
 
 // Sidebar toggle - Handled by mobile-responsive.js
 // (Code moved to mobile-responsive.js to avoid conflicts)
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Sidebar logic is now in mobile-responsive.js
     console.log('Sidebar toggle: handled by mobile-responsive.js');
 });
@@ -231,21 +231,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => { banner.classList.remove('visible'); setTimeout(() => banner.remove(), 320); }, 7000);
                 }
             }
-        }).catch(() => {});
+        }).catch(() => { });
     } catch (e) { /* no-op */ }
 });
 // ===== Enhanced UX Utilities =====
 
-// Add loading state to button
-window.addButtonLoading = function(button) {
+// Add loading state to button - simple text change
+window.addButtonLoading = function (button) {
     if (!button) return;
     button.classList.add('btn-loading');
     button.disabled = true;
     button.dataset.originalText = button.textContent;
+    button.textContent = 'Đang xử lý...';
 };
 
 // Remove loading state from button
-window.removeButtonLoading = function(button) {
+window.removeButtonLoading = function (button) {
     if (!button) return;
     button.classList.remove('btn-loading');
     button.disabled = false;
@@ -254,8 +255,17 @@ window.removeButtonLoading = function(button) {
     }
 };
 
+// Alias for compatibility
+window.setButtonLoading = function (button, isLoading) {
+    if (isLoading) {
+        addButtonLoading(button);
+    } else {
+        removeButtonLoading(button);
+    }
+};
+
 // Show progress bar
-window.showProgressBar = function() {
+window.showProgressBar = function () {
     let bar = document.getElementById('globalProgressBar');
     if (!bar) {
         bar = document.createElement('div');
@@ -267,7 +277,7 @@ window.showProgressBar = function() {
 };
 
 // Hide progress bar
-window.hideProgressBar = function() {
+window.hideProgressBar = function () {
     const bar = document.getElementById('globalProgressBar');
     if (bar) {
         setTimeout(() => {
@@ -277,19 +287,19 @@ window.hideProgressBar = function() {
 };
 
 // Lazy load images
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const lazyImages = document.querySelectorAll('img[loading="lazy"]');
-    
+
     if ('IntersectionObserver' in window) {
         const imageObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
-                    
+
                     // Add loading state
                     img.style.opacity = '0';
                     img.style.transform = 'scale(0.9)';
-                    
+
                     const loadHandler = () => {
                         // Smooth fade in
                         requestAnimationFrame(() => {
@@ -299,20 +309,20 @@ document.addEventListener('DOMContentLoaded', function() {
                             img.classList.add('loaded');
                         });
                     };
-                    
+
                     if (img.complete) {
                         loadHandler();
                     } else {
                         img.addEventListener('load', loadHandler, { once: true });
                     }
-                    
+
                     observer.unobserve(img);
                 }
             });
         }, {
             rootMargin: '50px' // Start loading 50px before entering viewport
         });
-        
+
         lazyImages.forEach(img => imageObserver.observe(img));
     } else {
         // Fallback for browsers without IntersectionObserver
@@ -324,20 +334,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Add page transition effect
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     document.body.classList.add('page-transition');
-    
+
     // Add ripple effect to buttons
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         const button = e.target.closest('.btn');
         if (!button) return;
-        
+
         const ripple = document.createElement('span');
         const rect = button.getBoundingClientRect();
         const size = Math.max(rect.width, rect.height);
         const x = e.clientX - rect.left - size / 2;
         const y = e.clientY - rect.top - size / 2;
-        
+
         ripple.style.cssText = `
             position: absolute;
             width: ${size}px;
@@ -350,11 +360,11 @@ document.addEventListener('DOMContentLoaded', function() {
             animation: ripple-effect 0.6s ease-out;
             pointer-events: none;
         `;
-        
+
         button.style.position = 'relative';
         button.style.overflow = 'hidden';
         button.appendChild(ripple);
-        
+
         setTimeout(() => ripple.remove(), 600);
     });
 });
@@ -372,7 +382,7 @@ rippleStyle.textContent = `
 document.head.appendChild(rippleStyle);
 
 // Auto add loading to all form submissions
-document.addEventListener('submit', function(e) {
+document.addEventListener('submit', function (e) {
     const form = e.target;
     if (form.tagName !== 'FORM') return;
 

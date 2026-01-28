@@ -7,13 +7,14 @@ require_once '../../src/classes/User.php';
 require_once '../../includes/functions.php';
 
 // Verify Turnstile token
-function verifyTurnstileToken($token) {
+function verifyTurnstileToken($token)
+{
     $secretKey = getenv('TURNSTILE_SECRET_KEY');
     if (!$secretKey || !$token) {
         error_log("Turnstile verification failed: missing key or token");
         return false;
     }
-    
+
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
     curl_setopt($ch, CURLOPT_POST, 1);
@@ -23,23 +24,23 @@ function verifyTurnstileToken($token) {
     ]));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    
+
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    
+
     if ($httpCode !== 200) {
         error_log("Turnstile API error: HTTP $httpCode");
         return false;
     }
-    
+
     $result = json_decode($response, true);
     $success = $result['success'] ?? false;
-    
+
     if (!$success) {
         error_log("Turnstile verification failed: " . json_encode($result));
     }
-    
+
     return $success;
 }
 
@@ -71,9 +72,9 @@ if ($data['password'] !== $data['confirm_password']) {
     response('error', 'Mật khẩu không khớp');
 }
 
-if (strlen($data['password']) < 8 || !preg_match('/[A-Za-z]/', $data['password']) || !preg_match('/[0-9]/', $data['password'])) {
+if (strlen($data['password']) < 6) {
     http_response_code(400);
-    response('error', 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ và số');
+    response('error', 'Mật khẩu phải có ít nhất 6 ký tự');
 }
 
 $userClass = new User($db);
@@ -99,4 +100,3 @@ if ($userClass->createUser($userData)) {
     response('error', 'Không thể tạo tài khoản');
 }
 ?>
-

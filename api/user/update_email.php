@@ -60,7 +60,7 @@ if (!$user) {
 }
 
 // Verify password
-if (!verifyPassword($password, $user)) {
+if (!verifyPassword($password, $user['password_'] ?? '')) {
     echo json_encode(['success' => false, 'message' => 'Mật khẩu không đúng']);
     exit;
 }
@@ -70,6 +70,7 @@ $updateResult = $userClass->updateEmail($userId, $newEmail);
 if ($updateResult === true) {
     echo json_encode(['success' => true, 'message' => 'Cập nhật email thành công']);
 } else {
-    echo json_encode(['success' => false, 'message' => $updateResult ?: 'Cập nhật thất bại']);
+    // If updateEmail returns a string, it's an error message (like "Email already in use")
+    echo json_encode(['success' => false, 'message' => is_string($updateResult) ? $updateResult : 'Cập nhật thất bại']);
 }
 ?>

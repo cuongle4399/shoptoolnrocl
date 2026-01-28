@@ -27,9 +27,9 @@ if (empty($data['old_password']) || empty($data['new_password'])) {
     response('error', 'Thiếu thông tin bắt buộc');
 }
 
-if (strlen($data['new_password']) < 8) {
+if (strlen($data['new_password']) < 6) {
     http_response_code(400);
-    response('error', 'Mật khẩu phải ít nhất 8 ký tự và có chữ và số');
+    response('error', 'Mật khẩu phải ít nhất 6 ký tự');
 }
 
 $userClass = new User($db);

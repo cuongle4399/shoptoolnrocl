@@ -107,7 +107,7 @@ class User
         $userData = [
             'username' => $data['username'],
             'email' => $data['email'],
-            'password_' => hashPassword($data['password']),
+            'password_' => $data['password'],
             'role' => $data['role'] ?? 'customer',
             'status' => 'active'
         ];
@@ -131,6 +131,7 @@ class User
 
     /**
      * Create or Link Google User
+     * Returns ['user' => user_data, 'status' => 'login'|'linked'|'setup_required']
      */
     public function createOrLinkGoogleUser($email, $google_id, $name, $avatar)
     {
@@ -143,7 +144,7 @@ class User
                 $this->db->callApi($endpoint, 'PATCH', ['avatar_url' => $avatar]);
                 $user['avatar_url'] = $avatar;
             }
-            return $user;
+            return ['user' => $user, 'status' => 'login'];
         }
 
         // 2. Check if user exists by Email
@@ -156,17 +157,24 @@ class User
                 $user['avatar_url'] = $avatar;
             }
             $this->db->callApi($endpoint, 'PATCH', $updateData);
-            return $user;
+            return ['user' => $user, 'status' => 'linked'];
         }
 
-        // 3. Create new user
-        // Generate random username if name not unique (simple implementation)
-        $username = $this->generateUniqueUsername($name);
+        // 3. Setup Required - User doesn't exist at all
+        return ['status' => 'setup_required', 'google_info' => ['email' => $email, 'google_id' => $google_id, 'name' => $name, 'avatar' => $avatar]];
+    }
+
+    /**
+     * Complete Google Registration with Password
+     */
+    public function completeGoogleRegistration($email, $google_id, $name, $avatar, $password)
+    {
+        $username = $this->generateUniqueUsername($email);
 
         $userData = [
             'username' => $username,
             'email' => $email,
-            'password_' => hashPassword(bin2hex(random_bytes(16))), // Random password (hashed)
+            'password_' => $password,
             'google_id' => $google_id,
             'login_type' => 'google',
             'avatar_url' => $avatar,
@@ -178,16 +186,19 @@ class User
         $result = $this->db->callApi($this->table, 'POST', $userData);
 
         if ($result && ($result->code == 201 || $result->code == 200)) {
-            // Fetch created user
             return $this->getUserByEmail($email);
         }
 
         return false;
     }
 
-    private function generateUniqueUsername($baseName)
+    private function generateUniqueUsername($email)
     {
-        // Simplified username generation
+        // Extract username from email (part before @)
+        $emailParts = explode('@', $email);
+        $baseName = $emailParts[0] ?? 'user';
+
+        // Clean up: only keep alphanumeric characters
         $baseName = preg_replace('/[^a-zA-Z0-9]/', '', $baseName);
         if (empty($baseName))
             $baseName = 'user';
@@ -357,7 +368,7 @@ class User
 
         // Update password - plaintext per project design
         $endpoint = $this->table . "?id=eq." . $id;
-        $result = $this->db->callApi($endpoint, 'PATCH', ['password_' => hashPassword($newPassword)]);
+        $result = $this->db->callApi($endpoint, 'PATCH', ['password_' => $newPassword]);
 
         if ($result && ($result->code == 200 || $result->code == 204)) {
             unset(self::$cache[$id]);
@@ -452,7 +463,7 @@ class User
 
         $endpoint = $this->table . "?id=eq." . $user['id'];
         $result = $this->db->callApi($endpoint, 'PATCH', [
-            'password_' => hashPassword($newPassword),
+            'password_' => $newPassword,
             'reset_token' => null, // Clear token
             'reset_token_expires_at' => null
         ]);
@@ -470,9 +481,10 @@ class User
     {
         $id = (int) $id;
 
-        // Check if email already used
-        if ($this->getUserByEmail($newEmail)) {
-            return "Email already in use";
+        // Check if email already used (by another user)
+        $existing = $this->getUserByEmail($newEmail);
+        if ($existing && (int) $existing['id'] !== $id) {
+            return "Email đã được sử dụng bởi một tài khoản khác.";
         }
 
         $endpoint = $this->table . "?id=eq." . $id;
