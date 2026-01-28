@@ -10,11 +10,15 @@ if (isset($_SESSION['user_id'])) {
     try {
         require_once __DIR__ . '/../../config/database.php';
         if (isset($pdo) && $pdo) {
-            $stmt = $pdo->prepare("SELECT balance FROM public.users WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT balance, avatar_url FROM public.users WHERE id = ?");
             $stmt->execute([$_SESSION['user_id']]);
-            $resBal = $stmt->fetch();
-            if ($resBal) {
-                $userBalance = number_format($resBal['balance'], 0, ',', '.') . ' ₫';
+            $res = $stmt->fetch();
+            if ($res) {
+                $userBalance = number_format($res['balance'], 0, ',', '.') . ' ₫';
+                // Always sync avatar from DB if it exists
+                if (!empty($res['avatar_url'])) {
+                    $_SESSION['user_avatar'] = $res['avatar_url'];
+                }
             }
         }
     } catch (Exception $e) {

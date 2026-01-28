@@ -92,12 +92,26 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
         const gBtn = document.querySelector('.g_id_signin');
         if (gBtn) gBtn.style.opacity = 0.5;
 
+        // Show initial notification
+        if (typeof showNotification !== 'undefined') {
+            showNotification('Đang xác thực tài khoản Google...', 'success');
+        }
+
+        // Timer for "creating account" message if it takes longer (potentially first login)
+        const createAccountTimer = setTimeout(() => {
+            if (typeof showNotification !== 'undefined') {
+                showNotification('Đang khởi tạo tài khoản mới cho bạn, vui lòng đợi trong giây lát...', 'success', 5000);
+            }
+        }, 1500);
+
         try {
             const res = await fetch('/ShopToolNro/api/auth/google_login.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ credential: response.credential })
             });
+
+            clearTimeout(createAccountTimer);
 
             const text = await res.text();
             let data;
@@ -120,6 +134,7 @@ $turnstile_site_key = getenv('TURNSTILE_SITE_KEY') ?: '';
                 if (gBtn) gBtn.style.opacity = 1;
             }
         } catch (err) {
+            clearTimeout(createAccountTimer);
             console.error('Google Login Error:', err);
             if (typeof showNotification !== 'undefined') {
                 showNotification('Lỗi kết nối Google: ' + err.message, 'error');

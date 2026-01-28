@@ -110,7 +110,7 @@ try {
         $_SESSION['role'] = $user['role'] ?? 'customer';
         $_SESSION['logged_in'] = true;
 
-        if (!isset($_SESSION['user_avatar']) && isset($user['avatar_url'])) {
+        if (isset($user['avatar_url'])) {
             $_SESSION['user_avatar'] = $user['avatar_url'];
         }
 

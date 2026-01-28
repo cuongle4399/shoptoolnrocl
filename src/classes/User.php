@@ -137,25 +137,25 @@ class User
         // 1. Check if user exists by Google ID
         $user = $this->getUserByGoogleId($google_id);
         if ($user) {
-            return $user; // Already linked, return user
+            // Update avatar if currently empty and Google provided one
+            if (empty($user['avatar_url']) && !empty($avatar)) {
+                $endpoint = $this->table . "?id=eq." . $user['id'];
+                $this->db->callApi($endpoint, 'PATCH', ['avatar_url' => $avatar]);
+                $user['avatar_url'] = $avatar;
+            }
+            return $user;
         }
 
         // 2. Check if user exists by Email
         $user = $this->getUserByEmail($email);
         if ($user) {
-            // Link existing account to Google
             $endpoint = $this->table . "?id=eq." . $user['id'];
-            $updateData = [
-                'google_id' => $google_id,
-                'login_type' => 'google' // Or keep 'password' and just add google connection
-            ];
-            if (!empty($avatar)) {
+            $updateData = ['google_id' => $google_id, 'login_type' => 'google'];
+            if (empty($user['avatar_url']) && !empty($avatar)) {
                 $updateData['avatar_url'] = $avatar;
+                $user['avatar_url'] = $avatar;
             }
             $this->db->callApi($endpoint, 'PATCH', $updateData);
-
-            // Return updated user
-            $user['google_id'] = $google_id;
             return $user;
         }
 
