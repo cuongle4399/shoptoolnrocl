@@ -55,11 +55,11 @@ CREATE TABLE public.users (
   avatar_url text DEFAULT NULL
 );
 
--- Insert default accounts
+-- Insert default accounts (CHANGE THESE CREDENTIALS AFTER DEPLOYMENT!)
 INSERT INTO public.users (username, email, password_, balance, role, status)
 VALUES 
   ('admin', 'cuong01697072089@gmail.com', '1qaz0plmLQC2k5@@', 0, 'admin', 'active'),
-  ('hayabusa', 'cuongmikasa@gmail.com', '1qaz0plm', 10000000, 'customer', 'active');
+  ('demo_user', 'user@example.com', '1', 0, 'customer', 'active');
 
 -- PRODUCTS
 CREATE TABLE public.products (
@@ -230,6 +230,8 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_prevent_dup_pending_orders ON public.orders;
+
 CREATE TRIGGER trg_prevent_dup_pending_orders
 BEFORE INSERT ON public.orders
 FOR EACH ROW
@@ -255,6 +257,8 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_topup_approved ON public.topup_requests;
+
 CREATE TRIGGER trg_topup_approved
 AFTER UPDATE ON public.topup_requests
 FOR EACH ROW
@@ -277,6 +281,8 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+DROP TRIGGER IF EXISTS trg_order_completed ON public.orders;
 
 CREATE TRIGGER trg_order_completed
 AFTER UPDATE ON public.orders
@@ -1113,6 +1119,9 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- Drop trigger if exists to allow re-running this script
+DROP TRIGGER IF EXISTS trg_sepay_transaction_insert ON public.sepay_transactions;
 
 CREATE TRIGGER trg_sepay_transaction_insert
 AFTER INSERT ON public.sepay_transactions

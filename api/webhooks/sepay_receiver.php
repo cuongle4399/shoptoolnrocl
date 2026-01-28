@@ -64,6 +64,28 @@ if ($enableIpCheck && !isIpWhitelisted($client_ip, $whitelistIps)) {
     exit;
 }
 
+// Verify webhook secret (if configured)
+$webhookSecret = $_ENV['SEPAY_WEBHOOK_SECRET'] ?? '';
+if (!empty($webhookSecret)) {
+    // SePay gửi secret qua header x-client-key hoặc x-api-key (theo docs SePay)
+    $receivedSecret = $_SERVER['HTTP_X_CLIENT_KEY']
+        ?? $_SERVER['HTTP_X_API_KEY']
+        ?? $_SERVER['HTTP_X_WEBHOOK_SECRET']
+        ?? '';
+
+    if (empty($receivedSecret)) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Missing webhook secret']);
+        exit;
+    }
+
+    if (!hash_equals($webhookSecret, $receivedSecret)) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Invalid webhook secret']);
+        exit;
+    }
+}
+
 require_once __DIR__ . '/../../config/database.php';
 
 try {
