@@ -4,6 +4,23 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 // Include helper functions for timezone conversion
 require_once __DIR__ . '/../../includes/functions.php';
+
+$userBalance = '0 ₫';
+if (isset($_SESSION['user_id'])) {
+    try {
+        require_once __DIR__ . '/../../config/database.php';
+        if (isset($pdo) && $pdo) {
+            $stmt = $pdo->prepare("SELECT balance FROM public.users WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            $resBal = $stmt->fetch();
+            if ($resBal) {
+                $userBalance = number_format($resBal['balance'], 0, ',', '.') . ' ₫';
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Header balance fetch error: " . $e->getMessage());
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi" data-theme="light">
@@ -50,7 +67,7 @@ require_once __DIR__ . '/../../includes/functions.php';
     <?php if (isset($_SESSION['user_id'])):
         // Lấy avatar từ session hoặc gán mặc định (logic random đã có sẵn trong session check)
         if (!isset($_SESSION['user_avatar'])) {
-            $_SESSION['user_avatar'] = '/ShopToolNro/img/Logo.ico';
+            $_SESSION['user_avatar'] = getRandomAvatar();
         }
         $userAvatarUrl = $_SESSION['user_avatar'];
         ?>
@@ -65,13 +82,14 @@ require_once __DIR__ . '/../../includes/functions.php';
                     </div>
                     <span class="user-name"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Tài khoản'); ?></span>
                     <span class="user-balance">Số dư:
-                        <strong id="headerBalance">---</strong></span>
+                        <strong id="headerBalance"><?php echo $userBalance; ?></strong></span>
                     <a href="/ShopToolNro/views/pages/topup.php" class="btn-topup">Nạp tiền</a>
                     <a href="/ShopToolNro/api/auth/logout.php" class="btn-logout">Đăng xuất</a>
                 </div>
 
                 <script>
-                    // Fetch balance via CSR to improve perceived performance
+                    // Keep the script as a real-time update fallback if needed, or remove if total SSR is desired
+                    // For now, let's keep it but it will only overwrite if API succeeds
                     document.addEventListener('DOMContentLoaded', async () => {
                         try {
                             const res = await fetch('/ShopToolNro/api/account/profile.php');
@@ -80,9 +98,7 @@ require_once __DIR__ . '/../../includes/functions.php';
                                 document.getElementById('headerBalance').textContent =
                                     new Intl.NumberFormat('vi-VN').format(data.data.user.balance) + ' ₫';
                             }
-                        } catch (err) {
-                            console.error('Error fetching balance:', err);
-                        }
+                        } catch (err) { }
                     });
                 </script>
             </div>

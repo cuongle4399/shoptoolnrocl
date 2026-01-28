@@ -3,8 +3,11 @@ $page_title = 'Trang chủ - ShopToolNro';
 include '../layout/header.php';
 
 require_once '../../config/database.php';
-require_once '../../src/classes/ProductOptimized.php'; // Use optimized class
+require_once '../../src/classes/ProductOptimized.php';
 require_once '../../src/classes/Notification.php';
+require_once '../../src/classes/Order.php';
+require_once '../../src/classes/User.php';
+require_once '../../src/classes/Product.php';
 
 $database = new Database();
 $db = $database->connect();
@@ -15,65 +18,154 @@ if (!$db) {
     exit;
 }
 
-$productClass = new ProductOptimized($db); // Optimized class
+$productClass = new ProductOptimized($db);
 $notificationClass = new Notification($db);
+$orderClass = new Order($db);
+$userClass = new User($db);
+$baseProductClass = new Product($db);
 
-$notification = $notificationClass->getActiveNotification();
-if ($notification) {
-    // Normalize notification payload for the homepage modal
-    $notification = [
-        'id' => $notification['id'] ?? null,
-        'title' => $notification['title'] ?? 'Thông báo quan trọng',
-        'message' => $notification['message'] ?? '',
-        'icon' => $notification['icon'] ?? '📢'
-    ];
+$notification = null;
+if (!isset($_SESSION['user_id'])) {
+    $notification = $notificationClass->getActiveNotification();
+    if ($notification) {
+        $notification = [
+            'id' => $notification['id'] ?? null,
+            'title' => $notification['title'] ?? 'Thông báo quan trọng',
+            'message' => $notification['message'] ?? '',
+            'icon' => $notification['icon'] ?? '📢'
+        ];
+    }
 }
 
 // Build avatar pool for public order feed (exclude logo files)
 $avatarFiles = glob(__DIR__ . '/../../img/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
 $avatarFiles = array_values(array_filter($avatarFiles, function ($path) {
     $name = strtolower(basename($path));
-    return strpos($name, 'logo') === false;
+    return strpos($name, 'ico') === false;
 }));
 $avatarUrls = array_map(function ($path) {
     return '/ShopToolNro/img/' . basename($path);
 }, $avatarFiles);
 
+// --- SSR PUBLIC ORDERS (Recent Activity) ---
+$publicOrders = [];
+if (!isset($_SESSION['user_id'])) {
+    try {
+        $endpoint = "orders?completed_at=not.is.null&order=completed_at.desc&limit=10";
+        $result = $db->callApi($endpoint, 'GET');
+        if ($result && $result->code == 200) {
+            $rawOrders = $result->response ?? [];
+            foreach ($rawOrders as $order) {
+                $u = $userClass->getUserById($order['user_id']);
+                $p = $baseProductClass->getProductById($order['product_id'], false);
+                if (!$u || !$p)
+                    continue;
+
+                $username = $u['username'];
+                $maskedUsername = mb_substr($username, 0, 1) . str_repeat('*', max(3, mb_strlen($username) - 2)) . mb_substr($username, -1);
+
+                $rawTimestamp = $order['completed_at'] ?? $order['created_at'] ?? null;
+                $timeAgo = 'Gần đây';
+                if ($rawTimestamp) {
+                    try {
+                        $dt = new DateTime($rawTimestamp, new DateTimeZone('UTC'));
+                        $dt->setTimezone(new DateTimeZone('Asia/Ho_Chi_Minh'));
+                        $now = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
+                        $diff = $now->diff($dt);
+                        if ($diff->days > 0)
+                            $timeAgo = $diff->days . ' ngày trước';
+                        elseif ($diff->h > 0)
+                            $timeAgo = $diff->h . ' giờ trước';
+                        elseif ($diff->i > 0)
+                            $timeAgo = $diff->i . ' phút trước';
+                        else
+                            $timeAgo = 'Vừa xong';
+                    } catch (Exception $e) {
+                    }
+                }
+
+                $publicOrders[] = [
+                    'username' => $maskedUsername,
+                    'product_name' => $p['name'],
+                    'time_ago' => $timeAgo,
+                    'avatar_seed' => $username . ($p['name'] ?? '')
+                ];
+            }
+        }
+    } catch (Exception $e) {
+    }
+}
+
+// --- SSR PRODUCT LISTING ---
 $perPage = 12;
 $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-// Dữ liệu sẽ được fetch qua client-side (CSR) để tối ưu hiệu năng cảm nhận (perceived performance)
+$offset = ($page - 1) * $perPage;
+
+$productData = $productClass->getAllProductsWithDurations($perPage, $offset);
+$products = $productData['products'] ?? [];
+$totalProducts = $productData['total'] ?? 0;
+$totalPages = ceil($totalProducts / $perPage);
+
+function pageLink($p)
+{
+    $qs = $_GET;
+    $qs['page'] = $p;
+    return '?' . http_build_query($qs);
+}
+
+function pickAvatarFromPool($seed, $pool)
+{
+    if (empty($pool))
+        return null;
+    $hash = 0;
+    for ($i = 0; $i < strlen($seed); $i++) {
+        $hash = ($hash * 31 + ord($seed[$i])) % 1000000;
+    }
+    return $pool[$hash % count($pool)];
+}
 ?>
 
 <div class="main-content fade-in">
     <?php if (!isset($_SESSION['user_id'])): ?>
-        <!-- Lịch sử mua hàng công khai - Chỉ hiển thị khi chưa đăng nhập -->
         <div class="public-orders-section">
             <div class="public-orders-header">
                 <h3>🔥 Hoạt động mua hàng gần đây</h3>
                 <p class="subtitle">Khách hàng tin tưởng và sử dụng dịch vụ của chúng tôi</p>
             </div>
             <div class="public-orders-list" id="publicOrdersList">
-                <!-- Loading skeleton -->
-                <div class="public-order-skeleton">
-                    <div class="skeleton skeleton-avatar"></div>
-                    <div class="skeleton-content">
-                        <div class="skeleton skeleton-line"></div>
-                        <div class="skeleton skeleton-line-short"></div>
-                    </div>
-                </div>
-                <div class="public-order-skeleton">
-                    <div class="skeleton skeleton-avatar"></div>
-                    <div class="skeleton-content">
-                        <div class="skeleton skeleton-line"></div>
-                        <div class="skeleton skeleton-line-short"></div>
-                    </div>
-                </div>
+                <?php if (empty($publicOrders)): ?>
+                    <p class="text-center" style="padding: 20px; color: var(--text-muted);">Chưa có hoạt động nào</p>
+                <?php else: ?>
+                    <?php
+                    // Initial JS will handle paging if we want, or we can just show top 3/2
+                    // Let's keep the JS for public orders slider/paging but initial data is SSR
+                    foreach ($publicOrders as $po):
+                        $avatar = pickAvatarFromPool($po['username'], $avatarUrls);
+                        ?>
+                        <div class="public-order-item" style="display: none;">
+                            <div class="public-order-avatar <?php echo $avatar ? 'has-img' : ''; ?>">
+                                <?php if ($avatar): ?>
+                                    <img src="<?php echo htmlspecialchars($avatar); ?>" alt="avatar">
+                                <?php else: ?>
+                                    <?php echo htmlspecialchars($po['username'][0]); ?>
+                                <?php endif; ?>
+                            </div>
+                            <div class="public-order-content">
+                                <div class="public-order-user"><?php echo htmlspecialchars($po['username']); ?></div>
+                                <div class="public-order-product">đã mua: <?php echo htmlspecialchars($po['product_name']); ?></div>
+                                <div class="public-order-time"><?php echo htmlspecialchars($po['time_ago']); ?></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
-            <div class="public-orders-pagination" id="publicOrdersPagination" style="display: none;">
-                <button class="pagination-btn" id="prevPageBtn" disabled>&laquo; Trước</button>
-                <span class="pagination-info" id="paginationInfo">Trang 1 / 1</span>
-                <button class="pagination-btn" id="nextPageBtn" disabled>Sau &raquo;</button>
-            </div>
+            <?php if (count($publicOrders) > 1): ?>
+                <div class="public-orders-pagination" id="publicOrdersPagination">
+                    <button class="pagination-btn" id="prevPageBtn">&laquo; Trước</button>
+                    <span class="pagination-info" id="paginationInfo">Trang 1 / 1</span>
+                    <button class="pagination-btn" id="nextPageBtn">Sau &raquo;</button>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 
@@ -83,60 +175,77 @@ $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
         <input type="text" id="searchProduct" class="search-input" placeholder="Tìm kiếm sản phẩm...">
     </div>
 
-    <!-- Skeleton Loading -->
-    <div class="products-grid skeleton-container" id="skeletonLoader">
-        <div class="product-card skeleton-card">
-            <div class="skeleton skeleton-image"></div>
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-price"></div>
-        </div>
-        <div class="product-card skeleton-card">
-            <div class="skeleton skeleton-image"></div>
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-price"></div>
-        </div>
-        <div class="product-card skeleton-card">
-            <div class="skeleton skeleton-image"></div>
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-price"></div>
-        </div>
-        <div class="product-card skeleton-card">
-            <div class="skeleton skeleton-image"></div>
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-price"></div>
-        </div>
-        <div class="product-card skeleton-card">
-            <div class="skeleton skeleton-image"></div>
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-price"></div>
-        </div>
-        <div class="product-card skeleton-card">
-            <div class="skeleton skeleton-image"></div>
-            <div class="skeleton skeleton-title"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-text"></div>
-            <div class="skeleton skeleton-price"></div>
-        </div>
-    </div>
-
     <div class="product-listing products-grid" id="productsContainer">
-        <!-- Products will be loaded here via JS -->
+        <?php if (empty($products)): ?>
+            <div class="empty-state empty-state-lg">Không có sản phẩm nào.</div>
+        <?php else: ?>
+            <?php foreach ($products as $index => $item): ?>
+                <div class="product-card show" data-name="<?php echo htmlspecialchars(strtolower($item['name'] ?? '')); ?>"
+                    style="animation-delay: <?php echo $index * 0.05; ?>s">
+                    <?php
+                    $imageUrl = $item['image_url'];
+                    if (!$imageUrl) {
+                        if (!empty($item['demo_image_url'])) {
+                            try {
+                                $demoUrls = json_decode($item['demo_image_url'], true);
+                                $imageUrl = (is_array($demoUrls) && !empty($demoUrls[0])) ? $demoUrls[0] : 'https://via.placeholder.com/400x250?text=' . urlencode($item['name']);
+                            } catch (Exception $e) {
+                                $imageUrl = 'https://via.placeholder.com/400x250?text=' . urlencode($item['name']);
+                            }
+                        } else {
+                            $imageUrl = 'https://via.placeholder.com/400x250?text=' . urlencode($item['name']);
+                        }
+                    }
+                    ?>
+                    <img src="<?php echo htmlspecialchars($imageUrl); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>"
+                        class="product-image" loading="lazy">
+                    <div class="product-info">
+                        <h3 class="product-name"><?php echo htmlspecialchars($item['name']); ?></h3>
+                        <p class="product-description">
+                            <?php
+                            $desc = $item['description'] ?? '';
+                            echo htmlspecialchars(strlen($desc) > 80 ? mb_substr($desc, 0, 80) . '...' : $desc);
+                            ?>
+                        </p>
+
+                        <?php if (!empty($item['durations'])): ?>
+                            <div class="product-prices">
+                                <?php foreach ($item['durations'] as $d): ?>
+                                    <div class="price-item">
+                                        <span class="duration-label"><?php echo htmlspecialchars($d['duration_label']); ?></span>
+                                        <span class="duration-price"><?php echo number_format($d['price'], 0, ',', '.'); ?> ₫</span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="product-price">Giá cạnh tranh</div>
+                        <?php endif; ?>
+
+                        <div class="flex-between gap-10 mt-10">
+                            <a href="/ShopToolNro/views/pages/product-detail.php?id=<?php echo $item['id']; ?>"
+                                class="btn btn-primary flex-1">Xem chi tiết</a>
+                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                                <button class="btn btn-outline view-orders-btn" data-product-id="<?php echo $item['id']; ?>"
+                                    title="Xem đơn hàng">📦</button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 
-    <!-- Pagination Container -->
-    <div id="productsPagination" class="flex-center mt-14" style="display: none;">
-        <!-- Pagination buttons will be loaded here via JS -->
-    </div>
+    <?php if ($totalPages > 1): ?>
+        <div id="productsPagination" class="flex-center mt-14">
+            <?php if ($page > 1): ?>
+                <a class="btn" href="<?php echo pageLink($page - 1); ?>">&laquo; Trước</a>
+            <?php endif; ?>
+            <div class="page-indicator">Trang <?php echo $page; ?> / <?php echo $totalPages; ?></div>
+            <?php if ($page < $totalPages): ?>
+                <a class="btn" href="<?php echo pageLink($page + 1); ?>">Tiếp &raquo;</a>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
     <!-- Modal: Orders for product -->
     <div id="productOrdersModal" class="modal">
@@ -151,7 +260,6 @@ $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
             </div>
         </div>
     </div>
-
     <style>
         .product-prices {
             margin: 10px 0;
@@ -180,163 +288,7 @@ $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
     </style>
 
     <script>
-        // Product CSR logic
-        let currentProductPage = <?php echo $page; ?>;
-
-        async function loadProducts(page = 1) {
-            const skeleton = document.getElementById('skeletonLoader');
-            const container = document.getElementById('productsContainer');
-            const pagination = document.getElementById('productsPagination');
-
-            // Show skeleton, hide container
-            if (skeleton) {
-                skeleton.style.display = 'grid';
-                skeleton.style.opacity = '1';
-            }
-            if (container) container.style.display = 'none';
-            if (pagination) pagination.style.display = 'none';
-
-            try {
-                const res = await fetch(`/ShopToolNro/api/products/list.php?page=${page}`);
-                const data = await res.json();
-
-                if (data.status === 'success' && data.data) {
-                    renderProducts(data.data.products);
-                    renderPagination(data.data.pagination);
-                    currentProductPage = page;
-
-                    // Push state to URL without reload if page changed
-                    const url = new URL(window.location);
-                    if (parseInt(url.searchParams.get('page')) !== page) {
-                        url.searchParams.set('page', page);
-                        window.history.pushState({}, '', url);
-                    }
-                } else {
-                    container.innerHTML = `<div class="empty-state empty-state-lg">${data.message || 'Không có sản phẩm'}</div>`;
-                    container.style.display = 'block';
-                }
-            } catch (err) {
-                console.error('Error loading products:', err);
-                container.innerHTML = '<div class="empty-state empty-state-lg">Lỗi tải dữ liệu</div>';
-                container.style.display = 'block';
-            } finally {
-                if (skeleton) {
-                    // Smooth transition from skeleton to products
-                    skeleton.style.opacity = '0';
-                    setTimeout(() => {
-                        skeleton.style.display = 'none';
-                    }, 300);
-                }
-            }
-        }
-
-        function renderProducts(products) {
-            const container = document.getElementById('productsContainer');
-            container.innerHTML = '';
-
-            if (!products || products.length === 0) {
-                container.innerHTML = '<div class="empty-state empty-state-lg">Không có sản phẩm</div>';
-                container.style.display = 'block';
-                return;
-            }
-
-            products.forEach((item, index) => {
-                const card = document.createElement('div');
-                card.className = 'product-card fade-in stagger show';
-                card.style.animationDelay = `${index * 0.05}s`;
-                card.dataset.name = (item.name || '').toLowerCase();
-
-                let imageUrl = item.image_url;
-                if (!imageUrl) {
-                    if (item.demo_image_url) {
-                        try {
-                            const demoUrls = JSON.parse(item.demo_image_url);
-                            imageUrl = Array.isArray(demoUrls) && demoUrls[0] ? demoUrls[0] : `https://via.placeholder.com/400x250?text=${encodeURIComponent(item.name)}`;
-                        } catch (e) {
-                            imageUrl = `https://via.placeholder.com/400x250?text=${encodeURIComponent(item.name)}`;
-                        }
-                    } else {
-                        imageUrl = `https://via.placeholder.com/400x250?text=${encodeURIComponent(item.name)}`;
-                    }
-                }
-
-                let durationsHtml = '';
-                if (item.durations && item.durations.length > 0) {
-                    durationsHtml = '<div class="product-prices">';
-                    item.durations.forEach(d => {
-                        durationsHtml += `
-                            <div class="price-item">
-                                <span class="duration-label">${d.duration_label}</span>
-                                <span class="duration-price">${new Intl.NumberFormat('vi-VN').format(d.price)} ₫</span>
-                            </div>
-                        `;
-                    });
-                    durationsHtml += '</div>';
-                } else {
-                    durationsHtml = '<div class="product-price">Giá cạnh tranh</div>';
-                }
-
-                card.innerHTML = `
-                    <img src="${imageUrl}" alt="${item.name}" class="product-image" loading="lazy">
-                    <div class="product-info">
-                        <h3 class="product-name">${item.name}</h3>
-                        <p class="product-description">${item.description ? (item.description.length > 80 ? item.description.substring(0, 80) + '...' : item.description) : ''}</p>
-                        ${durationsHtml}
-                        <div class="flex-between gap-10 mt-10">
-                            <a href="/ShopToolNro/views/pages/product-detail.php?id=${item.id}" class="btn btn-primary flex-1">Xem chi tiết</a>
-                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                                <button class="btn btn-outline view-orders-btn" data-product-id="${item.id}" title="Xem đơn hàng">📦</button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-
-            container.style.display = 'grid';
-        }
-
-        function renderPagination(paginationData) {
-            const pagination = document.getElementById('productsPagination');
-            if (!paginationData || paginationData.pages <= 1) {
-                pagination.style.display = 'none';
-                return;
-            }
-
-            let html = '';
-            if (paginationData.page > 1) {
-                html += `<button class="btn" onclick="loadProducts(${paginationData.page - 1})">&laquo; Trước</button>`;
-            }
-
-            html += `<div class="page-indicator">Trang ${paginationData.page} / ${paginationData.pages}</div>`;
-
-            if (paginationData.page < paginationData.pages) {
-                html += `<button class="btn" onclick="loadProducts(${paginationData.page + 1})">Tiếp &raquo;</button>`;
-            }
-
-            pagination.innerHTML = html;
-            pagination.style.display = 'flex';
-        }
-
-        // Avatar pool logic for public orders
-        const publicOrderAvatarPool = <?php echo json_encode($avatarUrls); ?>;
-
-        function pickAvatarFromPool(seed) {
-            if (!publicOrderAvatarPool || !publicOrderAvatarPool.length) return null;
-            let hash = 0;
-            for (let i = 0; i < seed.length; i++) {
-                hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-            }
-            const idx = Math.abs(hash) % publicOrderAvatarPool.length;
-            return publicOrderAvatarPool[idx];
-        }
-
-        // Initial load
-        window.addEventListener('DOMContentLoaded', () => {
-            loadProducts(currentProductPage);
-        });
-
-        // Search functionality for CSR
+        // SSR Search functionality
         document.getElementById('searchProduct').addEventListener('input', (e) => {
             const keyword = e.target.value.toLowerCase();
             document.querySelectorAll('.product-card').forEach(card => {
@@ -345,7 +297,7 @@ $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
             });
         });
 
-        // View orders from product card
+        // View orders from product card (for Admin)
         async function showOrdersForProduct(productId) {
             const modal = document.getElementById('productOrdersModal');
             if (!modal) return;
@@ -360,59 +312,74 @@ $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
                     body.innerHTML = '<p class="text-center">' + (data.message || 'Không có đơn hàng.') + '</p>';
                     return;
                 }
-
                 const orders = data.orders || [];
                 if (orders.length === 0) {
                     body.innerHTML = '<p class="text-center">Không có đơn hàng.</p>';
-                    return;
+                } else {
+                    let html = '<div class="table-responsive"><table class="full-table"><thead><tr class="table-row"><th>ID</th><th>Người mua</th><th>Giá</th><th>License</th><th>Hết hạn</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody>';
+                    orders.forEach(o => {
+                        html += '<tr class="table-row--thin">';
+                        html += '<td>' + o.id + '</td>';
+                        html += '<td>' + (o.customer_name || '-') + '</td>';
+                        html += '<td>' + new Intl.NumberFormat('vi-VN').format(o.total_price || 0) + ' ₫</td>';
+                        html += '<td>' + (o.license_key ? '<code>' + o.license_key + '</code>' : '-') + '</td>';
+                        let expiresText = '-';
+                        if (o.license_key && !o.expires_at) expiresText = 'Vĩnh viễn';
+                        else if (o.expires_at) expiresText = new Date(o.expires_at).toLocaleString();
+                        html += '<td>' + expiresText + '</td>';
+                        html += '<td>' + (o.status || '-') + '</td>';
+                        html += '<td>' + (o.created_at ? new Date(o.created_at).toLocaleString() : '-') + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                    body.innerHTML = html;
                 }
-
-                let html = '<div class="table-responsive"><table class="full-table"><thead><tr class="table-row"><th>ID</th><th>Người mua</th><th>Giá</th><th>License</th><th>Hết hạn</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody>';
-                orders.forEach(o => {
-                    html += '<tr class="table-row--thin">';
-                    html += '<td>' + o.id + '</td>';
-                    html += '<td>' + (o.customer_name || '-') + '</td>';
-                    html += '<td>' + new Intl.NumberFormat('vi-VN').format(o.total_price || 0) + ' ₫</td>';
-                    html += '<td>' + (o.license_key ? '<code>' + o.license_key + '</code>' : '-') + '</td>';
-                    let expiresText = '-';
-                    if (o.license_key && !o.expires_at) expiresText = 'Vĩnh viễn';
-                    else if (o.expires_at) expiresText = new Date(o.expires_at).toLocaleString();
-                    html += '<td>' + expiresText + '</td>';
-                    html += '<td>' + (o.status || '-') + '</td>';
-                    html += '<td>' + (o.created_at ? new Date(o.created_at).toLocaleString() : '-') + '</td>';
-                    html += '</tr>';
-                });
-                html += '</tbody></table></div>';
-
-                body.innerHTML = html;
             } catch (err) {
                 body.innerHTML = '<p class="text-center">Lỗi: ' + (err.message || '') + '</p>';
             }
         }
 
-        // Attach listeners
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('.view-orders-btn');
-            if (btn) {
-                const pid = btn.getAttribute('data-product-id');
-                showOrdersForProduct(pid);
-            }
+            if (btn) showOrdersForProduct(btn.getAttribute('data-product-id'));
         });
+
+        // Pagination for SSR Public Orders (Static data slider)
+        let activityPage = 1;
+        const itemsPerActFull = window.innerWidth >= 769 ? 3 : 2;
+        const actItems = Array.from(document.querySelectorAll('.public-order-item'));
+
+        function renderActivity() {
+            const pagination = document.getElementById('publicOrdersPagination');
+            if (actItems.length === 0) return;
+
+            const totalPages = Math.ceil(actItems.length / itemsPerActFull);
+            const start = (activityPage - 1) * itemsPerActFull;
+            const end = start + itemsPerActFull;
+
+            actItems.forEach((it, i) => {
+                if (i >= start && i < end) it.style.display = 'flex';
+                else it.style.display = 'none';
+            });
+
+            if (pagination) {
+                const info = document.getElementById('paginationInfo');
+                if (info) info.textContent = `Trang ${activityPage} / ${totalPages}`;
+                const prev = document.getElementById('prevPageBtn');
+                const next = document.getElementById('nextPageBtn');
+                if (prev) prev.disabled = activityPage === 1;
+                if (next) next.disabled = activityPage === totalPages;
+            }
+        }
+
+        document.getElementById('prevPageBtn')?.addEventListener('click', () => { if (activityPage > 1) { activityPage--; renderActivity(); } });
+        document.getElementById('nextPageBtn')?.addEventListener('click', () => { if (activityPage < Math.ceil(actItems.length / itemsPerActFull)) { activityPage++; renderActivity(); } });
+
+        renderActivity();
     </script>
 
-    <!-- Homepage Notification Modal -->
-    <div id="homepageNotificationModal" class="homepage-notification-modal">
-        <div class="notification-modal-content">
-            <button class="notification-close-btn" onclick="closeHomepageNotification()">×</button>
-            <div class="notification-icon" id="notificationIcon">📢</div>
-            <h2 id="notificationTitle">Thông báo quan trọng</h2>
-            <p id="notificationMessage">Chào mừng bạn đến với <strong>ShopToolNro</strong>! 🎉</p>
-            <div class="notification-actions">
-                <button class="btn btn-primary" onclick="closeHomepageNotification()">Đã hiểu</button>
-            </div>
-        </div>
-    </div>
-
+</div>
+<?php if (!isset($_SESSION['user_id'])): ?>
     <style>
         .homepage-notification-modal {
             display: none;
@@ -421,454 +388,172 @@ $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 8888;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 99999;
             align-items: center;
             justify-content: center;
-        }
-
-        /* Tắt backdrop-filter trên mobile - rất nặng */
-        @media (min-width: 769px) {
-            .homepage-notification-modal {
-                backdrop-filter: blur(2px);
-            }
+            backdrop-filter: blur(8px);
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         .homepage-notification-modal.active {
             display: flex;
-            animation: fadeIn 0.2s ease-out;
-        }
-
-        /* Mobile: animation nhanh hơn */
-        @media (max-width: 768px) {
-            .homepage-notification-modal.active {
-                animation: fadeIn 0.15s ease-out;
-            }
+            animation: modalFadeIn 0.3s ease;
         }
 
         .notification-modal-content {
-            background: white;
-            border-radius: 16px;
+            background: #1e1e1e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
             padding: 40px 30px;
+            width: 100%;
+            max-width: 480px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            animation: slideUp 0.3s ease-out;
-            max-width: 450px;
             position: relative;
-            overflow: hidden;
-            will-change: transform;
-            transform: translateZ(0);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            margin: auto;
         }
 
-        /* Mobile: giảm padding và animation */
-        @media (max-width: 768px) {
-            .notification-modal-content {
-                padding: 25px 20px;
-                max-width: 90%;
-                animation: slideUp 0.2s ease-out;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            }
+        .notification-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: center;
+            filter: drop-shadow(0 0 20px rgba(0, 188, 212, 0.3));
         }
 
-        /* Tắt hiệu ứng nặng trên mobile */
-        @media (min-width: 769px) {
-            .notification-modal-content::before {
-                content: '';
-                position: absolute;
-                top: -50%;
-                right: -50%;
-                width: 250px;
-                height: 250px;
-                background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
-                pointer-events: none;
-            }
+        .notification-modal-content h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #fff;
+            border: none;
+            padding: 0;
+        }
+
+        .notification-modal-content p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #a0a0a0;
+            margin-bottom: 30px;
         }
 
         .notification-close-btn {
             position: absolute;
             top: 15px;
-            right: 15px;
-            width: 32px;
-            height: 32px;
+            right: 20px;
+            background: none;
             border: none;
-            background: #f3f4f6;
-            color: #6b7280;
-            font-size: 24px;
+            color: #666;
+            font-size: 32px;
             cursor: pointer;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            z-index: 1;
+            transition: color 0.2s;
+            line-height: 1;
+            padding: 5px;
         }
 
         .notification-close-btn:hover {
-            background: #e5e7eb;
-            color: #1f2937;
-            transform: rotate(90deg);
-        }
-
-        .notification-icon {
-            font-size: 50px;
-            margin-bottom: 15px;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Desktop: có animation */
-        @media (min-width: 769px) {
-            .notification-icon {
-                font-size: 60px;
-                animation: bounce 0.6s ease-in-out;
-            }
-        }
-
-        /* Mobile: không animation, nhẹ hơn */
-        @media (max-width: 768px) {
-            .notification-icon {
-                font-size: 45px;
-                margin-bottom: 12px;
-            }
-        }
-
-        .notification-modal-content h2 {
-            margin: 0 0 15px 0;
-            font-size: 28px;
-            font-weight: 700;
-            color: #1f2937;
-            position: relative;
-            z-index: 1;
-        }
-
-        .notification-modal-content p {
-            margin: 0 0 12px 0;
-            font-size: 16px;
-            color: #4b5563;
-            line-height: 1.6;
-            position: relative;
-            z-index: 1;
-        }
-
-        .notification-modal-content p strong {
-            color: #3b82f6;
-            font-weight: 600;
-        }
-
-        .notification-actions {
-            margin-top: 30px;
-            position: relative;
-            z-index: 1;
+            color: #fff;
         }
 
         .notification-actions .btn {
-            padding: 12px 35px;
+            width: 100%;
+            padding: 14px;
             font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+            font-weight: 700;
+            border-radius: 12px;
+            margin: 0;
         }
 
-        .notification-actions .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
-        .notification-actions .btn:active {
-            transform: translateY(0);
-        }
+        @keyframes modalScaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
 
-        @keyframes bounce {
-
-            0%,
-            100% {
+            to {
+                opacity: 1;
                 transform: scale(1);
             }
-
-            50% {
-                transform: scale(1.1);
-            }
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
+        @media (max-width: 480px) {
+            .notification-modal-content {
+                padding: 30px 20px;
+                border-radius: 20px;
             }
 
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(20px) translateZ(0);
-                opacity: 0;
+            .notification-icon {
+                font-size: 60px;
             }
 
-            to {
-                transform: translateY(0) translateZ(0);
-                opacity: 1;
+            .notification-modal-content h2 {
+                font-size: 20px;
             }
-        }
 
-        /* Mobile: animation ngắn hơn */
-        @media (max-width: 768px) {
-            @keyframes slideUp {
-                from {
-                    transform: translateY(10px) translateZ(0);
-                    opacity: 0;
-                }
-
-                to {
-                    transform: translateY(0) translateZ(0);
-                    opacity: 1;
-                }
+            .notification-modal-content p {
+                font-size: 14px;
             }
         }
     </style>
 
+    <div id="homepageNotificationModal" class="homepage-notification-modal">
+        <div class="notification-modal-content">
+            <button class="notification-close-btn" onclick="closeHomepageNotification()">&times;</button>
+            <div class="notification-icon" id="notificationIcon">📢</div>
+            <h2 id="notificationTitle">Thông báo</h2>
+            <p id="notificationMessage"></p>
+            <div class="notification-actions">
+                <button class="btn btn-primary" onclick="closeHomepageNotification()">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Notification data from PHP
-        const notificationData = <?php echo $notification ? json_encode($notification) : 'null'; ?>;
-        const currentUserId = <?php echo isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 'null'; ?>;
+        (function () {
+            const notificationData = <?php echo $notification ? json_encode($notification) : 'null'; ?>;
 
-        function getDismissKey() {
-            const idPart = notificationData && notificationData.id ? `_${notificationData.id}` : '_latest';
-            const userPart = currentUserId ? `_user_${currentUserId}` : '_guest';
-            return `homepageNotificationDismissed${idPart}${userPart}`;
-        }
+            function initializeHomepageNotification() {
+                if (!notificationData || !notificationData.message) return;
 
-        function initializeHomepageNotification() {
-            // Check if there's a notification from admin
-            if (!notificationData) {
-                return; // No notification, don't show modal
+                const titleEl = document.getElementById('notificationTitle');
+                const messageEl = document.getElementById('notificationMessage');
+                const iconEl = document.getElementById('notificationIcon');
+                const modalEl = document.getElementById('homepageNotificationModal');
+
+                if (titleEl) titleEl.textContent = notificationData.title;
+                if (messageEl) messageEl.innerHTML = notificationData.message;
+                if (iconEl) iconEl.textContent = notificationData.icon;
+
+                setTimeout(() => {
+                    modalEl?.classList.add('active');
+                    document.body.style.overflow = 'hidden'; // Prevent scroll
+                }, 500);
             }
 
-            if (!notificationData.message) {
-                return; // Nothing to display
-            }
+            window.closeHomepageNotification = function () {
+                document.getElementById('homepageNotificationModal')?.classList.remove('active');
+                document.body.style.overflow = ''; // Restore scroll
+            };
 
-            // Check if notification has been dismissed in the last 30 minutes
-            const dismissKey = getDismissKey();
-            const dismissedTime = localStorage.getItem(dismissKey);
-            const now = Date.now();
-            const fiveMinutes = 5 * 60 * 1000;
-
-            if (dismissedTime && (now - parseInt(dismissedTime)) < fiveMinutes) {
-                // Notification was dismissed within the last 5 minutes, don't show it
-                return;
-            }
-
-            // Update modal content with notification data
-            updateNotificationContent();
-
-            // Delay modal trên mobile để tránh lag khi load trang
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            const delay = isMobile ? 800 : 300; // Mobile: 800ms delay
-
-            // Show the notification sau một chút delay
-            setTimeout(() => {
-                const modal = document.getElementById('homepageNotificationModal');
-                if (modal) {
-                    modal.classList.add('active');
-                }
-            }, delay);
-        }
-
-        function updateNotificationContent() {
-            if (!notificationData) return;
-
-            // Set title
-            const titleEl = document.getElementById('notificationTitle');
-            if (titleEl && notificationData.title) {
-                titleEl.textContent = notificationData.title;
-            }
-
-            // Set message
-            const messageEl = document.getElementById('notificationMessage');
-            if (messageEl && notificationData.message) {
-                messageEl.innerHTML = notificationData.message;
-            }
-
-            // Set icon if available
-            const iconEl = document.getElementById('notificationIcon');
-            if (iconEl && notificationData.icon) {
-                iconEl.textContent = notificationData.icon;
-            }
-        }
-
-        function closeHomepageNotification() {
-            const modal = document.getElementById('homepageNotificationModal');
-            if (modal) {
-                modal.classList.remove('active');
-                // Store dismissal time in localStorage
-                localStorage.setItem(getDismissKey(), Date.now().toString());
-            }
-        }
-
-        // Initialize notification when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeHomepageNotification();
-        });
-
-        // Also initialize if DOM is already loaded
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeHomepageNotification);
-        } else {
-            initializeHomepageNotification();
-        }
-
-        // ===== PUBLIC ORDERS - Load and display public order history =====
-        let allOrders = [];
-        let currentPage = 1;
-
-        // Get items per page based on screen size
-        function getItemsPerPage() {
-            return window.innerWidth >= 769 ? 3 : 2;
-        }
-
-        async function loadPublicOrders() {
-            const container = document.getElementById('publicOrdersList');
-            if (!container) {
-                console.log('Public orders container not found');
-                return;
-            }
-
-            console.log('Loading public orders...');
-
-            try {
-                const response = await fetch('/ShopToolNro/api/orders/public_history.php');
-                const data = await response.json();
-
-                console.log('Public orders data:', data);
-
-                if (data.success && data.orders && data.orders.length > 0) {
-                    console.log('Found', data.orders.length, 'orders');
-
-                    allOrders = data.orders;
-                    currentPage = 1;
-                    renderPublicOrders();
-
-                    console.log('Successfully rendered public orders with pagination');
-                } else {
-                    console.log('No orders found or data not valid');
-                    // No orders, hide section or show message
-                    container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Chưa có đơn hàng nào</p>';
-                }
-            } catch (error) {
-                console.error('Error loading public orders:', error);
-                container.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Không thể tải lịch sử</p>';
-            }
-        }
-
-        function renderPublicOrders() {
-            const container = document.getElementById('publicOrdersList');
-            const pagination = document.getElementById('publicOrdersPagination');
-            const prevBtn = document.getElementById('prevPageBtn');
-            const nextBtn = document.getElementById('nextPageBtn');
-            const pageInfo = document.getElementById('paginationInfo');
-
-            if (!container) return;
-
-            const itemsPerPage = getItemsPerPage();
-
-            // Calculate pagination
-            const totalPages = Math.ceil(allOrders.length / itemsPerPage);
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const pageOrders = allOrders.slice(startIndex, endIndex);
-
-            // Clear container
-            container.innerHTML = '';
-
-            // Render current page items
-            pageOrders.forEach((order, index) => {
-                const orderItem = document.createElement('div');
-                orderItem.className = 'public-order-item';
-                orderItem.style.animationDelay = `${index * 0.1}s`;
-
-                const firstLetter = order.username.charAt(0).toUpperCase();
-                const avatarUrl = pickAvatarFromPool(order.username + order.product_name + order.created_at);
-
-                orderItem.innerHTML = `
-            <div class="public-order-avatar ${avatarUrl ? 'has-img' : ''}">
-                ${avatarUrl ? `<img src="${avatarUrl}" alt="avatar">` : firstLetter}
-            </div>
-            <div class="public-order-content">
-                <div class="public-order-user">${order.username}</div>
-                <div class="public-order-product">đã mua: ${order.product_name}</div>
-                <div class="public-order-time" title="${order.completed_at_local || order.timestamp || ''}">
-                    ${order.completed_at_local || order.time_ago || ''}
-                    <span class="public-order-time-ago">(${order.time_ago})</span>
-                </div>
-            </div>
-        `;
-
-                container.appendChild(orderItem);
-            });
-
-            // Update pagination controls
-            if (pagination && totalPages > 1) {
-                pagination.style.display = 'flex';
-                pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
-                prevBtn.disabled = currentPage === 1;
-                nextBtn.disabled = currentPage === totalPages;
-            } else if (pagination) {
-                pagination.style.display = 'none';
-            }
-        }
-
-        function changePage(direction) {
-            const itemsPerPage = getItemsPerPage();
-            const totalPages = Math.ceil(allOrders.length / itemsPerPage);
-
-            if (direction === 'prev' && currentPage > 1) {
-                currentPage--;
-                renderPublicOrders();
-            } else if (direction === 'next' && currentPage < totalPages) {
-                currentPage++;
-                renderPublicOrders();
-            }
-        }
-
-        // Load public orders when page loads
-        // Load public orders when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM loaded, checking for public orders list...');
-            const publicOrdersList = document.getElementById('publicOrdersList');
-            if (publicOrdersList) {
-                console.log('Public orders list found, loading...');
-                loadPublicOrders();
-
-                // Setup pagination event listeners
-                const prevBtn = document.getElementById('prevPageBtn');
-                const nextBtn = document.getElementById('nextPageBtn');
-
-                if (prevBtn) prevBtn.addEventListener('click', () => changePage('prev'));
-                if (nextBtn) nextBtn.addEventListener('click', () => changePage('next'));
-
-                // Re-render on window resize to adjust items per page
-                let resizeTimeout;
-                window.addEventListener('resize', () => {
-                    clearTimeout(resizeTimeout);
-                    resizeTimeout = setTimeout(() => {
-                        if (allOrders.length > 0) {
-                            currentPage = 1; // Reset to first page on resize
-                            renderPublicOrders();
-                        }
-                    }, 250);
-                });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeHomepageNotification);
             } else {
-                console.log('Public orders list not found (user might be logged in)');
+                initializeHomepageNotification();
             }
-        });
-
+        })();
     </script>
-
-    <?php include '../layout/footer.php'; ?>
+<?php endif; ?>
+<?php include '../layout/footer.php'; ?>

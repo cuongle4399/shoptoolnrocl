@@ -470,4 +470,30 @@ function handleUpdateHwidAndKey($license_key, $new_hwid, $user_info)
         return ['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
     }
 }
+
+/**
+ * Get a random avatar from the img directory
+ * Excludes images containing 'ico'
+ */
+function getRandomAvatar()
+{
+    $imgDir = __DIR__ . '/../img/';
+    $files = glob($imgDir . '*.{jpg,jpeg,png,webp}', GLOB_BRACE);
+
+    if (empty($files)) {
+        return '/ShopToolNro/img/Logo.ico'; // Fallback
+    }
+
+    $avatarFiles = array_filter($files, function ($path) {
+        $name = strtolower(basename($path));
+        return strpos($name, 'ico') === false;
+    });
+
+    if (empty($avatarFiles)) {
+        return '/ShopToolNro/img/Logo.ico'; // Fallback
+    }
+
+    $randomFile = array_values($avatarFiles)[array_rand($avatarFiles)];
+    return '/ShopToolNro/img/' . basename($randomFile);
+}
 ?>

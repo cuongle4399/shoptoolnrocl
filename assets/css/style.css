@@ -2111,6 +2111,10 @@ nav a:hover::after {
     max-width: 480px;
 }
 
+.auth-container h1::after {
+    display: none;
+}
+
 h1 {
     font-size: 36px;
     font-weight: 700;
@@ -2919,6 +2923,7 @@ table tbody tr:last-child td {
     font-size: 16px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -2937,6 +2942,7 @@ table tbody tr:last-child td {
     margin-bottom: 12px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -3775,6 +3781,7 @@ footer a:hover {
         height: auto;
     }
 }
+
 /* ===== LOADING OVERLAY (Added for cleaner loading) ===== */
 .loading-overlay {
     position: fixed;
@@ -3808,7 +3815,9 @@ footer a:hover {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Fix btn-loading alignment */
@@ -3816,6 +3825,7 @@ footer a:hover {
     color: transparent !important;
     pointer-events: none;
 }
+
 .btn-loading::after {
     width: 20px;
     height: 20px;
@@ -3823,4 +3833,3 @@ footer a:hover {
     margin-left: -10px;
     border-width: 2px;
 }
-

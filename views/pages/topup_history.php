@@ -18,7 +18,25 @@ $topupClass = new TopupRequest($db);
 $userClass = new User($db);
 
 $user = $userClass->getUserById($_SESSION['user_id']);
-$topupRequests = $topupClass->getUserTopupRequests($_SESSION['user_id']);
+
+// SSR Pagination
+$perPage = 10;
+$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
+$offset = ($page - 1) * $perPage;
+
+// We fetch $perPage + 1 to see if there is a next page
+$topupRequests = $topupClass->getUserTopupRequests($_SESSION['user_id'], $perPage + 1, $offset);
+$hasNextPage = count($topupRequests) > $perPage;
+if ($hasNextPage) {
+    array_pop($topupRequests);
+}
+
+function pageLink($p)
+{
+    $qs = $_GET;
+    $qs['page'] = $p;
+    return '?' . http_build_query($qs);
+}
 ?>
 
 <div class="main-content fade-in">
@@ -35,25 +53,27 @@ $topupRequests = $topupClass->getUserTopupRequests($_SESSION['user_id']);
                         <th>Ngày tạo</th>
                     </tr>
                 </thead>
-                <tbody id="topupHistory">
+                <tbody>
                     <?php if (empty($topupRequests)): ?>
-                        <tr id="emptyRow">
+                        <tr>
                             <td colspan="4" class="text-center">Chưa có yêu cầu nạp tiền nào</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($topupRequests as $req): ?>
                             <tr>
-                                <td><?php echo number_format($req['amount'], 0, ',', '.'); ?> ₫</td>
+                                <td><?php echo number_format($req['amount'] ?? 0, 0, ',', '.'); ?> ₫</td>
                                 <td><?php echo htmlspecialchars($req['description'] ?? ''); ?></td>
                                 <td>
-                                    <span class="status-badge status-<?php echo $req['status']; ?>">
+                                    <span
+                                        class="status-badge status-<?php echo htmlspecialchars($req['status'] ?? 'pending'); ?>">
                                         <?php
                                         $statusText = [
                                             'pending' => 'Chờ duyệt',
                                             'approved' => 'Đã duyệt',
-                                            'rejected' => 'Từ chối'
+                                            'rejected' => 'Từ chối',
+                                            'cancelled' => 'Đã hủy'
                                         ];
-                                        echo $statusText[$req['status']] ?? $req['status'];
+                                        echo $statusText[$req['status']] ?? ($req['status'] ?? 'unknown');
                                         ?>
                                     </span>
                                     <?php if ($req['status'] === 'rejected' && !empty($req['rejection_reason'])): ?>
@@ -71,13 +91,24 @@ $topupRequests = $topupClass->getUserTopupRequests($_SESSION['user_id']);
             </table>
         </div>
 
-        <!-- Pagination -->
-        <div id="paginationContainer" style="margin-top: 15px; text-align: center; padding-bottom: 20px;"></div>
+        <!-- Pagination (SSR) -->
+        <?php if ($page > 1 || $hasNextPage): ?>
+            <div class="flex-center mt-20 mb-20">
+                <?php if ($page > 1): ?>
+                    <a class="btn" href="<?php echo pageLink($page - 1); ?>">&laquo; Trước</a>
+                <?php endif; ?>
+
+                <div class="page-indicator" style="margin: 0 15px;">Trang <?php echo $page; ?></div>
+
+                <?php if ($hasNextPage): ?>
+                    <a class="btn" href="<?php echo pageLink($page + 1); ?>">Tiếp &raquo;</a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <style>
-    /* Status Badge */
     .status-badge {
         display: inline-block;
         padding: 5px 10px;
@@ -103,39 +134,9 @@ $topupRequests = $topupClass->getUserTopupRequests($_SESSION['user_id']);
         color: #721c24;
     }
 
-    /* Pagination */
-    .pagination {
-        display: flex;
-        justify-content: center;
-        gap: 5px;
-        flex-wrap: wrap;
-    }
-
-    .pagination button {
-        padding: 6px 12px;
-        border: 1px solid #ddd;
-        background: white;
-        color: #333;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-        transition: all 0.2s;
-    }
-
-    .pagination button:hover {
-        background: #f0f0f0;
-        border-color: #667eea;
-    }
-
-    .pagination button.active {
-        background: #667eea;
-        color: white;
-        border-color: #667eea;
-    }
-
-    .pagination button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
+    .status-cancelled {
+        background: #e2e8f0;
+        color: #4a5568;
     }
 
     .table-wrapper {
@@ -166,85 +167,5 @@ $topupRequests = $topupClass->getUserTopupRequests($_SESSION['user_id']);
         }
     }
 </style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Pagination
-        const rowsPerPage = 5;
-        let currentPage = 1;
-
-        function setupPagination() {
-            const tableBody = document.getElementById('topupHistory');
-            const rows = Array.from(tableBody.querySelectorAll('tr')).filter(row => !row.id?.includes('empty'));
-
-            if (rows.length === 0) return;
-
-            const totalPages = Math.ceil(rows.length / rowsPerPage);
-
-            function showPage(page) {
-                rows.forEach(row => row.style.display = 'none');
-                const start = (page - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
-                rows.slice(start, end).forEach(row => row.style.display = '');
-            }
-
-            function renderPagination() {
-                const container = document.getElementById('paginationContainer');
-                container.innerHTML = '';
-
-                if (totalPages <= 1) return;
-
-                const pagination = document.createElement('div');
-                pagination.className = 'pagination';
-
-                // Nút Previous
-                const prevBtn = document.createElement('button');
-                prevBtn.textContent = '← Trước';
-                prevBtn.disabled = currentPage === 1;
-                prevBtn.onclick = () => {
-                    if (currentPage > 1) {
-                        currentPage--;
-                        showPage(currentPage);
-                        renderPagination();
-                    }
-                };
-                pagination.appendChild(prevBtn);
-
-                // Số trang
-                for (let i = 1; i <= totalPages; i++) {
-                    const btn = document.createElement('button');
-                    btn.textContent = i;
-                    btn.className = i === currentPage ? 'active' : '';
-                    btn.onclick = () => {
-                        currentPage = i;
-                        showPage(currentPage);
-                        renderPagination();
-                    };
-                    pagination.appendChild(btn);
-                }
-
-                // Nút Next
-                const nextBtn = document.createElement('button');
-                nextBtn.textContent = 'Sau →';
-                nextBtn.disabled = currentPage === totalPages;
-                nextBtn.onclick = () => {
-                    if (currentPage < totalPages) {
-                        currentPage++;
-                        showPage(currentPage);
-                        renderPagination();
-                    }
-                };
-                pagination.appendChild(nextBtn);
-
-                container.appendChild(pagination);
-            }
-
-            showPage(currentPage);
-            renderPagination();
-        }
-
-        setupPagination();
-    });
-</script>
 
 <?php include '../layout/footer.php'; ?>

@@ -160,27 +160,8 @@ function compactStr($s, $front = 8, $back = 4)
     <?php require_once '../../src/classes/License.php';
     $licenseClass = new License($db); ?>
 
-    <!-- Skeleton Loading -->
-    <div id="ordersSkeleton" class="orders-skeleton" aria-hidden="true">
-        <?php for ($i = 0; $i < 8; $i++): ?>
-            <div class="s-row" style="animation-delay: <?php echo $i * 0.08; ?>s;">
-                <div class="skeleton s-block"></div>
-                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                    <div class="skeleton s-block"></div>
-                <?php endif; ?>
-                <div class="skeleton s-block"></div>
-                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                    <div class="skeleton s-block"></div>
-                <?php endif; ?>
-                <div class="skeleton s-block"></div>
-                <div class="skeleton s-block"></div>
-                <div class="skeleton s-chip"></div>
-            </div>
-        <?php endfor; ?>
-    </div>
-
     <div class="table-wrapper">
-        <table class="table" id="ordersTable" style="display: none;">
+        <table class="table" id="ordersTable">
             <thead>
                 <tr>
                     <th>Tên sản phẩm</th>
@@ -413,34 +394,6 @@ function compactStr($s, $front = 8, $back = 4)
 `;
     document.head.appendChild(style);
 
-    // Hide skeleton and show orders table after page load
-    window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            const skeleton = document.getElementById('ordersSkeleton');
-            const table = document.getElementById('ordersTable');
-
-            // Smooth fade out skeleton
-            skeleton.style.transition = 'opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease';
-            skeleton.style.opacity = '0';
-            skeleton.style.transform = 'translateY(-6px)';
-            skeleton.style.filter = 'blur(1px)';
-
-            setTimeout(() => {
-                skeleton.style.display = 'none';
-                table.style.display = 'table';
-
-                // Fade in table với animation
-                table.style.opacity = '0';
-                table.style.transform = 'translateY(10px)';
-                table.style.transition = 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-
-                requestAnimationFrame(() => {
-                    table.style.opacity = '1';
-                    table.style.transform = 'translateY(0)';
-                });
-            }, 260);
-        }, 200);
-    });
 
 </script>
 
