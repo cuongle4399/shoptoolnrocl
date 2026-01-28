@@ -28,4 +28,3 @@ if (!function_exists('loadEnv')) {
         }
     }
 }
-?>

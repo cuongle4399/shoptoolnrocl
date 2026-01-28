@@ -496,4 +496,3 @@ function getRandomAvatar()
     $randomFile = array_values($avatarFiles)[array_rand($avatarFiles)];
     return '/ShopToolNro/img/' . basename($randomFile);
 }
-?>

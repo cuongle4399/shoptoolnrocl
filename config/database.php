@@ -181,5 +181,3 @@ if (!isset($GLOBALS['pdo'])) {
 
 // Make $pdo available as a regular variable for backward compatibility
 $pdo = $GLOBALS['pdo'] ?? null;
-
-?>

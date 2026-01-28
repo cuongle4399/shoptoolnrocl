@@ -506,5 +506,3 @@ class User
         self::$cache = [];
     }
 }
-
-?>

@@ -38,4 +38,3 @@ define('ROLE_ADMIN', 'admin');
 define('STATUS_ACTIVE', 'active');
 define('STATUS_INACTIVE', 'inactive');
 define('STATUS_PENDING', 'pending');
-?>
