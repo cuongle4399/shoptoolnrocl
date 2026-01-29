@@ -41,9 +41,9 @@ $vietqrConfig = [
 
 $pendingTopupId = $pendingTopup['id'] ?? 0;
 $pendingAmountRaw = $pendingTopup['amount'] ?? 0;
-$normalizedUsername = strtolower(preg_replace('/\s+/', '', $user['username'] ?? 'user'));
+$normalizedUsername = strtolower(preg_replace('/[^a-z0-9]/', '', $user['username'] ?? 'user'));
 $transferContent = $pendingTopup
-    ? sprintf('shoptoolnro-%s-%d', $normalizedUsername, (int) $pendingAmountRaw)
+    ? sprintf('shoptoolnro%s%d', $normalizedUsername, (int) $pendingAmountRaw)
     : '';
 ?>
 
@@ -886,7 +886,7 @@ $transferContent = $pendingTopup
         // Generate QR code
         function buildTransferContent(amount) {
             if (transferContent) return transferContent;
-            const safeUser = (username || 'user').replace(/\s+/g, '').toLowerCase();
+            const safeUser = (username || 'user').replace(/[^a-z0-9]/g, '').toLowerCase();
             const safeAmount = Number.isFinite(amount) ? Math.round(amount) : 0;
             // Format: shoptoolnro{username}{amount} (no dashes - bank doesn't accept special chars)
             return `shoptoolnro${safeUser}${safeAmount}`;
