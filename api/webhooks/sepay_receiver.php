@@ -130,6 +130,41 @@ try {
     $database = new Database();
     $db = $database->connect();
 
+    // ===================================
+    // DEDUPLICATION CHECK (Anti-Duplicate)
+    // ===================================
+    $isDuplicate = false;
+    if (!empty($reference_number)) {
+        // Check by unique reference number (preferred)
+        $checkParams = http_build_query([
+            'reference_number' => 'eq.' . $reference_number,
+            'amount_in' => 'eq.' . $amount_in,
+            'select' => 'id'
+        ]);
+        $checkRes = $db->callApi('sepay_transactions?' . $checkParams, 'GET');
+        if ($checkRes && $checkRes->code == 200 && !empty($checkRes->response)) {
+            $isDuplicate = true;
+        }
+    } else {
+        // Fallback: Check by content + amount + date
+        $checkParams = http_build_query([
+            'transaction_content' => 'eq.' . $transaction_content,
+            'amount_in' => 'eq.' . $amount_in,
+            'transaction_date' => 'eq.' . $transaction_date,
+            'select' => 'id'
+        ]);
+        $checkRes = $db->callApi('sepay_transactions?' . $checkParams, 'GET');
+        if ($checkRes && $checkRes->code == 200 && !empty($checkRes->response)) {
+            $isDuplicate = true;
+        }
+    }
+
+    if ($isDuplicate) {
+        http_response_code(200);
+        echo json_encode(['success' => true, 'message' => 'Duplicate transaction ignored']);
+        exit;
+    }
+
     // Prepare data for insertion
     $transactionData = [
         'gateway' => $gateway,
