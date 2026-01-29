@@ -28,8 +28,8 @@ $topupRequests = $topupClass->getPendingRequests(5, 0);
 ?>
 
 <div class="main-content fade-in">
-    <h1>Admin Dashboard</h1> 
-    
+    <h1>Admin Dashboard</h1>
+
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 30px 0;">
         <div class="gradient-card gradient-blue" style="padding: 20px; border-radius: 10px;">
             <h3>Tổng người dùng</h3>
@@ -45,69 +45,80 @@ $topupRequests = $topupClass->getPendingRequests(5, 0);
         </div>
         <div class="gradient-card gradient-green" style="padding: 20px; border-radius: 10px;">
             <h3>Doanh thu</h3>
-            <p style="font-size: 32px; font-weight: bold;"><?php echo number_format(array_sum(array_column($orders, 'total_price')), 0, ',', '.'); ?>đ</p>
+            <p style="font-size: 32px; font-weight: bold;">
+                <?php echo number_format(array_sum(array_column($orders, 'total_price')), 0, ',', '.'); ?>đ</p>
         </div>
     </div>
-    
+
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;">
         <div>
-            <h3><a href="/ShopToolNro/views/admin/manage_users.php" style="text-decoration: none; color: inherit;">Quản lý người dùng →</a></h3>
+            <h3><a href="/ShopToolNro/views/admin/manage_users.php" style="text-decoration: none; color: inherit;">Quản
+                    lý người dùng →</a></h3>
             <div class="table-wrapper">
-            <table style="margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>Tên đăng nhập</th>
-                        <th>Email</th>
-                        <th>Số dư</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($users as $user): ?>
+                <table style="margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td><?php echo htmlspecialchars($user['username']); ?></td>
-                            <td><?php echo htmlspecialchars($user['email']); ?></td>
-                            <td><?php echo number_format($user['balance'], 0, ',', '.'); ?> ₫</td>
+                            <th>Tên đăng nhập</th>
+                            <th>Email</th>
+                            <th>Số dư</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($users as $user): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($user['username']); ?></td>
+                                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td><?php echo number_format($user['balance'], 0, ',', '.'); ?> ₫</td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-        
+
         <div>
-            <h3><a href="/ShopToolNro/views/admin/manage_topup.php" style="text-decoration: none; color: inherit;">Yêu cầu nạp tiền →</a></h3>
+            <h3><a href="/ShopToolNro/views/admin/manage_topup.php" style="text-decoration: none; color: inherit;">Yêu
+                    cầu nạp tiền →</a></h3>
             <div class="table-wrapper">
-            <table style="margin-top: 15px;">
-                <thead>
-                    <tr>
-                        <th>Người dùng</th>
-                        <th>Số tiền</th>
-                        <th>Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($topupRequests as $req): ?>
+                <table style="margin-top: 15px;">
+                    <thead>
                         <tr>
-                            <td><?php echo htmlspecialchars($req['username']); ?></td>
-                            <td><?php echo number_format($req['amount'], 0, ',', '.'); ?> ₫</td>
-                            <td><span style="background: #fff3cd; padding: 3px 8px; border-radius: 3px;">Chờ</span></td>
+                            <th>Người dùng</th>
+                            <th>Số tiền</th>
+                            <th>Trạng thái</th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($topupRequests as $req): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($req['username']); ?></td>
+                                <td><?php echo number_format($req['amount'], 0, ',', '.'); ?> ₫</td>
+                                <td><span style="background: #fff3cd; padding: 3px 8px; border-radius: 3px;">Chờ</span></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-    
+
     <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin: 30px 0;">
         <div>
             <h3>
-                <a href="/ShopToolNro/views/admin/manage_products.php" style="text-decoration: none; color: inherit; margin-right: 10px;">Quản lý sản phẩm →</a>
-                <a href="/ShopToolNro/views/admin/manage_keys.php" style="text-decoration: none; color: inherit; margin-right: 10px;">Quản lý Key →</a>
-                <a href="/ShopToolNro/views/admin/manage_topup.php" style="text-decoration: none; color: inherit; margin-right: 10px;">Quản lý nạp tiền →</a>
-                <a href="/ShopToolNro/views/admin/manage_revenue.php" style="text-decoration: none; color: inherit; margin-right: 10px;">Quản lý doanh thu →</a>
-                <a href="/ShopToolNro/views/admin/manage_promos.php" style="text-decoration: none; color: inherit; margin-right: 10px;">Mã khuyến mãi →</a>
-                <a href="/ShopToolNro/views/admin/logs.php" style="text-decoration: none; color: inherit; margin-left: 10px;">API Error Logs →</a>
+                <a href="/ShopToolNro/views/admin/manage_products.php"
+                    style="text-decoration: none; color: inherit; margin-right: 10px;">Quản lý sản phẩm →</a>
+                <a href="/ShopToolNro/views/admin/manage_keys.php"
+                    style="text-decoration: none; color: inherit; margin-right: 10px;">Quản lý Key →</a>
+                <a href="/ShopToolNro/views/admin/manage_topup.php"
+                    style="text-decoration: none; color: inherit; margin-right: 10px;">Quản lý nạp tiền →</a>
+                <a href="/ShopToolNro/views/admin/manage_revenue.php"
+                    style="text-decoration: none; color: inherit; margin-right: 10px;">Quản lý doanh thu →</a>
+                <a href="/ShopToolNro/views/admin/manage_promos.php"
+                    style="text-decoration: none; color: inherit; margin-right: 10px;">Mã khuyến mãi →</a>
+                <a href="/ShopToolNro/views/admin/sepay_webhooks.php"
+                    style="text-decoration: none; color: inherit; margin-left: 10px;">Lịch sử Webhook →</a>
+                <a href="/ShopToolNro/views/admin/logs.php"
+                    style="text-decoration: none; color: inherit; margin-left: 10px;">API Error Logs →</a>
             </h3>
         </div>
     </div>

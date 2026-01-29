@@ -1009,8 +1009,8 @@ BEGIN
   v_description := LOWER(v_transaction.transaction_content);
   
   -- Try to extract user identifier from transaction content
-  -- Format: "shoptoolnro-username-amount" or "shoptoolnro username amount"
-  -- Example: "shoptoolnro-admin-50000" or "shoptoolnro admin 50000"
+  -- Format: "shoptoolnro{username}{amount}" (no special chars - bank limitation)
+  -- Example: "shoptoolnroadmin50000" or "shoptoolnroadmin10000"
   
   -- Method 1: Find pending topup with matching amount and description
   SELECT * INTO v_topup
@@ -1023,13 +1023,17 @@ BEGIN
   
   -- Method 2: Extract username from description
   IF NOT FOUND THEN
-    -- Try to match pattern: shoptoolnro-{username}-{amount}
-    IF v_description ~ 'shoptoolnro[- ]([a-z0-9]+)[- ]' THEN
+    -- Try to match pattern: shoptoolnro{username}{amount}
+    -- Remove all spaces and special chars first
+    v_description := regexp_replace(v_description, '[^a-z0-9]', '', 'g');
+    
+    IF v_description ~ '^shoptoolnro([a-z0-9]+)[0-9]+$' THEN
       DECLARE
         v_username text;
       BEGIN
-        -- Extract username using regex
-        v_username := substring(v_description from 'shoptoolnro[- ]([a-z0-9]+)');
+        -- Extract username: remove 'shoptoolnro' prefix and numeric suffix (amount)
+        v_username := regexp_replace(v_description, '^shoptoolnro', '');
+        v_username := regexp_replace(v_username, '[0-9]+$', '');
         
         -- Find user by username
         SELECT id INTO v_user_id

@@ -160,41 +160,126 @@ try {
 
     $db->callApi('sepay_webhook_logs', 'POST', $logData);
 
-    // The trigger will automatically process the transaction
-    // But we can also call the function manually for immediate response
+    // ====================================================================
+    // LOGIC XỬ LÝ GIAO DỊCH TỰ ĐỘNG (PHP)
+    // 1. Chuẩn hóa nội dung (xóa ký tự đặc biệt, giữ lại a-z, 0-9)
+    // 2. Chiến lược 1: Regex Neo Số Tiền (Chính xác cao cho format shoptoolnro{user}{amount})
+    // 3. Chiến lược 2: Quét đơn chờ (Fallback)
+    // ====================================================================
+
+    $processed = false;
+    $processMessage = 'Transaction stored';
+    $matchedTopupId = null;
+
     if ($transaction_id && $amount_in > 0) {
-        $processResult = $db->callApi(
-            'rpc/process_sepay_transaction',
-            'POST',
-            ['p_transaction_id' => $transaction_id]
-        );
+        $desc = strtolower($transaction_content);
+        $cleanDesc = preg_replace('/[^a-z0-9]/', '', $desc); // Ví dụ: shoptoolnroadmin10000
+        $amountStr = strval(intval($amount_in)); // 10000
 
-        if ($processResult && $processResult->code == 200) {
-            $processData = $processResult->response;
+        $matchedTopup = null;
+        $matchedUserId = null;
 
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Transaction received and processed',
-                'transaction_id' => $transaction_id,
-                'processing_result' => $processData
-            ]);
-        } else {
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
-                'message' => 'Transaction received (processing pending)',
-                'transaction_id' => $transaction_id
-            ]);
+        // --- CHIẾN LƯỢC 1: Regex Neo Số Tiền ---
+        $extractedUser = null;
+        if (preg_match('/shoptoolnro([a-z0-9]+)' . $amountStr . '/', $cleanDesc, $matches)) {
+            $extractedUser = $matches[1];
         }
-    } else {
-        http_response_code(200);
-        echo json_encode([
-            'success' => true,
-            'message' => 'Transaction received',
-            'transaction_id' => $transaction_id
-        ]);
+
+        if ($extractedUser) {
+            // Tìm user có username khớp
+            $userRes = $db->callApi('users?username=ilike.' . $extractedUser, 'GET');
+            if ($userRes && $userRes->code == 200 && !empty($userRes->response)) {
+                $user = $userRes->response[0];
+
+                // Tìm đơn nạp pending của user này với số tiền chính xác
+                $queryParams = http_build_query([
+                    'user_id' => 'eq.' . $user['id'],
+                    'amount' => 'eq.' . $amount_in,
+                    'status' => 'eq.pending',
+                    'limit' => 1
+                ]);
+                $topupRes = $db->callApi('topup_requests?' . $queryParams, 'GET');
+
+                if ($topupRes && $topupRes->code == 200 && !empty($topupRes->response)) {
+                    $matchedTopup = $topupRes->response[0];
+                    $matchedUserId = $user['id'];
+                    $processMessage = "Match Strategy 1: Username '$extractedUser'";
+                }
+            }
+        }
+
+        // --- CHIẾN LƯỢC 2: Quét đơn chờ (Fallback) ---
+        if (!$matchedTopup) {
+            $queryParams = http_build_query([
+                'amount' => 'eq.' . $amount_in,
+                'status' => 'eq.pending',
+                'order' => 'created_at.asc'
+            ]);
+            $topupsResult = $db->callApi('topup_requests?' . $queryParams, 'GET');
+
+            if ($topupsResult && $topupsResult->code == 200 && !empty($topupsResult->response)) {
+                foreach ($topupsResult->response as $topup) {
+                    $userRes = $db->callApi('users?id=eq.' . $topup['user_id'] . '&select=username', 'GET');
+                    if ($userRes && $userRes->code == 200 && !empty($userRes->response)) {
+                        $username = strtolower($userRes->response[0]['username']);
+                        $simpleUsername = preg_replace('/[^a-z0-9]/', '', $username);
+
+                        $targetStrict = 'shoptoolnro' . $simpleUsername . $amountStr;
+                        $targetLoose = 'shoptoolnro' . $username;
+
+                        if (strpos($cleanDesc, $targetStrict) !== false || strpos($desc, $targetLoose) !== false) {
+                            $matchedTopup = $topup;
+                            $matchedUserId = $topup['user_id'];
+                            $processMessage = "Match Strategy 2: Pending Scan for '$username'";
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- XỬ LÝ KẾT QUẢ ---
+        if ($matchedTopup) {
+            // 1. Update user balance
+            $userRes = $db->callApi('users?id=eq.' . $matchedUserId, 'GET');
+            if ($userRes && $userRes->code == 200) {
+                $currentBalance = $userRes->response[0]['balance'];
+                $newBalance = $currentBalance + $amount_in;
+
+                $db->callApi('users?id=eq.' . $matchedUserId, 'PATCH', ['balance' => $newBalance]);
+
+                // 2. Approve topup
+                $db->callApi('topup_requests?id=eq.' . $matchedTopup['id'], 'PATCH', [
+                    'status' => 'approved',
+                    'approved_at' => date('Y-m-d H:i:s'),
+                    'description' => $matchedTopup['description'] . ' [Auto SePay: ' . $transaction_id . ']',
+                ]);
+
+                // 3. Update transaction as processed
+                $db->callApi('sepay_transactions?id=eq.' . $transaction_id, 'PATCH', [
+                    'processed' => true,
+                    'matched_topup_id' => $matchedTopup['id'],
+                    'matched_user_id' => $matchedUserId,
+                    'processed_at' => date('Y-m-d H:i:s')
+                ]);
+
+                $processed = true;
+                $processMessage .= " -> Auto-approved topup #" . $matchedTopup['id'];
+                $matchedTopupId = $matchedTopup['id'];
+            }
+        } else {
+            $processMessage = "No matching pending topup found for format in desc: $cleanDesc";
+        }
     }
+
+    http_response_code(200);
+    echo json_encode([
+        'success' => true,
+        'message' => $processMessage,
+        'transaction_id' => $transaction_id,
+        'processed' => $processed,
+        'topup_id' => $matchedTopupId
+    ]);
 
 } catch (Exception $e) {
     // Log error

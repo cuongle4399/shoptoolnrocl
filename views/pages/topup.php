@@ -888,7 +888,8 @@ $transferContent = $pendingTopup
             if (transferContent) return transferContent;
             const safeUser = (username || 'user').replace(/\s+/g, '').toLowerCase();
             const safeAmount = Number.isFinite(amount) ? Math.round(amount) : 0;
-            return `shoptoolnro-${safeUser}-${safeAmount}`;
+            // Format: shoptoolnro{username}{amount} (no dashes - bank doesn't accept special chars)
+            return `shoptoolnro${safeUser}${safeAmount}`;
         }
 
         function generateQRCode(amount) {
