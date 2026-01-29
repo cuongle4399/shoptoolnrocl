@@ -116,42 +116,24 @@ $desc = strtolower($content);
 $cleanDesc = preg_replace('/[^a-z0-9]/', '', $desc);
 $amountStr = strval(intval($amount_in));
 
-// Logic 1: Regex Amount Anchor (shoptoolnroadmin10000)
-if (preg_match('/shoptoolnro([a-z0-9]+)' . $amountStr . '/', $cleanDesc, $matches)) {
-    $extractedUser = $matches[1];
-    $userRes = $db->callApi('users?username=ilike.' . $extractedUser, 'GET');
+// Logic: Match by 'shop' + TopupID (e.g. shop123)
+if (preg_match('/shop(\d+)/', $cleanDesc, $matches)) {
+    $extractedId = (int) $matches[1];
 
-    if (!empty($userRes->response)) {
-        $user = $userRes->response[0];
-        // Tìm topup pending
-        $q = http_build_query(['user_id' => 'eq.' . $user['id'], 'amount' => 'eq.' . $amount_in, 'status' => 'eq.pending', 'limit' => 1]);
-        $topupRes = $db->callApi('topup_requests?' . $q, 'GET');
+    // Find the pending topup request by ID
+    // We strictly check for 'pending' status to avoid double processing or processing old requests
+    $q = http_build_query(['id' => 'eq.' . $extractedId, 'status' => 'eq.pending', 'limit' => 1]);
+    $topupRes = $db->callApi('topup_requests?' . $q, 'GET');
 
-        if (!empty($topupRes->response)) {
-            $topup = $topupRes->response[0];
-            processSuccess($db, $user['id'], $topup['id'], $transaction_id, $amount_in, $topup['description']);
+    if (!empty($topupRes->response)) {
+        $topup = $topupRes->response[0];
+
+        // Security Check: Amount must match or be greater than requested
+        // Allow small difference? No, usually exact match. 
+        // Let's allow strictly >= request amount
+        if ($amount_in >= $topup['amount']) {
+            processSuccess($db, $topup['user_id'], $topup['id'], $transaction_id, $amount_in, $topup['description']);
             $processed = true;
-        }
-    }
-}
-
-// Logic 2: Fallback (Scan pending)
-if (!$processed) {
-    $q = http_build_query(['amount' => 'eq.' . $amount_in, 'status' => 'eq.pending']);
-    $list = $db->callApi('topup_requests?' . $q, 'GET');
-    if (!empty($list->response)) {
-        foreach ($list->response as $t) {
-            $uRes = $db->callApi('users?id=eq.' . $t['user_id'], 'GET');
-            if (!empty($uRes->response)) {
-                $uname = strtolower($uRes->response[0]['username']);
-                $simpleU = preg_replace('/[^a-z0-9]/', '', $uname);
-                // Check match
-                if (strpos($cleanDesc, 'shoptoolnro' . $simpleU . $amountStr) !== false) {
-                    processSuccess($db, $t['user_id'], $t['id'], $transaction_id, $amount_in, $t['description']);
-                    $processed = true;
-                    break;
-                }
-            }
         }
     }
 }

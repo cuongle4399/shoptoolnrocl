@@ -43,7 +43,7 @@ $pendingTopupId = $pendingTopup['id'] ?? 0;
 $pendingAmountRaw = $pendingTopup['amount'] ?? 0;
 $normalizedUsername = strtolower(preg_replace('/[^a-z0-9]/', '', $user['username'] ?? 'user'));
 $transferContent = $pendingTopup
-    ? sprintf('shoptoolnro%s%d', $normalizedUsername, (int) $pendingAmountRaw)
+    ? sprintf('shop%d', $pendingTopupId)
     : '';
 ?>
 
