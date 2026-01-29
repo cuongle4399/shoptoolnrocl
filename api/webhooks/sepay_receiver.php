@@ -67,11 +67,17 @@ if ($enableIpCheck && !isIpWhitelisted($client_ip, $whitelistIps)) {
 // Verify webhook secret (if configured)
 $webhookSecret = $_ENV['SEPAY_WEBHOOK_SECRET'] ?? '';
 if (!empty($webhookSecret)) {
-    // SePay gửi secret qua header x-client-key hoặc x-api-key (theo docs SePay)
+    // SePay gửi secret qua header Authorization hoặc x-client-key/x-api-key
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
     $receivedSecret = $_SERVER['HTTP_X_CLIENT_KEY']
         ?? $_SERVER['HTTP_X_API_KEY']
         ?? $_SERVER['HTTP_X_WEBHOOK_SECRET']
         ?? '';
+
+    // Ưu tiên lấy từ Authorization header (Format: Apikey {token})
+    if (!empty($authHeader) && preg_match('/Apikey\s+(.*)$/i', $authHeader, $matches)) {
+        $receivedSecret = trim($matches[1]);
+    }
 
     if (empty($receivedSecret)) {
         http_response_code(401);
