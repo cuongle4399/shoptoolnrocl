@@ -3,26 +3,21 @@
 // SePay Webhook Receiver (Optimized & Clean)
 // ====================================================================
 
-// 1. Ghi log thô ngay lập tức để debug (Tắt sau khi test thành công)
-file_put_contents(__DIR__ . '/sepay.log', date('Y-m-d H:i:s') . ' - HIT: ' . file_get_contents('php://input') . PHP_EOL, FILE_APPEND);
+// 1. Đọc dữ liệu input stream (chỉ đọc 1 lần)
+$raw_data = file_get_contents('php://input');
+
+// Ghi log thô
+file_put_contents(__DIR__ . '/sepay.log', date('Y-m-d H:i:s') . ' - HIT: ' . $raw_data . PHP_EOL, FILE_APPEND);
 
 header('Content-Type: application/json');
 
-// 2. Load env thủ công (Tránh include file có session_start)
-$envFile = __DIR__ . '/../../.env';
-$env = [];
-if (file_exists($envFile)) {
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0 || strpos($line, '=') === false)
-            continue;
-        list($key, $value) = explode('=', $line, 2);
-        $env[trim($key)] = trim($value);
-    }
-}
+// 2. Load env clean (không session)
+require_once __DIR__ . '/../../includes/env_loader.php';
+loadEnv(__DIR__ . '/../../.env');
+$env = $_ENV; // env_loader populates $_ENV
 
-// 3. Auth Check (Server-to-Server, NO Session)
-$secret = $env['SEPAY_WEBHOOK_SECRET'] ?? '';
+// 3. Auth Check (Server-to-Server)
+$secret = $env['SEPAY_WEBHOOK_SECRET'] ?? getenv('SEPAY_WEBHOOK_SECRET') ?? '';
 $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
 
 // Nếu có config secret thì bắt buộc phải check
@@ -49,9 +44,8 @@ if (!empty($secret)) {
     }
 }
 
-// 4. Đọc dữ liệu JSON
-$raw_data = file_get_contents('php://input');
-$data = json_decode($raw_data, true); // Decode thành mảng, không phải object
+// 4. Parse JSON
+$data = json_decode($raw_data, true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
