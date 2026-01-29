@@ -1,345 +1,196 @@
 <?php
 // ====================================================================
-// SePay Webhook Receiver
-// Receives transaction notifications from SePay and auto-approves topup
+// SePay Webhook Receiver (Optimized & Clean)
 // ====================================================================
+
+// 1. Ghi log thô ngay lập tức để debug (Tắt sau khi test thành công)
+file_put_contents(__DIR__ . '/sepay.log', date('Y-m-d H:i:s') . ' - HIT: ' . file_get_contents('php://input') . PHP_EOL, FILE_APPEND);
 
 header('Content-Type: application/json');
 
-// Load environment variables from .env file
+// 2. Load env thủ công (Tránh include file có session_start)
 $envFile = __DIR__ . '/../../.env';
+$env = [];
 if (file_exists($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0)
-            continue;
-        if (strpos($line, '=') === false)
+        if (strpos(trim($line), '#') === 0 || strpos($line, '=') === false)
             continue;
         list($key, $value) = explode('=', $line, 2);
-        $key = trim($key);
-        $value = trim($value);
-        if (!empty($key) && !isset($_ENV[$key])) {
-            $_ENV[$key] = $value;
-            putenv("$key=$value");
-        }
+        $env[trim($key)] = trim($value);
     }
 }
 
-// Get configuration from environment
-$enableIpCheck = filter_var($_ENV['SEPAY_ENABLE_IP_CHECK'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
-$whitelistIps = !empty($_ENV['SEPAY_WHITELIST_IPS'])
-    ? array_map('trim', explode(',', $_ENV['SEPAY_WHITELIST_IPS']))
-    : ['103.124.92.0/24', '171.244.50.0/24'];
+// 3. Auth Check (Server-to-Server, NO Session)
+$secret = $env['SEPAY_WEBHOOK_SECRET'] ?? '';
+$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
 
-// Get client IP
-$client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+// Nếu có config secret thì bắt buộc phải check
+if (!empty($secret)) {
+    // Chấp nhận cả 2 dạng: "Apikey <token>" hoặc gửi token trực tiếp
+    $isValid = false;
 
-// Function to check if IP is in whitelist
-function isIpWhitelisted($ip, $whitelist)
-{
-    foreach ($whitelist as $range) {
-        if (strpos($range, '/') !== false) {
-            // CIDR notation
-            list($subnet, $mask) = explode('/', $range);
-            $ip_long = ip2long($ip);
-            $subnet_long = ip2long($subnet);
-            $mask_long = -1 << (32 - (int) $mask);
-            if (($ip_long & $mask_long) == ($subnet_long & $mask_long)) {
-                return true;
-            }
-        } else {
-            // Single IP
-            if ($ip === $range) {
-                return true;
-            }
-        }
+    // Check 1: Chuẩn Authorization: Apikey ...
+    if ($authHeader === 'Apikey ' . $secret) {
+        $isValid = true;
     }
-    return false;
+    // Check 2: Header tùy chỉnh cũ (fallback)
+    elseif (
+        ($_SERVER['HTTP_X_CLIENT_KEY'] ?? '') === $secret ||
+        ($_SERVER['HTTP_X_API_KEY'] ?? '') === $secret
+    ) {
+        $isValid = true;
+    }
+
+    if (!$isValid) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    }
 }
 
-// Verify IP whitelist (controlled by .env)
-if ($enableIpCheck && !isIpWhitelisted($client_ip, $whitelistIps)) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'IP not whitelisted']);
+// 4. Đọc dữ liệu JSON
+$raw_data = file_get_contents('php://input');
+$data = json_decode($raw_data, true); // Decode thành mảng, không phải object
+
+if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Invalid JSON']);
     exit;
 }
 
-// Verify webhook secret (if configured)
-$webhookSecret = $_ENV['SEPAY_WEBHOOK_SECRET'] ?? '';
-if (!empty($webhookSecret)) {
-    // SePay gửi secret qua header Authorization hoặc x-client-key/x-api-key
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-    $receivedSecret = $_SERVER['HTTP_X_CLIENT_KEY']
-        ?? $_SERVER['HTTP_X_API_KEY']
-        ?? $_SERVER['HTTP_X_WEBHOOK_SECRET']
-        ?? '';
+// 5. Kết nối DB (Cần cẩn thận không include file nào có session_start)
+// Database.php của bạn có session_start() không?
+// Kiểm tra: config/database.php thường an toàn.
+require_once __DIR__ . '/../../config/database.php';
+$database = new Database();
+$db = $database->connect();
 
-    // Ưu tiên lấy từ Authorization header (Format: Apikey {token})
-    if (!empty($authHeader) && preg_match('/Apikey\s+(.*)$/i', $authHeader, $matches)) {
-        $receivedSecret = trim($matches[1]);
-    }
+// Lấy dữ liệu
+$amount_in = $data['transferAmount'] ?? 0;
+$content = $data['content'] ?? '';
+$transaction_date = $data['transactionDate'] ?? '';
+$reference_number = $data['referenceCode'] ?? '';
+$gateway = $data['gateway'] ?? '';
+$transfer_type = $data['transferType'] ?? '';
 
-    if (empty($receivedSecret)) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Missing webhook secret']);
-        exit;
-    }
+// Chỉ xử lý giao dịch nhận tiền (in)
+if ($transfer_type !== 'in') {
+    http_response_code(200);
+    echo json_encode(['success' => true, 'message' => 'Ignored outgoing transaction']);
+    exit;
+}
 
-    if (!hash_equals($webhookSecret, $receivedSecret)) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Invalid webhook secret']);
-        exit;
+// deduplication check
+$isDuplicate = false;
+if (!empty($reference_number)) {
+    $checkParams = http_build_query(['reference_number' => 'eq.' . $reference_number, 'amount_in' => 'eq.' . $amount_in, 'select' => 'id']);
+    $checkRes = $db->callApi('sepay_transactions?' . $checkParams, 'GET');
+    if (!empty($checkRes->response))
+        $isDuplicate = true;
+}
+
+if ($isDuplicate) {
+    http_response_code(200);
+    echo json_encode(['success' => true, 'message' => 'Duplicate']);
+    exit;
+}
+
+// Insert Transaction (Lưu Log)
+$transactionData = [
+    'gateway' => $gateway,
+    'transaction_date' => $transaction_date,
+    'account_number' => $data['accountNumber'] ?? '',
+    'sub_account' => $data['subAccount'] ?? '',
+    'amount_in' => $amount_in,
+    'amount_out' => 0,
+    'accumulated' => $data['accumulated'] ?? 0,
+    'code' => $data['code'] ?? '',
+    'transaction_content' => $content,
+    'reference_number' => $reference_number,
+    'description' => $data['description'] ?? '',
+    'raw_data' => $data
+];
+$res = $db->callApi('sepay_transactions', 'POST', $transactionData);
+$transaction_id = $res->response[0]['id'] ?? null;
+
+// ============================================
+// PROCESSING LOGIC (PHP Pure)
+// ============================================
+$processed = false;
+$desc = strtolower($content);
+$cleanDesc = preg_replace('/[^a-z0-9]/', '', $desc);
+$amountStr = strval(intval($amount_in));
+
+// Logic 1: Regex Amount Anchor (shoptoolnroadmin10000)
+if (preg_match('/shoptoolnro([a-z0-9]+)' . $amountStr . '/', $cleanDesc, $matches)) {
+    $extractedUser = $matches[1];
+    $userRes = $db->callApi('users?username=ilike.' . $extractedUser, 'GET');
+
+    if (!empty($userRes->response)) {
+        $user = $userRes->response[0];
+        // Tìm topup pending
+        $q = http_build_query(['user_id' => 'eq.' . $user['id'], 'amount' => 'eq.' . $amount_in, 'status' => 'eq.pending', 'limit' => 1]);
+        $topupRes = $db->callApi('topup_requests?' . $q, 'GET');
+
+        if (!empty($topupRes->response)) {
+            $topup = $topupRes->response[0];
+            processSuccess($db, $user['id'], $topup['id'], $transaction_id, $amount_in, $topup['description']);
+            $processed = true;
+        }
     }
 }
 
-require_once __DIR__ . '/../../config/database.php';
-
-try {
-    // Get raw POST data
-    $raw_data = file_get_contents('php://input');
-    $data = json_decode($raw_data);
-
-    if (!is_object($data)) {
-        throw new Exception('Invalid JSON data');
-    }
-
-    // Extract transaction data from SePay
-    $gateway = $data->gateway ?? '';
-    $transaction_date = $data->transactionDate ?? '';
-    $account_number = $data->accountNumber ?? '';
-    $sub_account = $data->subAccount ?? '';
-    $transfer_type = $data->transferType ?? '';
-    $transfer_amount = $data->transferAmount ?? 0;
-    $accumulated = $data->accumulated ?? 0;
-    $code = $data->code ?? '';
-    $transaction_content = $data->content ?? '';
-    $reference_number = $data->referenceCode ?? '';
-    $description = $data->description ?? '';
-
-    // Determine amount in/out
-    $amount_in = 0;
-    $amount_out = 0;
-
-    if ($transfer_type == "in") {
-        $amount_in = $transfer_amount;
-    } else if ($transfer_type == "out") {
-        $amount_out = $transfer_amount;
-    }
-
-    // Connect to Supabase
-    $database = new Database();
-    $db = $database->connect();
-
-    // ===================================
-    // DEDUPLICATION CHECK (Anti-Duplicate)
-    // ===================================
-    $isDuplicate = false;
-    if (!empty($reference_number)) {
-        // Check by unique reference number (preferred)
-        $checkParams = http_build_query([
-            'reference_number' => 'eq.' . $reference_number,
-            'amount_in' => 'eq.' . $amount_in,
-            'select' => 'id'
-        ]);
-        $checkRes = $db->callApi('sepay_transactions?' . $checkParams, 'GET');
-        if ($checkRes && $checkRes->code == 200 && !empty($checkRes->response)) {
-            $isDuplicate = true;
-        }
-    } else {
-        // Fallback: Check by content + amount + date
-        $checkParams = http_build_query([
-            'transaction_content' => 'eq.' . $transaction_content,
-            'amount_in' => 'eq.' . $amount_in,
-            'transaction_date' => 'eq.' . $transaction_date,
-            'select' => 'id'
-        ]);
-        $checkRes = $db->callApi('sepay_transactions?' . $checkParams, 'GET');
-        if ($checkRes && $checkRes->code == 200 && !empty($checkRes->response)) {
-            $isDuplicate = true;
-        }
-    }
-
-    if ($isDuplicate) {
-        http_response_code(200);
-        echo json_encode(['success' => true, 'message' => 'Duplicate transaction ignored']);
-        exit;
-    }
-
-    // Prepare data for insertion
-    $transactionData = [
-        'gateway' => $gateway,
-        'transaction_date' => $transaction_date,
-        'account_number' => $account_number,
-        'sub_account' => $sub_account,
-        'amount_in' => $amount_in,
-        'amount_out' => $amount_out,
-        'accumulated' => $accumulated,
-        'code' => $code,
-        'transaction_content' => $transaction_content,
-        'reference_number' => $reference_number,
-        'description' => $description,
-        'raw_data' => json_decode($raw_data, true) // Store as JSONB
-    ];
-
-    // Insert transaction into database
-    $result = $db->callApi('sepay_transactions', 'POST', $transactionData);
-
-    if (!$result || $result->code != 201) {
-        throw new Exception('Failed to insert transaction: ' . ($result->message ?? 'Unknown error'));
-    }
-
-    $transaction_id = $result->response[0]['id'] ?? null;
-
-    // Log webhook call
-    $logData = [
-        'request_body' => json_decode($raw_data, true),
-        'request_headers' => getallheaders(),
-        'ip_address' => $client_ip,
-        'success' => true,
-        'transaction_id' => $transaction_id
-    ];
-
-    $db->callApi('sepay_webhook_logs', 'POST', $logData);
-
-    // ====================================================================
-    // LOGIC XỬ LÝ GIAO DỊCH TỰ ĐỘNG (PHP)
-    // 1. Chuẩn hóa nội dung (xóa ký tự đặc biệt, giữ lại a-z, 0-9)
-    // 2. Chiến lược 1: Regex Neo Số Tiền (Chính xác cao cho format shoptoolnro{user}{amount})
-    // 3. Chiến lược 2: Quét đơn chờ (Fallback)
-    // ====================================================================
-
-    $processed = false;
-    $processMessage = 'Transaction stored';
-    $matchedTopupId = null;
-
-    if ($transaction_id && $amount_in > 0) {
-        $desc = strtolower($transaction_content);
-        $cleanDesc = preg_replace('/[^a-z0-9]/', '', $desc); // Ví dụ: shoptoolnroadmin10000
-        $amountStr = strval(intval($amount_in)); // 10000
-
-        $matchedTopup = null;
-        $matchedUserId = null;
-
-        // --- CHIẾN LƯỢC 1: Regex Neo Số Tiền ---
-        $extractedUser = null;
-        if (preg_match('/shoptoolnro([a-z0-9]+)' . $amountStr . '/', $cleanDesc, $matches)) {
-            $extractedUser = $matches[1];
-        }
-
-        if ($extractedUser) {
-            // Tìm user có username khớp
-            $userRes = $db->callApi('users?username=ilike.' . $extractedUser, 'GET');
-            if ($userRes && $userRes->code == 200 && !empty($userRes->response)) {
-                $user = $userRes->response[0];
-
-                // Tìm đơn nạp pending của user này với số tiền chính xác
-                $queryParams = http_build_query([
-                    'user_id' => 'eq.' . $user['id'],
-                    'amount' => 'eq.' . $amount_in,
-                    'status' => 'eq.pending',
-                    'limit' => 1
-                ]);
-                $topupRes = $db->callApi('topup_requests?' . $queryParams, 'GET');
-
-                if ($topupRes && $topupRes->code == 200 && !empty($topupRes->response)) {
-                    $matchedTopup = $topupRes->response[0];
-                    $matchedUserId = $user['id'];
-                    $processMessage = "Match Strategy 1: Username '$extractedUser'";
+// Logic 2: Fallback (Scan pending)
+if (!$processed) {
+    $q = http_build_query(['amount' => 'eq.' . $amount_in, 'status' => 'eq.pending']);
+    $list = $db->callApi('topup_requests?' . $q, 'GET');
+    if (!empty($list->response)) {
+        foreach ($list->response as $t) {
+            $uRes = $db->callApi('users?id=eq.' . $t['user_id'], 'GET');
+            if (!empty($uRes->response)) {
+                $uname = strtolower($uRes->response[0]['username']);
+                $simpleU = preg_replace('/[^a-z0-9]/', '', $uname);
+                // Check match
+                if (strpos($cleanDesc, 'shoptoolnro' . $simpleU . $amountStr) !== false) {
+                    processSuccess($db, $t['user_id'], $t['id'], $transaction_id, $amount_in, $t['description']);
+                    $processed = true;
+                    break;
                 }
             }
         }
-
-        // --- CHIẾN LƯỢC 2: Quét đơn chờ (Fallback) ---
-        if (!$matchedTopup) {
-            $queryParams = http_build_query([
-                'amount' => 'eq.' . $amount_in,
-                'status' => 'eq.pending',
-                'order' => 'created_at.asc'
-            ]);
-            $topupsResult = $db->callApi('topup_requests?' . $queryParams, 'GET');
-
-            if ($topupsResult && $topupsResult->code == 200 && !empty($topupsResult->response)) {
-                foreach ($topupsResult->response as $topup) {
-                    $userRes = $db->callApi('users?id=eq.' . $topup['user_id'] . '&select=username', 'GET');
-                    if ($userRes && $userRes->code == 200 && !empty($userRes->response)) {
-                        $username = strtolower($userRes->response[0]['username']);
-                        $simpleUsername = preg_replace('/[^a-z0-9]/', '', $username);
-
-                        $targetStrict = 'shoptoolnro' . $simpleUsername . $amountStr;
-                        $targetLoose = 'shoptoolnro' . $username;
-
-                        if (strpos($cleanDesc, $targetStrict) !== false || strpos($desc, $targetLoose) !== false) {
-                            $matchedTopup = $topup;
-                            $matchedUserId = $topup['user_id'];
-                            $processMessage = "Match Strategy 2: Pending Scan for '$username'";
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        // --- XỬ LÝ KẾT QUẢ ---
-        if ($matchedTopup) {
-            // 1. Update user balance
-            $userRes = $db->callApi('users?id=eq.' . $matchedUserId, 'GET');
-            if ($userRes && $userRes->code == 200) {
-                $currentBalance = $userRes->response[0]['balance'];
-                $newBalance = $currentBalance + $amount_in;
-
-                $db->callApi('users?id=eq.' . $matchedUserId, 'PATCH', ['balance' => $newBalance]);
-
-                // 2. Approve topup
-                $db->callApi('topup_requests?id=eq.' . $matchedTopup['id'], 'PATCH', [
-                    'status' => 'approved',
-                    'approved_at' => date('Y-m-d H:i:s'),
-                    'description' => $matchedTopup['description'] . ' [Auto SePay: ' . $transaction_id . ']',
-                ]);
-
-                // 3. Update transaction as processed
-                $db->callApi('sepay_transactions?id=eq.' . $transaction_id, 'PATCH', [
-                    'processed' => true,
-                    'matched_topup_id' => $matchedTopup['id'],
-                    'matched_user_id' => $matchedUserId,
-                    'processed_at' => date('Y-m-d H:i:s')
-                ]);
-
-                $processed = true;
-                $processMessage .= " -> Auto-approved topup #" . $matchedTopup['id'];
-                $matchedTopupId = $matchedTopup['id'];
-            }
-        } else {
-            $processMessage = "No matching pending topup found for format in desc: $cleanDesc";
-        }
     }
+}
 
-    http_response_code(200);
-    echo json_encode([
-        'success' => true,
-        'message' => $processMessage,
-        'transaction_id' => $transaction_id,
-        'processed' => $processed,
-        'topup_id' => $matchedTopupId
+// 6. Trả về đúng chuẩn 200 JSON
+http_response_code(200);
+echo json_encode(['success' => true]);
+exit;
+
+
+// Helper function to update DB
+function processSuccess($db, $userId, $topupId, $transId, $amount, $desc)
+{
+    // + Tiền User
+    $u = $db->callApi('users?id=eq.' . $userId, 'GET');
+    $bal = $u->response[0]['balance'] + $amount;
+    $db->callApi('users?id=eq.' . $userId, 'PATCH', ['balance' => $bal]);
+
+    // Update Topup
+    $db->callApi('topup_requests?id=eq.' . $topupId, 'PATCH', [
+        'status' => 'approved',
+        'approved_at' => date('Y-m-d H:i:s'),
+        'description' => $desc . ' [Auto]'
     ]);
 
-} catch (Exception $e) {
-    // Log error
-    if (isset($db)) {
-        $logData = [
-            'request_body' => json_decode($raw_data ?? '{}', true),
-            'request_headers' => getallheaders(),
-            'ip_address' => $client_ip,
-            'success' => false,
-            'error_message' => $e->getMessage()
-        ];
-
-        $db->callApi('sepay_webhook_logs', 'POST', $logData);
+    // Update Trans
+    if ($transId) {
+        $db->callApi('sepay_transactions?id=eq.' . $transId, 'PATCH', [
+            'processed' => true,
+            'matched_topup_id' => $topupId,
+            'matched_user_id' => $userId,
+            'processed_at' => date('Y-m-d H:i:s')
+        ]);
     }
-
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
 }
 ?>
