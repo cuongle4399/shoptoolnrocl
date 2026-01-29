@@ -116,8 +116,8 @@ $desc = strtolower($content);
 $cleanDesc = preg_replace('/[^a-z0-9]/', '', $desc);
 $amountStr = strval(intval($amount_in));
 
-// Logic: Match by 'shop' + TopupID (e.g. shop123)
-if (preg_match('/shop(\d+)/', $cleanDesc, $matches)) {
+// Logic: Match by 'shoptoolnrocl' + TopupID (e.g. shoptoolnrocl123)
+if (preg_match('/shoptoolnrocl(\d+)/', $cleanDesc, $matches)) {
     $extractedId = (int) $matches[1];
 
     // Find the pending topup request by ID
